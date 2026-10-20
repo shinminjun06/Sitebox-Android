@@ -12,6 +12,9 @@ final class ThemeAssets {
  private final LruCache<String,Bitmap> cache=new LruCache<String,Bitmap>(24*1024*1024){
   @Override protected int sizeOf(String key,Bitmap bitmap){return bitmap.getAllocationByteCount();}
  };
+ private final LruCache<String,Bitmap> previews=new LruCache<String,Bitmap>(2*1024*1024){
+  @Override protected int sizeOf(String key,Bitmap bitmap){return bitmap.getAllocationByteCount();}
+ };
  static final String[] SHELVES={"oak","walnut","white_oak"};
  static final String[] BOOKS={"classic","pastel","modern"};
  ThemeAssets(Context context){this.context=context.getApplicationContext();}
@@ -30,5 +33,15 @@ final class ThemeAssets {
   Bitmap room=get("scenes/classroom_"+(landscape?"landscape":"portrait")+".webp");
   return room!=null?room:get("school_morning.jpg");
  }
- void clear(){cache.evictAll();}
+ Bitmap scene(SceneTheme theme,boolean landscape){
+  Bitmap room=get(theme.assetPath(landscape));return room!=null?room:scene(landscape);
+ }
+ Bitmap scenePreview(SceneTheme theme){
+  String path=theme.assetPath(false);Bitmap existing=previews.get(path);if(existing!=null)return existing;
+  try(InputStream stream=context.getAssets().open(path)){
+   BitmapFactory.Options options=new BitmapFactory.Options();options.inScaled=false;options.inSampleSize=8;
+   Bitmap decoded=BitmapFactory.decodeStream(stream,null,options);if(decoded!=null)previews.put(path,decoded);return decoded;
+  }catch(Exception unavailable){return null;}
+ }
+ void clear(){cache.evictAll();previews.evictAll();}
 }

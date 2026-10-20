@@ -16,7 +16,8 @@ import java.io.FileOutputStream;
 /** Device tests with no external test dependency. Restores original user preferences. */
 public final class SmokeInstrumentation extends Instrumentation {
  volatile MainActivity activity;
- String backupSites,backupCategories,demoSites;
+ String backupSites,backupCategories,demoSites,backupBackground;
+ boolean hadBackground;
  int backupShelf,backupBook;
  StringBuilder checks=new StringBuilder();
  void check(boolean value,String name){if(!value)throw new AssertionError(name);checks.append("PASS ").append(name).append('\n');}
@@ -26,9 +27,9 @@ public final class SmokeInstrumentation extends Instrumentation {
   Bundle result=new Bundle();int code=Activity.RESULT_OK;
   try {
    activity=(MainActivity)startActivitySync(new Intent(getTargetContext(),MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));waitForIdleSync();
-   SharedPreferences prefs=activity.getPreferences(0);backupSites=prefs.getString("sites","[]");backupCategories=prefs.getString("categories","[]");backupShelf=prefs.getInt("shelfTheme",0);backupBook=prefs.getInt("bookTheme",0);
+   SharedPreferences prefs=activity.getPreferences(0);backupSites=prefs.getString("sites","[]");backupCategories=prefs.getString("categories","[]");backupShelf=prefs.getInt("shelfTheme",0);backupBook=prefs.getInt("bookTheme",0);hadBackground=prefs.contains("backgroundTheme");backupBackground=prefs.getString("backgroundTheme","classroom");
    main(()->{
-    activity.sites=new JSONArray();activity.filter="";activity.page=0;
+    activity.applyBackgroundTheme("classroom");activity.sites=new JSONArray();activity.filter="";activity.page=0;
     for(int cell=0;cell<9;cell++)for(int k=0;k<(cell==0?8:3);k++){
      JSONObject item=new JSONObject();try{item.put("name",new String[]{"나의 공부","개발 노트","AI 연구","게임 자료","영상 모음","쇼핑 목록","함께 읽기","생활 기록","기타 사이트"}[cell]+" "+(k+1));item.put("url","https://example.com/"+cell+"/"+k);item.put("category",activity.categories[cell]);item.put("fav",k==0);item.put("sortOrder",k*1000L);}catch(Exception e){throw new RuntimeException(e);}activity.sites.put(item);
     }
@@ -86,6 +87,7 @@ public final class SmokeInstrumentation extends Instrumentation {
    renameCategory();
    rotateScreens();
    pinchCollapseRestore();
+   backgroundCollection();
    main(()->{
     View root=((ViewGroup)activity.stage).getChildAt(1);View header=((ViewGroup)root).getChildAt(0);
     check(header.performLongClick()&&activity.backgroundOnly,"classroom-only reveal preserved");
@@ -96,9 +98,105 @@ public final class SmokeInstrumentation extends Instrumentation {
    checks.append("PASS all nine theme combinations rendered\n");
   }catch(Throwable failure){try{snapshot("failure.png");}catch(Throwable ignored){}code=Activity.RESULT_CANCELED;result.putString("failure",failure.toString());checks.append("FAIL ").append(failure);}
   finally{
-   if(activity!=null&&backupSites!=null){main(()->{activity.getPreferences(0).edit().putString("sites",backupSites).putString("categories",backupCategories).putInt("shelfTheme",backupShelf).putInt("bookTheme",backupBook).commit();activity.finish();});}
+   if(activity!=null&&backupSites!=null){main(()->{SharedPreferences.Editor restore=activity.getPreferences(0).edit().putString("sites",backupSites).putString("categories",backupCategories).putInt("shelfTheme",backupShelf).putInt("bookTheme",backupBook);if(hadBackground)restore.putString("backgroundTheme",backupBackground);else restore.remove("backgroundTheme");restore.commit();activity.finish();});}
   }
   result.putString("stream",checks.toString());finish(code,result);
+ }
+ void backgroundCollection(){
+  final String data=activity.sites.toString();final int shelf=activity.shelfThemeIndex,book=activity.bookThemeIndex;
+  main(()->{activity.search.setText("example.com/");activity.page=1;activity.populate();});
+  final int page=activity.page;final String filter=activity.filter;
+  check(SceneTheme.ALL.length==11,"classroom plus ten selectable background concepts");
+  for(SceneTheme theme:SceneTheme.ALL){
+   main(()->activity.showBackgroundThemes());
+   clickBackgroundChoice(theme.name);waitForIdleSync();
+   if(theme.id.equals("classroom")||theme.id.equals("train"))snapshot("background-dialog-"+theme.id+".png");
+   clickText("닫기");waitForIdleSync();
+   main(()->{
+    check(activity.backgroundThemeId.equals(theme.id),theme.id+" selected through native background dialog");
+    check(activity.getPreferences(0).getString(SceneTheme.PREFERENCE_KEY,"").equals(theme.id),theme.id+" selection persisted immediately");
+    check(activity.shelfThemeIndex==shelf&&activity.bookThemeIndex==book,theme.id+" background independent of cabinet and book themes");
+    check(activity.sites.toString().equals(data)&&activity.page==page&&activity.filter.equals(filter),theme.id+" selection preserves data page and filter");
+    activity.backgroundThemeId="not-loaded";activity.load();
+    check(activity.backgroundThemeId.equals(theme.id),theme.id+" selection survives settings reload");
+    activity.collapseToScene(false);
+   });
+   awaitScene(true);
+   main(()->checkSelectedScene(theme));snapshot("scene-"+theme.id+".png");
+   // Exercise the same native tap target for every scene, not only the default classroom.
+   clickDescription("작아진 책장 열기");awaitScene(false);
+   main(()->{
+    check(activity.controls.getVisibility()==View.VISIBLE&&activity.miniature.getVisibility()==View.GONE,theme.id+" miniature tap restores library");
+    check(activity.sites.toString().equals(data)&&activity.page==page&&activity.filter.equals(filter),theme.id+" collapse and tap preserve library state");
+   });
+   if(theme.id.equals("library")||theme.id.equals("bedroom")){
+    snapshot("scene-"+theme.id+"-expanded.png");rotateBackground(theme);
+   }
+  }
+  main(()->{activity.applyBackgroundTheme("classroom");activity.search.setText("");activity.page=0;activity.populate();});
+ }
+ void clickBackgroundChoice(String name){
+  long deadline=android.os.SystemClock.uptimeMillis()+5000;
+  do {
+   waitForIdleSync();android.view.accessibility.AccessibilityNodeInfo root=getUiAutomation().getRootInActiveWindow();
+   if(root!=null)for(android.view.accessibility.AccessibilityNodeInfo node:root.findAccessibilityNodeInfosByText(name)){
+    if(name.contentEquals(node.getText())){android.view.accessibility.AccessibilityNodeInfo target=node;while(target!=null){if(target.isClickable()&&target.performAction(android.view.accessibility.AccessibilityNodeInfo.ACTION_CLICK))return;target=target.getParent();}}
+   }
+   scrollDialogForward(root);android.os.SystemClock.sleep(50);
+  }while(android.os.SystemClock.uptimeMillis()<deadline);
+  throw new AssertionError("background dialog choice: "+name);
+ }
+ boolean scrollDialogForward(android.view.accessibility.AccessibilityNodeInfo node){
+  if(node==null)return false;
+  if(node.isScrollable()&&node.performAction(android.view.accessibility.AccessibilityNodeInfo.ACTION_SCROLL_FORWARD))return true;
+  for(int i=0;i<node.getChildCount();i++)if(scrollDialogForward(node.getChild(i)))return true;
+  return false;
+ }
+ void checkSelectedScene(SceneTheme theme){
+  boolean wide=BookLayout.wideScene(activity.stage.getWidth(),activity.stage.getHeight());
+  Bitmap expected=activity.assets.get(theme.assetPath(wide));
+  check(expected!=null&&activity.sceneBackdrop==expected,theme.id+" correct selected artwork decoded without fallback");
+  check(((android.graphics.drawable.BitmapDrawable)activity.backdrop.getDrawable()).getBitmap()==expected,theme.id+" selected artwork displayed");
+  check(activity.backgroundThemeId.equals(theme.id)&&activity.sceneCollapsed&&!activity.sceneAnimating,theme.id+" scene state remains selected");
+  if(theme.id.equals("classroom")){checkRoomGrounding();return;}
+  float x=activity.miniature.getX(),y=activity.miniature.getY(),w=activity.miniature.getWidth()*activity.miniature.getScaleX(),h=activity.miniature.getHeight()*activity.miniature.getScaleY();
+  float vw=activity.stage.getWidth(),vh=activity.stage.getHeight();
+  check(w>vw*.12f&&h>vh*.12f&&x>=0&&y>=0&&x+w<=vw+1&&y+h<=vh+1,theme.id+" readable compact cabinet fits viewport");
+  // Read the rendered ImageView matrix, rather than calling the geometry method under test.
+  float[] sourceAnchor={expected.getWidth()*theme.centerX,expected.getHeight()*theme.feet};
+  activity.backdrop.getImageMatrix().mapPoints(sourceAnchor);
+  check(Math.abs(y+h-sourceAnchor[1])<vh*.045f,theme.id+" cabinet feet contact the visible artwork floor anchor");
+  check(Math.abs(x+w*.5f-sourceAnchor[0])<vw*.045f,theme.id+" cabinet aligns with reserved left or right artwork space");
+  check(y>=0&&y+h>vh*.45f&&y+h<vh*.98f,theme.id+" cabinet floor pose remains visible for room camera angle");
+  check(activity.sceneShadow.getVisibility()==View.VISIBLE&&activity.sceneShadow.getAlpha()>.99f,theme.id+" visible contact shadow");
+ }
+ void rotateBackground(SceneTheme theme){
+  final String data=activity.sites.toString(),filter=activity.filter;final int page=activity.page;
+  android.app.Application application=activity.getApplication();
+  android.app.Application.ActivityLifecycleCallbacks listener=new android.app.Application.ActivityLifecycleCallbacks(){
+   public void onActivityCreated(Activity a,Bundle b){}public void onActivityStarted(Activity a){}
+   public void onActivityResumed(Activity a){if(a instanceof MainActivity)activity=(MainActivity)a;}
+   public void onActivityPaused(Activity a){}public void onActivityStopped(Activity a){}
+   public void onActivitySaveInstanceState(Activity a,Bundle b){}public void onActivityDestroyed(Activity a){}
+  };
+  application.registerActivityLifecycleCallbacks(listener);
+  try{
+   main(()->activity.collapseToScene(false));awaitScene(true);
+   for(int orientation:new int[]{android.content.pm.ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE,android.content.pm.ActivityInfo.SCREEN_ORIENTATION_PORTRAIT}){
+    MainActivity before=activity;main(()->activity.setRequestedOrientation(orientation));
+    long deadline=android.os.SystemClock.uptimeMillis()+8000;
+    while(activity==before&&android.os.SystemClock.uptimeMillis()<deadline)android.os.SystemClock.sleep(50);
+    check(activity!=before,theme.id+" rotation recreated activity");awaitScene(true);
+    main(()->{
+     int expectedOrientation=orientation==android.content.pm.ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE?android.content.res.Configuration.ORIENTATION_LANDSCAPE:android.content.res.Configuration.ORIENTATION_PORTRAIT;
+     check(activity.getResources().getConfiguration().orientation==expectedOrientation,theme.id+" requested orientation active");
+     checkSelectedScene(theme);
+     check(activity.sites.toString().equals(data)&&activity.filter.equals(filter)&&activity.page==page,theme.id+" rotation preserves library state");
+    });
+    snapshot("scene-"+theme.id+(orientation==android.content.pm.ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE?"-landscape.png":"-portrait.png"));
+   }
+   clickDescription("작아진 책장 열기");awaitScene(false);
+  }finally{application.unregisterActivityLifecycleCallbacks(listener);}
  }
  void renameCategory(){
   String original=activity.categories[0];main(()->activity.manageCategories());android.os.SystemClock.sleep(300);
@@ -141,7 +239,18 @@ public final class SmokeInstrumentation extends Instrumentation {
  }
  void collectEdits(android.view.accessibility.AccessibilityNodeInfo node,java.util.List<android.view.accessibility.AccessibilityNodeInfo> found){if(node==null)return;if("android.widget.EditText".contentEquals(node.getClassName()))found.add(node);for(int i=0;i<node.getChildCount();i++)collectEdits(node.getChild(i),found);}
  void setText(android.view.accessibility.AccessibilityNodeInfo node,String text){Bundle args=new Bundle();args.putCharSequence(android.view.accessibility.AccessibilityNodeInfo.ACTION_ARGUMENT_SET_TEXT_CHARSEQUENCE,text);check(node.performAction(android.view.accessibility.AccessibilityNodeInfo.ACTION_SET_TEXT,args),"text field accepts edit");}
- void clickText(String text){android.view.accessibility.AccessibilityNodeInfo root=getUiAutomation().getRootInActiveWindow();if(root!=null)for(android.view.accessibility.AccessibilityNodeInfo node:root.findAccessibilityNodeInfosByText(text)){if(text.contentEquals(node.getText())&&node.performAction(android.view.accessibility.AccessibilityNodeInfo.ACTION_CLICK))return;}throw new AssertionError("click target: "+text);}
+ void clickText(String text){
+  long deadline=android.os.SystemClock.uptimeMillis()+5000;
+  do {waitForIdleSync();android.view.accessibility.AccessibilityNodeInfo root=getUiAutomation().getRootInActiveWindow();if(root!=null)for(android.view.accessibility.AccessibilityNodeInfo node:root.findAccessibilityNodeInfosByText(text)){
+   if(text.contentEquals(node.getText())){android.view.accessibility.AccessibilityNodeInfo target=node;while(target!=null){if(target.isClickable()&&target.performAction(android.view.accessibility.AccessibilityNodeInfo.ACTION_CLICK))return;target=target.getParent();}}
+  }android.os.SystemClock.sleep(50);}while(android.os.SystemClock.uptimeMillis()<deadline);
+  throw new AssertionError("click target: "+text);
+ }
+ void awaitScene(boolean collapsed){
+  long deadline=android.os.SystemClock.uptimeMillis()+5000;final boolean[] ready={false};
+  do {main(()->ready[0]=activity.sceneCollapsed==collapsed&&!activity.sceneAnimating&&activity.stage.getWidth()>0&&activity.stage.getHeight()>0);if(ready[0])return;android.os.SystemClock.sleep(50);}while(android.os.SystemClock.uptimeMillis()<deadline);
+  throw new AssertionError("scene transition timed out: collapsed="+collapsed);
+ }
  void checkRoomGrounding(){
   Bitmap room=activity.sceneBackdrop;android.util.DisplayMetrics viewport=activity.getResources().getDisplayMetrics();boolean landscape=BookLayout.wideScene(viewport.widthPixels,viewport.heightPixels);
   check(room!=null&&(room.getWidth()>room.getHeight())==landscape,"orientation-specific classroom artwork loaded");
@@ -154,9 +263,9 @@ public final class SmokeInstrumentation extends Instrumentation {
  }
  void pinchCollapseRestore(){
   final int count=activity.sites.length(),oldPage=activity.page;final String oldFilter=activity.filter;
-  pinch(false);android.os.SystemClock.sleep(500);waitForIdleSync();
+  pinch(false);awaitScene(false);
   main(()->check(!activity.sceneCollapsed,"outward pinch does not collapse cabinet"));
-  pinch(true);android.os.SystemClock.sleep(650);waitForIdleSync();
+  pinch(true);awaitScene(true);
   main(()->{
    check(activity.sceneCollapsed&&!activity.sceneAnimating,"inward two-finger gesture collapses cabinet");
    checkRoomGrounding();
@@ -166,9 +275,9 @@ public final class SmokeInstrumentation extends Instrumentation {
    check(x>=0&&y>=0&&x+activity.miniature.getWidth()*activity.miniature.getScaleX()<=activity.stage.getWidth()+1&&y+activity.miniature.getHeight()*activity.miniature.getScaleY()<=activity.stage.getHeight()+1,"miniature remains inside screen");
    check(activity.sites.length()==count&&activity.page==oldPage&&activity.filter.equals(oldFilter),"pinch preserves bookmarks page and search");
   });
-  snapshot("pinch-collapsed.png");clickDescription("작아진 책장 열기");android.os.SystemClock.sleep(650);waitForIdleSync();
+  snapshot("pinch-collapsed.png");clickDescription("작아진 책장 열기");awaitScene(false);
   main(()->{check(!activity.sceneCollapsed&&!activity.sceneAnimating,"tap miniature restores full-size cabinet");check(activity.sceneShadow.getVisibility()==View.GONE,"contact shadow removed on expansion");check(activity.controls.getVisibility()==View.VISIBLE&&activity.miniature.getVisibility()==View.GONE,"full controls restored without overlay");});
-  snapshot("pinch-restored.png");pinch(true);android.os.SystemClock.sleep(650);waitForIdleSync();rotateScreens();
+  snapshot("pinch-restored.png");pinch(true);awaitScene(true);rotateScreens();
  }
  void clickDescription(String description){android.view.accessibility.AccessibilityNodeInfo root=getUiAutomation().getRootInActiveWindow();android.view.accessibility.AccessibilityNodeInfo node=findDescription(root,description);if(node==null||!node.performAction(android.view.accessibility.AccessibilityNodeInfo.ACTION_CLICK))throw new AssertionError("click description "+description);waitForIdleSync();}
  android.view.accessibility.AccessibilityNodeInfo findDescription(android.view.accessibility.AccessibilityNodeInfo root,String description){if(root==null)return null;if(root.getContentDescription()!=null&&description.contentEquals(root.getContentDescription()))return root;for(int i=0;i<root.getChildCount();i++){android.view.accessibility.AccessibilityNodeInfo found=findDescription(root.getChild(i),description);if(found!=null)return found;}return null;}

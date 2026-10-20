@@ -26,3 +26,15 @@ for name,wide in [('portrait',False),('landscape',True)]:
   assert (room.width>room.height)==wide and max(room.size)<=2048,(path,room.size)
   assert path.stat().st_size<500000,path
 print('PASS: portrait and landscape classroom backgrounds; orientation, decode, memory and file-size bounds')
+
+scene_hashes=set()
+for key in ['library','bedroom','greenhouse','cafe','tatami','attic','lab','wizard','seaside','train']:
+ path=Path('app/src/main/assets/scenes')/(key+'.webp')
+ with Image.open(path) as room:
+  room.load()
+  assert room.format=='WEBP' and room.mode=='RGB' and room.height>room.width,(key,room.size)
+  assert max(room.size)<=2048 and path.stat().st_size<500000,path
+ import hashlib
+ scene_hashes.add(hashlib.sha256(path.read_bytes()).hexdigest())
+assert len(scene_hashes)==10,'Each concept needs distinct artwork'
+print('PASS: ten unique portrait background concepts; bounded WebP assets')
