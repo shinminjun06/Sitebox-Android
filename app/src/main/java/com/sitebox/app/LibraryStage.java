@@ -2,32 +2,31 @@ package com.sitebox.app;
 
 import android.content.Context;
 import android.view.MotionEvent;
-import android.view.ScaleGestureDetector;
 import android.widget.FrameLayout;
 
-/** Receives two fingers before child scrolling/book long presses can consume them. */
+/** Owns a two-finger stream before child scrolling/book long presses consume it. */
 final class LibraryStage extends FrameLayout {
- private final ScaleGestureDetector detector;
+ private final Runnable pinchIn;
  private boolean multiTouch,triggered;
- private float accumulated=1;
- LibraryStage(Context context,Runnable pinchIn){
-  super(context);
-  detector=new ScaleGestureDetector(context,new ScaleGestureDetector.SimpleOnScaleGestureListener(){
-   @Override public boolean onScaleBegin(ScaleGestureDetector gesture){accumulated=1;return true;}
-   @Override public boolean onScale(ScaleGestureDetector gesture){
-    accumulated*=gesture.getScaleFactor();
-    if(!triggered&&accumulated<.76f){triggered=true;pinchIn.run();}
-    return true;
-   }
-  });
-  detector.setQuickScaleEnabled(false);
- }
+ private int first=-1,second=-1;
+ private float initialSpan;
+ LibraryStage(Context context,Runnable pinchIn){super(context);this.pinchIn=pinchIn;}
  @Override public boolean dispatchTouchEvent(MotionEvent event){
-  if(event.getActionMasked()==MotionEvent.ACTION_DOWN){multiTouch=false;triggered=false;}
-  if(event.getPointerCount()>1)multiTouch=true;
-  detector.onTouchEvent(event);
+  int action=event.getActionMasked();
+  if(action==MotionEvent.ACTION_DOWN){multiTouch=false;triggered=false;initialSpan=0;first=event.getPointerId(0);second=-1;}
+  if(action==MotionEvent.ACTION_POINTER_DOWN&&event.getPointerCount()==2){
+   multiTouch=true;first=event.getPointerId(0);second=event.getPointerId(1);initialSpan=span(event);
+   // ScrollView may already have requested ownership. Reclaim this multi-touch stream.
+   requestDisallowInterceptTouchEvent(false);
+  }
+  if(action==MotionEvent.ACTION_MOVE&&multiTouch&&!triggered&&initialSpan>48*getResources().getDisplayMetrics().density){
+   float current=span(event);
+   if(current>0&&current/initialSpan<.76f){triggered=true;pinchIn.run();}
+  }
+  if(action==MotionEvent.ACTION_POINTER_UP){int lifted=event.getPointerId(event.getActionIndex());if(lifted==first||lifted==second)initialSpan=0;}
   return super.dispatchTouchEvent(event);
  }
+ private float span(MotionEvent event){int a=event.findPointerIndex(first),b=event.findPointerIndex(second);return a<0||b<0?0:(float)Math.hypot(event.getX(a)-event.getX(b),event.getY(a)-event.getY(b));}
  @Override public boolean onInterceptTouchEvent(MotionEvent event){return multiTouch||super.onInterceptTouchEvent(event);}
  @Override public boolean onTouchEvent(MotionEvent event){return multiTouch||super.onTouchEvent(event);}
 }
