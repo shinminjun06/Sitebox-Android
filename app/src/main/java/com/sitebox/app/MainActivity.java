@@ -112,9 +112,14 @@ public class MainActivity extends Activity {
  for(int k=0;k<7;k++){
  int pos=page*7+k;
  LinearLayout.LayoutParams bp=new LinearLayout.LayoutParams(0,dp(105),1);bp.setMargins(0,0,0,0);
- if(pos<grouped.get(cell).size()){int idx=grouped.get(cell).get(pos);books.addView(new BookView(this,sites.optJSONObject(idx),idx),bp);}
- else books.addView(new View(this),bp);
+ View slot;
+ if(pos<grouped.get(cell).size()){int idx=grouped.get(cell).get(pos);slot=new BookView(this,sites.optJSONObject(idx),idx);}
+ else slot=new View(this);
+ final int targetCell=cell,targetPos=pos;
+ slot.setOnDragListener((v,event)->handleBookDrop(v,event,targetCell,targetPos));
+ books.addView(slot,bp);
  }
+ books.setOnDragListener((v,event)->handleBookDrop(v,event,cell,page*7+7));
  compartment.addView(books);
  TextView plate=label(categories[cell],11,0xFF4E3018);plate.setGravity(Gravity.CENTER);GradientDrawable brass=new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM,new int[]{0xFFFFE5A4,0xFFD6A55B,0xFFAE773B});brass.setCornerRadius(dp(5));brass.setStroke(dp(1),0xFF8D602D);plate.setBackground(brass);LinearLayout.LayoutParams plateParams=new LinearLayout.LayoutParams(-1,dp(23));plateParams.setMargins(dp(12),dp(1),dp(12),dp(6));compartment.addView(plate,plateParams);
  final int selectedCell=cell;plate.setOnClickListener(v->edit(-1,categories[selectedCell]));
@@ -129,7 +134,7 @@ public class MainActivity extends Activity {
  TextView tip=label("책을 누르면 열기  ·  길게 누르면 이동",12,0xFFFFFFFF);tip.setGravity(Gravity.CENTER);tip.setPadding(0,dp(12),0,dp(8));tip.setBackground(bg(0x99382418,8));shelves.addView(tip);
  }
  class BookView extends View {
- Paint p=new Paint(3);JSONObject item;int idx;long down;float y;
+ Paint p=new Paint(3);JSONObject item;int idx;float downX,downY;boolean dragging=false;Handler handler=new Handler(Looper.getMainLooper());Runnable startDrag;
  BookView(Context c,JSONObject obj,int index){super(c);item=obj;idx=index;setLayerType(View.LAYER_TYPE_SOFTWARE,null);setContentDescription(obj.optString("name"));}
  @Override protected void onDraw(Canvas canvas){super.onDraw(canvas);
  float w=getWidth(),h=getHeight(),left=dp(1),top=dp(5),right=w-dp(1),bottom=h;
@@ -144,7 +149,24 @@ public class MainActivity extends Activity {
  canvas.drawText(name,(left+right)/2,(top+bottom)/2+dp(3),p);canvas.restore();
  if(item.optBoolean("fav")){p.setTextSize(dp(11));p.setTextAlign(Paint.Align.CENTER);p.setColor(0xFFFFD477);canvas.drawText("★",w/2,top+dp(24),p);}
  }
- @Override public boolean onTouchEvent(android.view.MotionEvent e){if(e.getAction()==MotionEvent.ACTION_DOWN){down=System.currentTimeMillis();y=e.getY();return true;}if(e.getAction()==MotionEvent.ACTION_UP){if(System.currentTimeMillis()-down>550&&Math.abs(e.getY()-y)<dp(20))moveBook(idx);else {animate().scaleX(0.12f).setDuration(170).withEndAction(()->{animate().scaleX(1f).setDuration(220).start();showBook(idx);}).start();}return true;}return true;}
+ @Override public boolean onTouchEvent(android.view.MotionEvent e){
+ switch(e.getActionMasked()){
+ case MotionEvent.ACTION_DOWN:
+ downX=e.getX();downY=e.getY();dragging=false;
+ startDrag=()->{dragging=true;setAlpha(0.6f);performHapticFeedback(android.view.HapticFeedbackConstants.LONG_PRESS);android.content.ClipData data=android.content.ClipData.newPlainText("sitebox-book",String.valueOf(idx));startDragAndDrop(data,new View.DragShadowBuilder(this),Integer.valueOf(idx),0);};
+ handler.postDelayed(startDrag,450);return true;
+ case MotionEvent.ACTION_MOVE:
+ if(!dragging&&(Math.abs(e.getX()-downX)>dp(12)||Math.abs(e.getY()-downY)>dp(12)))handler.removeCallbacks(startDrag);
+ return true;
+ case MotionEvent.ACTION_UP:
+ handler.removeCallbacks(startDrag);
+ if(!dragging)showBook(idx);
+ return true;
+ case MotionEvent.ACTION_CANCEL:
+ handler.removeCallbacks(startDrag);setAlpha(1f);return true;
+ }
+ return true;
+ }
  }
  void showBook(int index){
  JSONObject o=sites.optJSONObject(index);if(o==null)return;
@@ -193,23 +215,29 @@ public class MainActivity extends Activity {
  categories=updated;save();populate();
  }).show();
  }
- void moveBook(int index){
- JSONObject selected=sites.optJSONObject(index);if(selected==null)return;
- LinearLayout layout=new LinearLayout(this);layout.setOrientation(1);layout.setPadding(dp(20),dp(12),dp(20),dp(8));
- TextView hint=label("이동할 책장 칸",15,0xFF4A3020);layout.addView(hint);
- Spinner target=new Spinner(this);ArrayAdapter<String> adapter=new ArrayAdapter<String>(this,android.R.layout.simple_spinner_dropdown_item,categories);target.setAdapter(adapter);target.setSelection(categoryIndex(selected.optString("category")));layout.addView(target);
- TextView orderLabel=label("놓을 위치 (1 = 맨 왼쪽)",15,0xFF4A3020);orderLabel.setPadding(0,dp(12),0,0);layout.addView(orderLabel);
- EditText position=new EditText(this);position.setInputType(android.text.InputType.TYPE_CLASS_NUMBER);position.setSingleLine(true);position.setText("1");layout.addView(position);
- new AlertDialog.Builder(this).setTitle("책 위치 옮기기").setView(layout).setNegativeButton("취소",null).setNeutralButton("책 정보 수정",(d,w)->edit(index)).setPositiveButton("이동",(d,w)->{
- int dest=target.getSelectedItemPosition();int requested=1;try{requested=Math.max(1,Integer.parseInt(position.getText().toString()));}catch(Exception ignored){}
- ArrayList<Integer> ordered=new ArrayList<>();
- for(int i=0;i<sites.length();i++){if(i==index)continue;JSONObject o=sites.optJSONObject(i);if(o!=null&&categoryIndex(o.optString("category"))==dest)ordered.add(i);}
- Collections.sort(ordered,(a,b)->{JSONObject x=sites.optJSONObject(a),y=sites.optJSONObject(b);int n=Long.compare(x.optLong("sortOrder",a*1000L),y.optLong("sortOrder",b*1000L));return n!=0?n:Integer.compare(a,b);});
- ordered.add(Math.min(requested-1,ordered.size()),index);
- try{selected.put("category",categories[dest]);for(int i=0;i<ordered.size();i++)sites.optJSONObject(ordered.get(i)).put("sortOrder",i*1000L);save();page=(Math.min(requested,ordered.size())-1)/7;populate();}catch(Exception e){Toast.makeText(this,"이동에 실패했어요.",Toast.LENGTH_SHORT).show();}
- }).show();
+ boolean handleBookDrop(View target,android.view.DragEvent event,int category,int position){
+ if(!(event.getLocalState() instanceof Integer))return false;
+ switch(event.getAction()){
+ case android.view.DragEvent.ACTION_DRAG_STARTED:return true;
+ case android.view.DragEvent.ACTION_DRAG_ENTERED:target.setBackgroundColor(0x66FFD98C);return true;
+ case android.view.DragEvent.ACTION_DRAG_EXITED:target.setBackgroundColor(Color.TRANSPARENT);return true;
+ case android.view.DragEvent.ACTION_DROP:
+ target.setBackgroundColor(Color.TRANSPARENT);
+ int index=((Integer)event.getLocalState()).intValue();
+ moveBookTo(index,category,position);return true;
+ case android.view.DragEvent.ACTION_DRAG_ENDED:
+ target.setBackgroundColor(Color.TRANSPARENT);return true;
  }
-
+ return true;
+ }
+ void moveBookTo(int index,int category,int position){
+ JSONObject selected=sites.optJSONObject(index);if(selected==null)return;
+ ArrayList<Integer> ordered=new ArrayList<>();
+ for(int i=0;i<sites.length();i++){if(i==index)continue;JSONObject o=sites.optJSONObject(i);if(o!=null&&categoryIndex(o.optString("category"))==category)ordered.add(i);}
+ Collections.sort(ordered,(a,b)->{JSONObject x=sites.optJSONObject(a),y=sites.optJSONObject(b);int n=Long.compare(x.optLong("sortOrder",a*1000L),y.optLong("sortOrder",b*1000L));return n!=0?n:Integer.compare(a,b);});
+ int insertion=Math.max(0,Math.min(position,ordered.size()));ordered.add(insertion,index);
+ try{selected.put("category",categories[category]);for(int i=0;i<ordered.size();i++)sites.optJSONObject(ordered.get(i)).put("sortOrder",i*1000L);save();page=insertion/7;populate();}catch(Exception e){Toast.makeText(this,"이동하지 못했어요.",Toast.LENGTH_SHORT).show();}
+ }
  void options(int index){JSONObject o=sites.optJSONObject(index);if(o==null)return;String[] choices={o.optBoolean("fav")?"즐겨찾기 해제":"★ 즐겨찾기","책 정보 수정","책장에서 삭제"};new AlertDialog.Builder(this).setTitle(o.optString("name")).setItems(choices,(d,which)->{if(which==0){try{o.put("fav",!o.optBoolean("fav"));save();populate();}catch(Exception e){}}else if(which==1)edit(index);else new AlertDialog.Builder(this).setMessage("이 사이트를 삭제할까요?").setNegativeButton("취소",null).setPositiveButton("삭제",(a,b)->{sites.remove(index);save();populate();}).show();}).setNegativeButton("닫기",null).show();}
  void edit(int index){edit(index,null);}
  void edit(int index,String selectedCategory){JSONObject old=index<0?new JSONObject():sites.optJSONObject(index);LinearLayout fields=new LinearLayout(this);fields.setPadding(dp(20),dp(8),dp(20),0);fields.setOrientation(1);
