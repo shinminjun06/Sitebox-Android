@@ -64,7 +64,7 @@ public class MainActivity extends Activity {
  search=new EditText(this);search.setSingleLine(true);search.setTextColor(0xFFF5E8D1);search.setHintTextColor(0xFFBEA994);search.setTextSize(15);search.setHint("⌕  책 제목 · 주소 · 카테고리 검색");search.setPadding(dp(14),0,dp(12),0);search.setBackground(bg(0xDD4D382B,12));search.setText(filter);
  LinearLayout.LayoutParams sp=new LinearLayout.LayoutParams(-1,dp(46));sp.topMargin=dp(12);header.addView(search,sp);root.addView(header);
  ScrollView sc=new ScrollView(this);sc.setFillViewport(true);sc.setBackgroundColor(Color.TRANSPARENT);
- shelves=new LinearLayout(this);shelves.setOrientation(1);shelves.setPadding(dp(13),dp(15),dp(13),dp(25));shelves.setBackgroundColor(Color.TRANSPARENT);
+ shelves=new LinearLayout(this);shelves.setOrientation(1);shelves.setPadding(dp(13),dp(8),dp(13),dp(12));shelves.setBackgroundColor(Color.TRANSPARENT);
  sc.addView(shelves);root.addView(sc,new LinearLayout.LayoutParams(-1,0,1));
  stage.addView(root,new FrameLayout.LayoutParams(-1,-1));
  View overlay=new View(this);overlay.setBackgroundColor(Color.TRANSPARENT);overlay.setVisibility(View.GONE);
@@ -87,14 +87,14 @@ public class MainActivity extends Activity {
   WoodPanel(boolean vertical,boolean recess){this.vertical=vertical;this.recess=recess;}
   @Override public void draw(Canvas c){
    android.graphics.Rect r=getBounds();float w=r.width(),h=r.height();if(w<=0||h<=0)return;
-   int[] palette=recess?new int[]{0xFF493020,0xFF855A38,0xFF70482D,0xFF382419}:new int[]{0xFFF3C58A,0xFFD49C63,0xFFBD8050,0xFF9A5F38};
+   int[] palette=recess?new int[]{0xFF56361F,0xFF96613C,0xFF7E4D2E,0xFF49301E}:new int[]{0xFFF7D29B,0xFFDEAA70,0xFFC58B57,0xFFAA6D42};
    brush.setShader(new LinearGradient(r.left,r.top,r.left+(vertical?w:0),r.top+(vertical?0:h),palette,null,Shader.TileMode.CLAMP));
    c.drawRect(r,brush);brush.setShader(null);
    brush.setStyle(Paint.Style.STROKE);brush.setStrokeWidth(dp(.65f));
-   int count=vertical?Math.max(7,(int)(w/dp(5))):Math.max(4,(int)(h/dp(4)));
+   int count=vertical?Math.max(4,(int)(w/dp(18))):Math.max(3,(int)(h/dp(13)));
    for(int i=0;i<count;i++){
     float fraction=(i+.35f)/(count+.5f);
-    brush.setColor(i%3==0?0x3DFFE3B5:0x29704022);
+    brush.setColor(i%3==0?0x1FFFE3B5:0x16704022);
     Path grain=new Path();
     if(vertical){float x=r.left+w*fraction;grain.moveTo(x,r.top);grain.cubicTo(x+dp(2),r.top+h*.32f,x-dp(2),r.top+h*.68f,x+dp(1),r.bottom);}
     else{float y=r.top+h*fraction;grain.moveTo(r.left,y);grain.cubicTo(r.left+w*.3f,y+dp(1),r.left+w*.65f,y-dp(1),r.right,y);}
@@ -137,10 +137,10 @@ public class MainActivity extends Activity {
  int cell=shelfRow*3+shelfCol;
  LinearLayout compartment=new LinearLayout(this);compartment.setOrientation(LinearLayout.VERTICAL);
  GradientDrawable back=new GradientDrawable(GradientDrawable.Orientation.LEFT_RIGHT,new int[]{0xFF4D2E20,0xFF865635,0xFF6A412B,0xFF38251C});back.setStroke(dp(4),0xFFC18A58);compartment.setBackground(new WoodPanel(true,true));
- LinearLayout books=new LinearLayout(this);books.setGravity(Gravity.BOTTOM);books.setPadding(dp(3),dp(13),dp(3),0);
+ LinearLayout books=new LinearLayout(this);books.setGravity(Gravity.BOTTOM);books.setPadding(dp(3),dp(8),dp(3),0);
  for(int k=0;k<7;k++){
  int pos=page*7+k;
- LinearLayout.LayoutParams bp=new LinearLayout.LayoutParams(0,dp(146),1);bp.setMargins(0,0,0,0);
+ LinearLayout.LayoutParams bp=new LinearLayout.LayoutParams(0,dp(149),1);bp.setMargins(0,0,0,0);
  View slot;
  if(pos<grouped.get(cell).size()){int idx=grouped.get(cell).get(pos);slot=new BookView(this,sites.optJSONObject(idx),idx);}
  else slot=new View(this);
@@ -149,16 +149,16 @@ public class MainActivity extends Activity {
  books.addView(slot,bp);
  }
  books.setOnDragListener((v,event)->handleBookDrop(v,event,cell,page*7+7));
- compartment.addView(books);
+ compartment.addView(books,new LinearLayout.LayoutParams(-1,dp(159)));
  TextView plate=label(categories[cell],11,0xFF4E3018);plate.setGravity(Gravity.CENTER);GradientDrawable brass=new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM,new int[]{0xFFFFE5A4,0xFFD6A55B,0xFFAE773B});brass.setCornerRadius(dp(5));brass.setStroke(dp(1),0xFF8D602D);plate.setTypeface(Typeface.SERIF,Typeface.BOLD);plate.setElevation(dp(2));plate.setBackground(brass);LinearLayout.LayoutParams plateParams=new LinearLayout.LayoutParams(-1,dp(27));plateParams.setMargins(dp(9),dp(3),dp(9),dp(9));compartment.addView(plate,plateParams);
  final int selectedCell=cell;plate.setOnClickListener(v->edit(-1,categories[selectedCell]));
- LinearLayout.LayoutParams cp=new LinearLayout.LayoutParams(0,-2,1);cp.setMargins(dp(2),dp(2),dp(2),0);compartments.addView(compartment,cp);
+ LinearLayout.LayoutParams cp=new LinearLayout.LayoutParams(0,dp(202),1);cp.setMargins(dp(2),dp(2),dp(2),0);compartments.addView(compartment,cp);
  }
- shelves.addView(compartments);
+ shelves.addView(compartments,new LinearLayout.LayoutParams(-1,dp(206)));
  View lip=new View(this);GradientDrawable wood=new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM,new int[]{0xFFFFD49A,0xFFD39A61,0xFF9E653C,0xFF764629});wood.setStroke(dp(1),theme.gold);lip.setBackground(new WoodPanel(false,false));shelves.addView(lip,new LinearLayout.LayoutParams(-1,dp(12)));
  View shadow=new View(this);shadow.setBackgroundColor(theme.shadow);shelves.addView(shadow,new LinearLayout.LayoutParams(-1,dp(3)));
  }
- View pedestal=new View(this);GradientDrawable plinth=new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM,new int[]{0xFFF0C08A,0xFFBC8050,0xFF88512F});pedestal.setBackground(new WoodPanel(false,false));shelves.addView(pedestal,new LinearLayout.LayoutParams(-1,dp(30)));
+ View pedestal=new View(this);GradientDrawable plinth=new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM,new int[]{0xFFF0C08A,0xFFBC8050,0xFF88512F});pedestal.setBackground(new WoodPanel(false,false));shelves.addView(pedestal,new LinearLayout.LayoutParams(-1,dp(21)));
  View foot=new View(this);GradientDrawable base=new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM,new int[]{0xAA2C1A12,0x002C1A12});foot.setBackground(base);shelves.addView(foot,new LinearLayout.LayoutParams(-1,dp(16)));
  TextView tip=label("책을 누르면 열기  ·  길게 누르면 이동",12,0xFFFFFFFF);tip.setGravity(Gravity.CENTER);tip.setPadding(0,dp(12),0,dp(8));tip.setBackground(bg(0x99382418,8));shelves.addView(tip);
  }
