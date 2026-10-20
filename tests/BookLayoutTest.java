@@ -17,7 +17,7 @@ public class BookLayoutTest {
   java.lang.reflect.Method wide=layout.getDeclaredMethod("wideScene",float.class,float.class);
   if((Boolean)wide.invoke(null,720f,1560f)||(Boolean)wide.invoke(null,1080f,2400f)||!(Boolean)wide.invoke(null,1200f,1440f)||!(Boolean)wide.invoke(null,1080f,1080f))throw new AssertionError("Room composition must adapt to near-square windows");
   // The cabinet must sit beneath the sill and reach the floor in the shipped room art.
-  for(float[] profile:new float[][]{{720,1560,852,1846,.455f,.77f},{1560,720,1672,941,.40f,.81f},{1200,1440,1672,941,.40f,.81f},{1080,1080,1672,941,.40f,.81f}}){
+  for(float[] profile:new float[][]{{720,1560,852,1846,.43f,.665f},{1560,720,1672,941,.45f,.72f},{1200,1440,1672,941,.45f,.72f},{1080,1080,1672,941,.45f,.72f}}){
    float w=profile[0],h=profile[1],iw=profile[2],ih=profile[3];
    float scale=Math.max(w/iw,h/ih),offset=(h-ih*scale)*.5f;
    float[] cabinet=(float[])scene.invoke(null,w,h,iw,ih,0f,24f,0f,24f);

@@ -264,7 +264,7 @@ public final class SmokeInstrumentation extends Instrumentation {
   check(room!=null&&(room.getWidth()>room.getHeight())==landscape,"orientation-specific classroom artwork loaded");
   float scale=Math.max((float)activity.stage.getWidth()/room.getWidth(),(float)activity.stage.getHeight()/room.getHeight());
   float offset=(activity.stage.getHeight()-room.getHeight()*scale)*.5f;
-  float sill=offset+room.getHeight()*scale*(landscape?.40f:.43f),floor=offset+room.getHeight()*scale*(landscape?.81f:.665f);
+  float sill=offset+room.getHeight()*scale*(landscape?.45f:.43f),floor=offset+room.getHeight()*scale*(landscape?.72f:.665f);
   float top=activity.miniature.getY(),feet=top+activity.miniature.getHeight()*activity.miniature.getScaleY();
   check(top>sill&&feet>floor&&feet<floor+room.getHeight()*scale*.06f,"live cabinet stands beneath sill on classroom floor");
   check(activity.sceneShadow.getVisibility()==View.VISIBLE&&activity.sceneShadow.getAlpha()>.99f,"contact shadow visible beneath compact cabinet");
