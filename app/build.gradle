@@ -5,12 +5,22 @@ android {
  compileSdk 35
  defaultConfig {
   applicationId 'com.sitebox.app'
+  manifestPlaceholders = [appLabel: 'SiteBox']
   minSdk 24
   targetSdk 35
   testInstrumentationRunner 'com.sitebox.app.SmokeInstrumentation'
   versionCode 2
   versionName '2.0-school'
   buildConfigField 'String', 'SOURCE_REVISION', '"' + revision + '"'
+ }
+ buildTypes {
+  preview {
+   initWith debug
+   applicationIdSuffix '.preview'
+   versionNameSuffix '-preview'
+   manifestPlaceholders = [appLabel: 'SiteBox Preview']
+   matchingFallbacks = ['debug']
+  }
  }
  buildFeatures { buildConfig true }
  compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }

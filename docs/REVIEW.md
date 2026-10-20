@@ -33,6 +33,9 @@ Its private signing key is not included. A newly signed APK cannot replace that
 installed package while keeping its app data unless the original key is supplied.
 Do not uninstall an existing copy with irreplaceable bookmarks merely to test this
 build. The code preserves storage compatibility; signing compatibility is separate.
+A separate `preview` variant (`com.sitebox.app.preview`) is also built so users
+can install and evaluate the new app without uninstalling the old one. It cannot
+read the old package private data and does not pretend to migrate those books.
 The Actions workflow now caches its debug keystore for consistent subsequent debug
 updates. This is debug distribution, not production release signing. Cache deletion
 can still change signing. A production release should use an owned, backed-up
