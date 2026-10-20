@@ -1,0 +1,30 @@
+package com.sitebox.app;
+
+import android.content.Context;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.util.LruCache;
+import java.io.InputStream;
+
+/** Immutable shared bitmaps; bounded to 24 MiB, no decode during onDraw. */
+final class ThemeAssets {
+ private final Context context;
+ private final LruCache<String,Bitmap> cache=new LruCache<String,Bitmap>(24*1024*1024){
+  @Override protected int sizeOf(String key,Bitmap bitmap){return bitmap.getAllocationByteCount();}
+ };
+ static final String[] SHELVES={"oak","walnut","white_oak"};
+ static final String[] BOOKS={"classic","pastel","modern"};
+ ThemeAssets(Context context){this.context=context.getApplicationContext();}
+ Bitmap get(String path){
+  Bitmap existing=cache.get(path);if(existing!=null)return existing;
+  try(InputStream stream=context.getAssets().open(path)){
+   BitmapFactory.Options options=new BitmapFactory.Options();options.inScaled=false;
+   Bitmap decoded=BitmapFactory.decodeStream(stream,null,options);
+   if(decoded!=null)cache.put(path,decoded);
+   return decoded;
+  }catch(Exception unavailable){return null;}
+ }
+ Bitmap shelf(int index){return get("themes/shelves/"+SHELVES[index]+"/cabinet.webp");}
+ Bitmap book(int index,int variant){return get("themes/books/"+BOOKS[index]+"/"+(variant%4)+".webp");}
+ void clear(){cache.evictAll();}
+}

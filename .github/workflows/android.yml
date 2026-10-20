@@ -22,13 +22,51 @@ jobs:
           SDKMANAGER="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
           yes | "$SDKMANAGER" --licenses > /dev/null || true
           "$SDKMANAGER" "platforms;android-35" "build-tools;35.0.0"
-      - name: Generate bundled PNG theme textures
+      - name: Verify library rules and bundled artwork
         run: |
           python3 -m pip install --user Pillow
-          python3 scripts/generate_theme_textures.py
+          sh tests/run.sh
       - name: Build debug APK
-        run: gradle :app:assembleDebug --no-daemon
+        run: gradle :app:assembleDebug :app:assembleDebugAndroidTest :app:lintDebug --no-daemon
+      - name: Record provenance
+        run: |
+          echo "$GITHUB_SHA" > app/build/outputs/apk/debug/SOURCE_COMMIT.txt
+          sha256sum app/build/outputs/apk/debug/app-debug.apk > app/build/outputs/apk/debug/SHA256SUMS.txt
+      - name: Enable hardware acceleration
+        run: sudo chmod 666 /dev/kvm
+      - name: Run Android device QA and capture actual app screens
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          target: google_apis
+          arch: x86_64
+          profile: pixel_5
+          disable-animations: true
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none -camera-front none
+          script: |
+            adb shell wm size 720x1560
+            adb shell wm density 320
+            adb install -r app/build/outputs/apk/debug/app-debug.apk
+            adb install -r app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk
+            adb shell am instrument -w com.sitebox.app.test/com.sitebox.app.SmokeInstrumentation | tee device-tests.txt
+            mkdir -p device-qa
+            adb pull /sdcard/Android/data/com.sitebox.app/files/qa/ device-qa/
+            adb logcat -d -s AndroidRuntime:E > device-qa/crashes.txt
+            grep -q 'PASS all nine theme combinations rendered' device-tests.txt
+            ! grep -q 'FAIL ' device-tests.txt
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: SiteBox-device-qa
+          path: |
+            device-qa/
+            device-tests.txt
       - uses: actions/upload-artifact@v4
         with:
           name: SiteBox-debug-apk
-          path: app/build/outputs/apk/debug/app-debug.apk
+          path: |
+            app/build/outputs/apk/debug/app-debug.apk
+            app/build/outputs/apk/debug/SOURCE_COMMIT.txt
+            app/build/outputs/apk/debug/SHA256SUMS.txt
+            app/build/outputs/apk/androidTest/debug/*.apk
+            app/build/reports/lint-results-debug.html

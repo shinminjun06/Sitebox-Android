@@ -1,19 +1,19 @@
-# SiteBox texture themes
+# SiteBox artwork themes, format v1
 
-The app loads PNG files from the Android assets folder. If an image is missing, it falls back to its existing Canvas-drawn design.
+Shelf and book selections are independent and persisted with legacy preference keys.
+Each built-in theme has its own folder and `theme.json`. Furniture uses `cabinet.webp`,
+books use four transparent `0.webp`–`3.webp` variants. Titles, favorite markers and
+category names are live Android text, never baked into the image.
 
-## Shelf themes
+Artwork was generated as two production sprite atlases using the built-in image
+generation tool, then cropped/resampled into deployable WebP assets. No procedural
+wood or book texture generation occurs at build time. Source prompt and processing
+bounds are documented in `docs/ARTWORK.md`.
 
-- `shelves/oak/frame.png`
-- `shelves/walnut/frame.png`
-- `shelves/white_oak/frame.png`
-
-The shelf image currently acts as a **wood surface texture**, stretched separately over each wooden panel and cubby. It is **not yet** a single full 3x3 bookshelf frame image. Use seamless wood textures to avoid visible seams. Full-frame bookshelf rendering requires a later layout change.
-
-## Book themes
-
-For each of `books/classic/`, `books/pastel/`, `books/modern/`, provide transparent portrait PNGs named `navy.png`, `burgundy.png`, `ivory.png`, `green.png`, `brown.png`, `teal.png`, `blue.png`, `tan.png`.
-
-Book images are stretched to the current spine rectangle. Recommended starting resolution: 128 x 512 pixels per spine. The app overlays the editable book title. Drag, click, search and category grouping continue to be handled by Java.
-
-Theme selections are saved in Android SharedPreferences. Images must be added to the repository and included in a new APK build; user-imported ZIP themes are not supported yet.
+Shelf geometry is a shared normalized 3×3 template in `LibraryRules.cell`.
+The JSON documents the same bounds for future third-party adapters; v1 runtime
+loads bundled IDs only. User ZIP importing is **not** enabled in this release.
+A future importer must reject traversal/absolute/symlink paths, limit compressed
+and expanded byte counts, restrict file count and PNG/WebP dimensions, and stage
+validated immutable packages privately before activation. Do not directly unzip
+untrusted themes into the application's assets or preferences directories.

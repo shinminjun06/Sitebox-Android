@@ -1,0 +1,16 @@
+{
+  "id": "walnut",
+  "name": "짙은 월넛",
+  "kind": "shelf",
+  "version": 1,
+  "image": "cabinet.webp",
+  "aspect": 1.3,
+  "geometry": {
+    "left": 0.075,
+    "top": 0.075,
+    "columnStep": 0.3,
+    "rowStep": 0.272,
+    "cellWidth": 0.26,
+    "cellHeight": 0.245
+  }
+}
