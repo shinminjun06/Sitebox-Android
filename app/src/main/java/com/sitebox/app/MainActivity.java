@@ -20,6 +20,9 @@ public class MainActivity extends Activity {
  JSONArray sites=new JSONArray();
  LinearLayout shelves;
  EditText search;
+ FrameLayout stage;
+ ImageView backdrop;
+ boolean backgroundOnly=false;
  String filter=""; int page=0;
  // Theme palette is centralized for future theme switching.
  static class ShelfTheme {
@@ -36,17 +39,40 @@ public class MainActivity extends Activity {
  @Override public void onCreate(Bundle b){super.onCreate(b);getWindow().setStatusBarColor(Color.rgb(47,29,21));getWindow().setNavigationBarColor(Color.rgb(47,29,21));load();draw();}
  TextView label(String s,int size,int color){TextView t=new TextView(this);t.setText(s);t.setTextSize(size);t.setTextColor(color);return t;}
  void draw(){
- LinearLayout root=new LinearLayout(this);root.setOrientation(1);root.setBackgroundColor(theme.background);
- LinearLayout header=new LinearLayout(this);header.setOrientation(1);header.setPadding(dp(20),dp(22),dp(20),dp(12));header.setBackgroundColor(theme.header);
- try{java.io.InputStream scene=getAssets().open("school_morning.jpg");Bitmap bmp=BitmapFactory.decodeStream(scene);scene.close();if(bmp!=null){Bitmap window=Bitmap.createBitmap(bmp,0,0,bmp.getWidth(),Math.min(bmp.getHeight(),(int)(bmp.getWidth()*.43f)));BitmapDrawable photo=new BitmapDrawable(getResources(),window);photo.setGravity(Gravity.FILL);header.setBackground(photo);header.setPadding(dp(20),dp(45),dp(20),dp(18));}}catch(Exception ignored){}
+ stage=new FrameLayout(this);
+ stage.setBackgroundColor(theme.background);
+ backdrop=new ImageView(this);
+ backdrop.setScaleType(ImageView.ScaleType.CENTER_CROP);
+ try{
+  java.io.InputStream scene=getAssets().open("school_morning.jpg");
+  Bitmap bmp=BitmapFactory.decodeStream(scene);scene.close();
+  if(bmp!=null)backdrop.setImageBitmap(bmp);
+ }catch(Exception ignored){}
+ stage.addView(backdrop,new FrameLayout.LayoutParams(-1,-1));
+ LinearLayout root=new LinearLayout(this);root.setOrientation(1);root.setBackgroundColor(Color.TRANSPARENT);
+ LinearLayout header=new LinearLayout(this);header.setOrientation(1);header.setPadding(dp(20),dp(45),dp(20),dp(18));
+ header.setBackgroundColor(0x33000000);
  TextView eyebrow=label("맑은 아침의 학교 서재",12,0xFFFFE8BD);eyebrow.setLetterSpacing(.19f);header.addView(eyebrow);
  LinearLayout headline=new LinearLayout(this);headline.setGravity(Gravity.CENTER_VERTICAL);
  TextView title=label("SiteBox  ·  서재",27,0xFFFFFFFF);title.setTypeface(Typeface.SERIF,Typeface.BOLD);headline.addView(title,new LinearLayout.LayoutParams(0,-2,1));
  TextView add=label("＋",30,0xFFF8EBD5);add.setGravity(Gravity.CENTER);add.setBackground(bg(0xFF775135,14));headline.addView(add,new LinearLayout.LayoutParams(dp(48),dp(48)));add.setOnClickListener(v->edit(-1));
  header.addView(headline);
- search=new EditText(this);search.setSingleLine(true);search.setTextColor(0xFFF5E8D1);search.setHintTextColor(0xFFBEA994);search.setTextSize(15);search.setHint("⌕  책 제목 · 주소 · 카테고리 검색");search.setPadding(dp(14),0,dp(12),0);search.setBackground(bg(0xFF4D382B,12));search.setText(filter);
+ search=new EditText(this);search.setSingleLine(true);search.setTextColor(0xFFF5E8D1);search.setHintTextColor(0xFFBEA994);search.setTextSize(15);search.setHint("⌕  책 제목 · 주소 · 카테고리 검색");search.setPadding(dp(14),0,dp(12),0);search.setBackground(bg(0xDD4D382B,12));search.setText(filter);
  LinearLayout.LayoutParams sp=new LinearLayout.LayoutParams(-1,dp(46));sp.topMargin=dp(12);header.addView(search,sp);root.addView(header);
- ScrollView sc=new ScrollView(this);sc.setFillViewport(true);shelves=new LinearLayout(this);shelves.setOrientation(1);shelves.setPadding(dp(12),dp(14),dp(12),dp(25));shelves.setBackgroundColor(theme.background);sc.addView(shelves);root.addView(sc,new LinearLayout.LayoutParams(-1,0,1));setContentView(root);
+ ScrollView sc=new ScrollView(this);sc.setFillViewport(true);sc.setBackgroundColor(Color.TRANSPARENT);
+ shelves=new LinearLayout(this);shelves.setOrientation(1);shelves.setPadding(dp(12),dp(14),dp(12),dp(25));shelves.setBackgroundColor(Color.TRANSPARENT);
+ sc.addView(shelves);root.addView(sc,new LinearLayout.LayoutParams(-1,0,1));
+ stage.addView(root,new FrameLayout.LayoutParams(-1,-1));
+ View overlay=new View(this);overlay.setBackgroundColor(Color.TRANSPARENT);overlay.setVisibility(View.GONE);
+ stage.addView(overlay,new FrameLayout.LayoutParams(-1,-1));
+ overlay.setOnClickListener(v->{backgroundOnly=false;root.setVisibility(View.VISIBLE);overlay.setVisibility(View.GONE);});
+ // Hold an empty part of the background to hide the bookshelf and controls.
+ View.OnLongClickListener reveal=v->{backgroundOnly=true;root.setVisibility(View.INVISIBLE);overlay.setVisibility(View.VISIBLE);return true;};
+ header.setOnLongClickListener(reveal);
+ shelves.setOnLongClickListener(reveal);
+ sc.setOnLongClickListener(reveal);
+ stage.setOnLongClickListener(reveal);
+ setContentView(stage);
  search.addTextChangedListener(new TextWatcher(){public void beforeTextChanged(CharSequence s,int a,int c,int f){}public void onTextChanged(CharSequence s,int a,int b,int c){filter=s.toString();page=0;populate();}public void afterTextChanged(Editable e){}});
  populate();
  }
