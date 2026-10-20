@@ -47,3 +47,21 @@ keystore supplied through repository secrets.
 - Font sizing follows system scaling; huge accessibility fonts may ellipsize labels.
 - Web previews depend on site/network policies; external opening remains available.
 - A passing emulator run does not establish compatibility/performance on every phone.
+
+## Executed device QA
+
+Actions run 39410067344 (c8123e48) succeeded on Android 15. Actual dialogs passed
+add/edit/favorite/delete, UiAutomation injected a real long-press cross-cell drag,
+source opacity restored, filtered-page regressions passed, nonmatching theme
+persistence passed, category names and references updated, landscape/portrait
+recreation preserved search, and classroom reveal/missing-art lookup passed.
+Total process PSS was 149044 KiB at one test point (not a performance benchmark).
+An earlier run's targeted Instrumentation injection was rejected by the system drag
+window; the corrected test uses UiAutomation's supported untargeted input injection.
+All nine theme screenshots were captured after allowing frame completion.
+Workflow builds are serialized to prevent races when first populating signing cache.
+
+The default debug keystore was not located in the assumed ~/.android location
+on the hosted runner (cache Path Validation Error). The workflow now creates
+and explicitly configures a private .signing/sitebox-debug.keystore cache target;
+no key material is committed to the repository.

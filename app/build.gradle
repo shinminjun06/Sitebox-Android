@@ -13,6 +13,16 @@ android {
   versionName '2.0-school'
   buildConfigField 'String', 'SOURCE_REVISION', '"' + revision + '"'
  }
+ signingConfigs {
+  debug {
+   if (System.getenv('SITEBOX_DEBUG_KEYSTORE')) {
+    storeFile file(System.getenv('SITEBOX_DEBUG_KEYSTORE'))
+    storePassword 'android'
+    keyAlias 'androiddebugkey'
+    keyPassword 'android'
+   }
+  }
+ }
  buildTypes {
   preview {
    initWith debug
