@@ -156,13 +156,13 @@ public class MainActivity extends Activity {
  TextView next=label("▶",19,0xFFF3D7B0);next.setGravity(Gravity.CENTER);nav.addView(next,new LinearLayout.LayoutParams(dp(45),dp(42)));next.setOnClickListener(v->{if(page<totalPages-1){page++;populate();}});
  nav.setBackground(bg(0xB54A3022,10));
  shelves.addView(nav);
- View crown=new View(this);GradientDrawable cap=new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM,new int[]{0xFFFFD59B,0xFFD29A60,0xFF996037});cap.setCornerRadius(dp(4));crown.setBackground(new WoodPanel(false,false));shelves.addView(crown,new LinearLayout.LayoutParams(-1,dp(17)));
+ View crown=new View(this);GradientDrawable cap=new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM,new int[]{0xFFFFDDAA,0xFFD49C62,0xFF8F5838});cap.setCornerRadius(dp(4));crown.setBackground(cap);crown.setElevation(dp(3));shelves.addView(crown,new LinearLayout.LayoutParams(-1,dp(17)));
  for(int shelfRow=0;shelfRow<3;shelfRow++){
  LinearLayout compartments=new LinearLayout(this);compartments.setOrientation(LinearLayout.HORIZONTAL);compartments.setPadding(dp(7),0,dp(7),0);compartments.setBackground(new WoodPanel(true,false));
  for(int shelfCol=0;shelfCol<3;shelfCol++){
  int cell=shelfRow*3+shelfCol;
  LinearLayout compartment=new LinearLayout(this);compartment.setOrientation(LinearLayout.VERTICAL);
- GradientDrawable back=new GradientDrawable(GradientDrawable.Orientation.LEFT_RIGHT,new int[]{0xFF4D2E20,0xFF865635,0xFF6A412B,0xFF38251C});back.setStroke(dp(4),0xFFC18A58);compartment.setBackground(new WoodPanel(true,true));
+ GradientDrawable back=new GradientDrawable(GradientDrawable.Orientation.LEFT_RIGHT,new int[]{0xFF4D2E20,0xFF865635,0xFF6A412B,0xFF38251C});back.setStroke(dp(4),0xFFC18A58);compartment.setBackground(new WoodPanel(true,true));compartment.setElevation(dp(1));
  LinearLayout books=new LinearLayout(this);books.setGravity(Gravity.BOTTOM);books.setPadding(dp(6),dp(8),dp(6),0);
  for(int k=0;k<BOOKS_PER_SHELF;k++){
  int pos=page*BOOKS_PER_SHELF+k;
@@ -181,7 +181,7 @@ public class MainActivity extends Activity {
  LinearLayout.LayoutParams cp=new LinearLayout.LayoutParams(0,dp(166),1);cp.setMargins(dp(3),dp(3),dp(3),0);compartments.addView(compartment,cp);
  }
  shelves.addView(compartments,new LinearLayout.LayoutParams(-1,dp(170)));
- View lip=new View(this);GradientDrawable wood=new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM,new int[]{0xFFFFD49A,0xFFD39A61,0xFF9E653C,0xFF764629});wood.setStroke(dp(1),theme.gold);lip.setBackground(new WoodPanel(false,false));shelves.addView(lip,new LinearLayout.LayoutParams(-1,dp(12)));
+ View lip=new View(this);GradientDrawable wood=new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM,new int[]{0xFFFBE0AD,0xFFDBA66B,0xFFAE7549,0xFF73452D});wood.setStroke(dp(1),0xFF765034);lip.setBackground(wood);lip.setElevation(dp(4));shelves.addView(lip,new LinearLayout.LayoutParams(-1,dp(15)));
  View shadow=new View(this);shadow.setBackgroundColor(theme.shadow);shelves.addView(shadow,new LinearLayout.LayoutParams(-1,dp(3)));
  }
  View pedestal=new View(this);GradientDrawable plinth=new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM,new int[]{0xFFF0C08A,0xFFBC8050,0xFF88512F});pedestal.setBackground(new WoodPanel(false,false));shelves.addView(pedestal,new LinearLayout.LayoutParams(-1,dp(21)));
@@ -232,7 +232,7 @@ public class MainActivity extends Activity {
  switch(e.getActionMasked()){
  case MotionEvent.ACTION_DOWN:
  downX=e.getX();downY=e.getY();dragging=false;
- startDrag=()->{dragging=true;setAlpha(0.6f);performHapticFeedback(android.view.HapticFeedbackConstants.LONG_PRESS);android.content.ClipData data=android.content.ClipData.newPlainText("sitebox-book",String.valueOf(idx));boolean started=startDragAndDrop(data,new View.DragShadowBuilder(this),Integer.valueOf(idx),0);if(!started){dragging=false;setAlpha(1f);}};
+ startDrag=()->{dragging=true;setAlpha(0.6f);performHapticFeedback(android.view.HapticFeedbackConstants.LONG_PRESS);android.content.ClipData data=android.content.ClipData.newPlainText("sitebox-book",String.valueOf(idx));boolean started=startDragAndDrop(data,new View.DragShadowBuilder(this),Integer.valueOf(idx),0);if(!started){dragging=false;setAlpha(1f);}else{postDelayed(()->setAlpha(1f),700);}};
  handler.postDelayed(startDrag,450);return true;
  case MotionEvent.ACTION_MOVE:
  if(!dragging&&(Math.abs(e.getX()-downX)>dp(12)||Math.abs(e.getY()-downY)>dp(12)))handler.removeCallbacks(startDrag);
@@ -315,7 +315,7 @@ public class MainActivity extends Activity {
  for(int i=0;i<sites.length();i++){if(i==index)continue;JSONObject o=sites.optJSONObject(i);if(o!=null&&categoryIndex(o.optString("category"))==category)ordered.add(i);}
  Collections.sort(ordered,(a,b)->{JSONObject x=sites.optJSONObject(a),y=sites.optJSONObject(b);int n=Long.compare(x.optLong("sortOrder",a*1000L),y.optLong("sortOrder",b*1000L));return n!=0?n:Integer.compare(a,b);});
  int insertion=Math.max(0,Math.min(position,ordered.size()));ordered.add(insertion,index);
- try{selected.put("category",categories[category]);for(int i=0;i<ordered.size();i++)sites.optJSONObject(ordered.get(i)).put("sortOrder",i*1000L);save();page=insertion/7;populate();}catch(Exception e){Toast.makeText(this,"이동하지 못했어요.",Toast.LENGTH_SHORT).show();}
+ try{selected.put("category",categories[category]);for(int i=0;i<ordered.size();i++)sites.optJSONObject(ordered.get(i)).put("sortOrder",i*1000L);save();page=insertion/BOOKS_PER_SHELF;populate();}catch(Exception e){Toast.makeText(this,"이동하지 못했어요.",Toast.LENGTH_SHORT).show();}
  }
  void options(int index){JSONObject o=sites.optJSONObject(index);if(o==null)return;String[] choices={o.optBoolean("fav")?"즐겨찾기 해제":"★ 즐겨찾기","책 정보 수정","책장에서 삭제"};new AlertDialog.Builder(this).setTitle(o.optString("name")).setItems(choices,(d,which)->{if(which==0){try{o.put("fav",!o.optBoolean("fav"));save();populate();}catch(Exception e){}}else if(which==1)edit(index);else new AlertDialog.Builder(this).setMessage("이 사이트를 삭제할까요?").setNegativeButton("취소",null).setPositiveButton("삭제",(a,b)->{sites.remove(index);save();populate();}).show();}).setNegativeButton("닫기",null).show();}
  void edit(int index){edit(index,null);}
