@@ -17,7 +17,7 @@ import java.io.FileOutputStream;
 public final class SmokeInstrumentation extends Instrumentation {
  volatile MainActivity activity;
  String backupSites,backupCategories,demoSites,backupBackground;
- boolean hadBackground;
+ boolean hadBackground,hadGestureTip,backupGestureTip;
  int backupShelf,backupBook;
  StringBuilder checks=new StringBuilder();
  void check(boolean value,String name){if(!value)throw new AssertionError(name);checks.append("PASS ").append(name).append('\n');}
@@ -27,7 +27,7 @@ public final class SmokeInstrumentation extends Instrumentation {
   Bundle result=new Bundle();int code=Activity.RESULT_OK;
   try {
    activity=(MainActivity)startActivitySync(new Intent(getTargetContext(),MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));waitForIdleSync();
-   SharedPreferences prefs=activity.getPreferences(0);backupSites=prefs.getString("sites","[]");backupCategories=prefs.getString("categories","[]");backupShelf=prefs.getInt("shelfTheme",0);backupBook=prefs.getInt("bookTheme",0);hadBackground=prefs.contains("backgroundTheme");backupBackground=prefs.getString("backgroundTheme","classroom");
+   SharedPreferences prefs=activity.getPreferences(0);backupSites=prefs.getString("sites","[]");backupCategories=prefs.getString("categories","[]");backupShelf=prefs.getInt("shelfTheme",0);backupBook=prefs.getInt("bookTheme",0);hadGestureTip=prefs.contains("gestureTipSeen");backupGestureTip=prefs.getBoolean("gestureTipSeen",false);hadBackground=prefs.contains("backgroundTheme");backupBackground=prefs.getString("backgroundTheme","classroom");
    main(()->{
     activity.applyBackgroundTheme("classroom");activity.sites=new JSONArray();activity.filter="";activity.page=0;
     for(int cell=0;cell<9;cell++)for(int k=0;k<(cell==0?8:3);k++){
@@ -37,18 +37,25 @@ public final class SmokeInstrumentation extends Instrumentation {
    });
    main(()->{
     check(activity.sites.length()==32,"fixture 32 books across 9 categories");
-    BookshelfView shelf=(BookshelfView)activity.shelves.getChildAt(1);
+    BookshelfView shelf=activity.currentCabinet;
     ViewGroup firstCell=(ViewGroup)shelf.getChildAt(1);check(firstCell.getChildCount()==7,"seven actual book views fit one cubby");
     for(int i=0;i<7;i++){View book=firstCell.getChildAt(i);check(book instanceof BookArtworkView&&book.getRight()<=firstCell.getWidth(),"all seven spines stay inside cell");BookArtworkView art=(BookArtworkView)book;check(Math.abs(art.titleX-art.spine.centerX())<.01f&&art.paper.width()<art.spine.width()*.05f,"title centered on spine and paper side is thin");}
     check(shelf.getChildCount()==19,"9 live cells + 9 editable labels + furniture bitmap");
-    int[] pos=new int[2];shelf.getLocationOnScreen(pos);int[] searchPos=new int[2];activity.search.getLocationOnScreen(searchPos);
-    check(pos[1]>=searchPos[1]+activity.search.getHeight(),"cabinet starts below search");
+    int[] pos=new int[2];shelf.getLocationOnScreen(pos);int[] headerPos=new int[2];activity.header.getLocationOnScreen(headerPos);
+    check(pos[1]>=headerPos[1]+activity.header.getHeight(),"cabinet starts below compact header");
+    check(activity.headline.getHeight()==activity.dp(48),"header is one 48dp row");
+    for(int i=1;i<activity.headline.getChildCount();i++){View action=activity.headline.getChildAt(i);check(action.getWidth()>=activity.dp(48)&&action.getHeight()>=activity.dp(48),"header action minimum touch target");}
+    check(activity.search.getVisibility()==View.GONE&&!activity.searchExpanded,"search initially collapsed");
+    check(Math.abs(shelf.getWidth()-activity.shelfScroll.getWidth()*.87f)<=1,"bookshelf occupies 87 percent of inset viewport");
+    check(Math.abs(shelf.getLeft()-(activity.shelves.getWidth()-shelf.getRight()))<=1,"bookshelf has equal side margins");
+    check(activity.pagingBar.getVisibility()==View.VISIBLE,"multiple pages show navigation");
     check(shelf.getChildAt(1).getHeight()==shelf.getChildAt(17).getHeight()||Math.abs(shelf.getChildAt(1).getHeight()-shelf.getChildAt(17).getHeight())<=1,"equal first/last row geometry");
     check(activity.pageSummary.getText().toString().contains("/ 2"),"eighth book starts second page after seven visible books");
    });
    snapshot("oak-classic.png");
    final String fullFixture=activity.sites.toString();
    main(()->{try{JSONObject single=new JSONObject();single.put("name","naver");single.put("url","https://naver.com");single.put("category",activity.categories[5]);activity.sites=new JSONArray().put(single);activity.populate();}catch(Exception error){throw new RuntimeException(error);}});
+   main(()->{check(activity.pagingBar.getVisibility()==View.GONE,"single page hides paging bar");check(activity.pageSummary.getText().toString().contains("1권"),"hidden page summary remains current");check(activity.shelves.getChildCount()==2,"populated shelf has no persistent bottom instructions");});
    snapshot("single-book-naver.png");main(()->{try{activity.sites=new JSONArray(fullFixture);activity.populate();}catch(Exception error){throw new RuntimeException(error);}});
    for(int s=0;s<3;s++)for(int b=0;b<3;b++){
     final int si=s,bi=b;main(()->{activity.shelfThemeIndex=si;activity.bookThemeIndex=bi;activity.save();activity.populate();});
@@ -63,7 +70,8 @@ public final class SmokeInstrumentation extends Instrumentation {
     check(activity.sites.length()==count,"move does not lose books");
     check(activity.sites.optJSONObject(0).optString("category").equals(activity.categories[1]),"cross-category native-drop operation");
     activity.moveBookTo(0,1,0);check(activity.sites.optJSONObject(0).optLong("sortOrder")==0,"self-drop preserves order");
-    activity.search.setText("example.com/2/");check(activity.pageSummary.getText().toString().contains("3권"),"URL search");
+    activity.searchToggle.performClick();check(activity.search.getVisibility()==View.VISIBLE&&activity.search.getLayoutParams().height==activity.dp(48),"search expands to 48dp row");
+    activity.search.setText("example.com/2/");activity.searchToggle.performClick();check(activity.filter.equals("example.com/2/"),"collapsing search retains query");activity.setSearchExpanded(true);check(activity.pageSummary.getText().toString().contains("3권"),"URL search");
     activity.search.setText(activity.categories[3]);check(activity.pageSummary.getText().toString().contains("3권"),"category search");
     activity.search.setText("개발 노트");check(activity.pageSummary.getText().toString().contains("3권"),"title search");
     activity.search.setText("");activity.shelfThemeIndex=0;activity.bookThemeIndex=0;activity.save();activity.populate();
@@ -98,7 +106,7 @@ public final class SmokeInstrumentation extends Instrumentation {
    checks.append("PASS all nine theme combinations rendered\n");
   }catch(Throwable failure){try{snapshot("failure.png");}catch(Throwable ignored){}code=Activity.RESULT_CANCELED;result.putString("failure",failure.toString());checks.append("FAIL ").append(failure);}
   finally{
-   if(activity!=null&&backupSites!=null){main(()->{SharedPreferences.Editor restore=activity.getPreferences(0).edit().putString("sites",backupSites).putString("categories",backupCategories).putInt("shelfTheme",backupShelf).putInt("bookTheme",backupBook);if(hadBackground)restore.putString("backgroundTheme",backupBackground);else restore.remove("backgroundTheme");restore.commit();activity.finish();});}
+   if(activity!=null&&backupSites!=null){main(()->{SharedPreferences.Editor restore=activity.getPreferences(0).edit().putString("sites",backupSites).putString("categories",backupCategories).putInt("shelfTheme",backupShelf).putInt("bookTheme",backupBook);if(hadBackground)restore.putString("backgroundTheme",backupBackground);else restore.remove("backgroundTheme");if(hadGestureTip)restore.putBoolean("gestureTipSeen",backupGestureTip);else restore.remove("gestureTipSeen");restore.commit();activity.finish();});}
   }
   result.putString("stream",checks.toString());finish(code,result);
  }
@@ -214,12 +222,12 @@ public final class SmokeInstrumentation extends Instrumentation {
   };
   activity.getApplication().registerActivityLifecycleCallbacks(listener);
   try {
-   final MainActivity before=activity;main(()->{activity.search.setText("개발");activity.setRequestedOrientation(android.content.pm.ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);});
+   final MainActivity before=activity;main(()->{activity.setSearchExpanded(true);activity.search.setText("개발");activity.setRequestedOrientation(android.content.pm.ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);});
    for(int i=0;i<60&&activity==before;i++)android.os.SystemClock.sleep(100);waitForIdleSync();
-   main(()->{check(activity.getResources().getConfiguration().orientation==android.content.res.Configuration.ORIENTATION_LANDSCAPE,"landscape rotation");check(activity.filter.equals("개발"),"filter survives Activity recreation");if(originallyCollapsed){check(activity.sceneCollapsed,"collapsed cabinet survives landscape recreation");checkRoomGrounding();}});
+   main(()->{check(activity.getResources().getConfiguration().orientation==android.content.res.Configuration.ORIENTATION_LANDSCAPE,"landscape rotation");check(activity.filter.equals("개발"),"filter survives Activity recreation");check(activity.searchExpanded&&activity.search.getVisibility()==View.VISIBLE,"expanded search survives rotation");check(Math.abs(activity.currentCabinet.getWidth()-activity.shelfScroll.getWidth()*.87f)<=1,"landscape shelf respects inset viewport width");if(originallyCollapsed){check(activity.sceneCollapsed,"collapsed cabinet survives landscape recreation");checkRoomGrounding();}});
    snapshot(originallyCollapsed?"scene-landscape.png":"landscape-top.png");main(()->activity.shelfScroll.fullScroll(View.FOCUS_DOWN));snapshot("landscape-bottom.png");
    MainActivity landscape=activity;main(()->activity.setRequestedOrientation(android.content.pm.ActivityInfo.SCREEN_ORIENTATION_PORTRAIT));for(int i=0;i<60&&activity==landscape;i++)android.os.SystemClock.sleep(100);waitForIdleSync();
-   main(()->{check(activity.getResources().getConfiguration().orientation==android.content.res.Configuration.ORIENTATION_PORTRAIT,"portrait restored");if(originallyCollapsed){check(activity.sceneCollapsed,"collapsed cabinet survives portrait recreation");checkRoomGrounding();}});if(originallyCollapsed)snapshot("scene-portrait.png");main(()->{if(originallyCollapsed)activity.expandFromScene(false);activity.search.setText("");});snapshot("portrait-restored.png");
+   main(()->{check(activity.getResources().getConfiguration().orientation==android.content.res.Configuration.ORIENTATION_PORTRAIT,"portrait restored");if(originallyCollapsed){check(activity.sceneCollapsed,"collapsed cabinet survives portrait recreation");checkRoomGrounding();}});if(originallyCollapsed)snapshot("scene-portrait.png");main(()->{if(originallyCollapsed)activity.expandFromScene(false);activity.search.setText("");activity.setSearchExpanded(false);});snapshot("portrait-restored.png");
   }finally{activity.getApplication().unregisterActivityLifecycleCallbacks(listener);}
  }
  void crudDialogs(){
@@ -256,7 +264,7 @@ public final class SmokeInstrumentation extends Instrumentation {
   check(room!=null&&(room.getWidth()>room.getHeight())==landscape,"orientation-specific classroom artwork loaded");
   float scale=Math.max((float)activity.stage.getWidth()/room.getWidth(),(float)activity.stage.getHeight()/room.getHeight());
   float offset=(activity.stage.getHeight()-room.getHeight()*scale)*.5f;
-  float sill=offset+room.getHeight()*scale*(landscape?.40f:.455f),floor=offset+room.getHeight()*scale*(landscape?.81f:.77f);
+  float sill=offset+room.getHeight()*scale*(landscape?.40f:.43f),floor=offset+room.getHeight()*scale*(landscape?.81f:.665f);
   float top=activity.miniature.getY(),feet=top+activity.miniature.getHeight()*activity.miniature.getScaleY();
   check(top>sill&&feet>floor&&feet<floor+room.getHeight()*scale*.06f,"live cabinet stands beneath sill on classroom floor");
   check(activity.sceneShadow.getVisibility()==View.VISIBLE&&activity.sceneShadow.getAlpha()>.99f,"contact shadow visible beneath compact cabinet");
@@ -300,7 +308,7 @@ public final class SmokeInstrumentation extends Instrumentation {
  void nativeDrag(){
   final int[] start=new int[2],end=new int[2];
   main(()->{
-   BookshelfView furniture=(BookshelfView)activity.shelves.getChildAt(1);
+   BookshelfView furniture=activity.currentCabinet;
    View source=((ViewGroup)furniture.getChildAt(1)).getChildAt(0);
    View destination=((ViewGroup)furniture.getChildAt(3)).getChildAt(0);
    source.getLocationOnScreen(start);destination.getLocationOnScreen(end);

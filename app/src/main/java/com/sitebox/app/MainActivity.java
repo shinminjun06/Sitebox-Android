@@ -20,6 +20,9 @@ public class MainActivity extends Activity {
  JSONArray sites=new JSONArray();
  LinearLayout shelves;
  EditText search;
+ TextView searchToggle;
+ LinearLayout header,headline,pagingBar;
+ boolean searchExpanded=false;
  FrameLayout stage;
  ImageView backdrop;
  boolean backgroundOnly=false;
@@ -60,14 +63,14 @@ public class MainActivity extends Activity {
  void save(){JSONArray names=new JSONArray();for(String c:categories)names.put(c);getPreferences(0).edit().putString("sites",sites.toString()).putString("categories",names.toString()).putInt("shelfTheme",shelfThemeIndex).putInt("bookTheme",bookThemeIndex).apply();}
  @Override public void onCreate(Bundle b){
  super.onCreate(b);assets=new ThemeAssets(this);load();
- if(b!=null){filter=b.getString("filter","");page=b.getInt("page",0);restoreCollapsed=b.getBoolean("sceneCollapsed",false);}
+ if(b!=null){filter=b.getString("filter","");page=b.getInt("page",0);restoreCollapsed=b.getBoolean("sceneCollapsed",false);searchExpanded=b.getBoolean("searchExpanded",!filter.isEmpty());}
  getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE);
  if(Build.VERSION.SDK_INT>=30)getWindow().setDecorFitsSystemWindows(false);
  else getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_LAYOUT_STABLE|View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN|View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION);
  getWindow().setStatusBarColor(Color.TRANSPARENT);getWindow().setNavigationBarColor(0x660F211C);
  draw();
  }
- @Override protected void onSaveInstanceState(Bundle out){super.onSaveInstanceState(out);out.putString("filter",filter);out.putInt("page",page);out.putBoolean("sceneCollapsed",sceneCollapsed);}
+ @Override protected void onSaveInstanceState(Bundle out){super.onSaveInstanceState(out);out.putString("filter",filter);out.putBoolean("searchExpanded",searchExpanded);out.putInt("page",page);out.putBoolean("sceneCollapsed",sceneCollapsed);}
  @Override public void onTrimMemory(int level){super.onTrimMemory(level);if(level>=TRIM_MEMORY_RUNNING_LOW)assets.clear();}
 
  TextView label(String s,int size,int color){TextView t=new TextView(this);t.setText(s);t.setTextSize(size);t.setTextColor(color);return t;}
@@ -76,26 +79,26 @@ public class MainActivity extends Activity {
  backdrop=new ImageView(this);backdrop.setScaleType(ImageView.ScaleType.MATRIX);
  stage.addView(backdrop,new FrameLayout.LayoutParams(-1,-1));
  backdrop.addOnLayoutChangeListener((v,l,t,r,b,ol,ot,or,ob)->{if(r-l!=or-ol||b-t!=ob-ot)updateSceneBackdrop();});
- LinearLayout root=new LinearLayout(this);controls=root;root.setOrientation(LinearLayout.VERTICAL);root.setFocusableInTouchMode(true);
+ LinearLayout root=new LinearLayout(this);controls=root;root.setOrientation(LinearLayout.VERTICAL);root.setFocusableInTouchMode(true);root.setBackgroundColor(0x24FFF6DF);
  root.setOnApplyWindowInsetsListener((view,insets)->{
   if(Build.VERSION.SDK_INT>=30){android.graphics.Insets sys=insets.getInsets(WindowInsets.Type.systemBars()|WindowInsets.Type.displayCutout()|WindowInsets.Type.ime());view.setPadding(sys.left,sys.top,sys.right,sys.bottom);}
   else view.setPadding(insets.getSystemWindowInsetLeft(),insets.getSystemWindowInsetTop(),insets.getSystemWindowInsetRight(),insets.getSystemWindowInsetBottom());
   return insets;
  });
- LinearLayout header=new LinearLayout(this);header.setOrientation(LinearLayout.VERTICAL);header.setPadding(dp(18),dp(9),dp(18),dp(9));header.setBackground(bg(0xDA173B32,0));
- LinearLayout headline=new LinearLayout(this);headline.setGravity(Gravity.CENTER_VERTICAL);
+ header=new LinearLayout(this);header.setOrientation(LinearLayout.VERTICAL);header.setPadding(dp(12),dp(4),dp(12),dp(4));header.setBackground(bg(0xDA173B32,0));
+ headline=new LinearLayout(this);headline.setGravity(Gravity.CENTER_VERTICAL);
  LinearLayout branding=new LinearLayout(this);branding.setOrientation(LinearLayout.VERTICAL);
- TextView eyebrow=label("햇살이 머무는 나의 학교 서재",10,0xFFE6DDC5);branding.addView(eyebrow);
- TextView title=label("SiteBox",27,0xFFFFF4DD);title.setTypeface(Typeface.SERIF,Typeface.BOLD);branding.addView(title);
+ TextView title=label("SiteBox",24,0xFFFFF4DD);title.setTypeface(Typeface.SERIF,Typeface.BOLD);title.setSingleLine(true);title.setEllipsize(TextUtils.TruncateAt.END);branding.addView(title);
  headline.addView(branding,new LinearLayout.LayoutParams(0,-2,1));
  TextView settings=label("설정",13,0xFFFFF1D5);settings.setGravity(Gravity.CENTER);settings.setContentDescription("카테고리와 테마 설정");headline.addView(settings,new LinearLayout.LayoutParams(dp(48),dp(48)));
  settings.setOnClickListener(v->new AlertDialog.Builder(this).setTitle("나의 서재").setItems(new String[]{"배경 테마","책장 · 책 테마","카테고리 이름 수정","앱 정보"},(d,w)->{if(w==0)showBackgroundThemes();else if(w==1)showThemes();else if(w==2)manageCategories();else new AlertDialog.Builder(this).setTitle("SiteBox "+BuildConfig.VERSION_NAME).setMessage("소스 버전: "+BuildConfig.SOURCE_REVISION+"\n책을 길게 눌러 칸 사이로 이동하세요.\n명패를 누르면 해당 칸에 책을 추가합니다.").setPositiveButton("닫기",null).show();}).show());
- TextView add=label("＋",28,0xFF263B30);add.setGravity(Gravity.CENTER);add.setContentDescription("북마크 추가");add.setBackground(bg(0xFFE5C28A,14));headline.addView(add,new LinearLayout.LayoutParams(dp(48),dp(48)));add.setOnClickListener(v->edit(-1));header.addView(headline);
+ TextView add=label("＋",28,0xFF263B30);add.setGravity(Gravity.CENTER);add.setContentDescription("북마크 추가");add.setBackground(bg(0xFFE5C28A,14));headline.addView(add,new LinearLayout.LayoutParams(dp(48),dp(48)));add.setOnClickListener(v->edit(-1));searchToggle=label("검색",13,0xFFFFF1D5);searchToggle.setGravity(Gravity.CENTER);searchToggle.setContentDescription("검색 펼치기");headline.addView(searchToggle,new LinearLayout.LayoutParams(dp(48),dp(48)));searchToggle.setOnClickListener(v->setSearchExpanded(!searchExpanded));header.addView(headline);
  search=new EditText(this);search.setSingleLine(true);search.setTextSize(13);search.setTextColor(0xFF243E32);search.setHintTextColor(0xFF667568);search.setHint("검색 · 제목, 주소, 카테고리");search.setPadding(dp(14),0,dp(12),0);search.setBackground(bg(0xF2FFF9EB,12));search.setText(filter);
  search.setImeOptions(android.view.inputmethod.EditorInfo.IME_ACTION_SEARCH);
- LinearLayout.LayoutParams sp=new LinearLayout.LayoutParams(-1,dp(44));sp.topMargin=dp(7);header.addView(search,sp);root.addView(header);
+ LinearLayout.LayoutParams sp=new LinearLayout.LayoutParams(-1,dp(48));sp.topMargin=dp(7);header.addView(search,sp);setSearchExpanded(searchExpanded);root.addView(header);
  shelfScroll=new ScrollView(this);shelfScroll.setFillViewport(true);shelfScroll.setClipToPadding(false);
- shelves=new LinearLayout(this);shelves.setOrientation(LinearLayout.VERTICAL);shelves.setGravity(Gravity.CENTER_HORIZONTAL);shelves.setPadding(dp(10),dp(8),dp(10),dp(14));
+ shelves=new LinearLayout(this);shelves.setOrientation(LinearLayout.VERTICAL);shelves.setGravity(Gravity.CENTER_HORIZONTAL);shelves.setPadding(0,dp(8),0,dp(14));
+ shelfScroll.addOnLayoutChangeListener((v,l,t,r,b,ol,ot,or,ob)->{if(r-l!=or-ol)resizeShelfContents();});
  shelfScroll.addView(shelves);root.addView(shelfScroll,new LinearLayout.LayoutParams(-1,0,1));stage.addView(root,new FrameLayout.LayoutParams(-1,-1));
  revealOverlay=new View(this);revealOverlay.setContentDescription("서재 화면으로 돌아가기");revealOverlay.setVisibility(View.GONE);stage.addView(revealOverlay,new FrameLayout.LayoutParams(-1,-1));
  revealOverlay.setOnClickListener(v->{backgroundOnly=false;root.setVisibility(View.VISIBLE);revealOverlay.setVisibility(View.GONE);});
@@ -106,6 +109,10 @@ public class MainActivity extends Activity {
  setContentView(stage);root.requestApplyInsets();
  search.addTextChangedListener(new TextWatcher(){public void beforeTextChanged(CharSequence s,int a,int c,int f){}public void onTextChanged(CharSequence s,int a,int b,int c){filter=s.toString();page=0;populate();}public void afterTextChanged(Editable e){}});
  populate();root.requestFocus();
+ if(!getPreferences(0).getBoolean("gestureTipSeen",false)){
+  TextView tip=label("두 손가락으로 축소 · 작은 책장을 눌러 복원  ×",12,0xFFFFF1D5);tip.setGravity(Gravity.CENTER);tip.setMinHeight(dp(48));tip.setContentDescription("책장 사용 팁 닫기");header.addView(tip);
+  Runnable dismiss=()->{header.removeView(tip);getPreferences(0).edit().putBoolean("gestureTipSeen",true).apply();};tip.setOnClickListener(v->dismiss.run());tip.postDelayed(dismiss,5000);
+ }
  if(restoreCollapsed){
   controls.setVisibility(View.INVISIBLE);
   stage.getViewTreeObserver().addOnPreDrawListener(new android.view.ViewTreeObserver.OnPreDrawListener(){public boolean onPreDraw(){if(currentCabinet.getWidth()>0){stage.getViewTreeObserver().removeOnPreDrawListener(this);collapseToScene(false);}return true;}});
@@ -176,6 +183,13 @@ public class MainActivity extends Activity {
  Spinner bookPicker=new Spinner(this);bookPicker.setAdapter(new ArrayAdapter<String>(this,android.R.layout.simple_spinner_dropdown_item,bookThemeNames));bookPicker.setSelection(bookThemeIndex);layout.addView(bookPicker);
  new AlertDialog.Builder(this).setTitle("책장 · 책 테마").setView(layout).setNegativeButton("취소",null).setPositiveButton("적용",(d,w)->{shelfThemeIndex=shelfPicker.getSelectedItemPosition();bookThemeIndex=bookPicker.getSelectedItemPosition();save();assets.clear();populate();}).show();
  }
+ void setSearchExpanded(boolean expanded){
+  searchExpanded=expanded;if(search==null)return;
+  search.setVisibility(expanded?View.VISIBLE:View.GONE);searchToggle.setSelected(expanded);searchToggle.setContentDescription(expanded?"검색 접기":"검색 펼치기");
+  if(!expanded){search.clearFocus();((android.view.inputmethod.InputMethodManager)getSystemService(INPUT_METHOD_SERVICE)).hideSoftInputFromWindow(search.getWindowToken(),0);}
+ }
+ int shelfContentWidth(){int available=shelfScroll.getWidth();if(available<=0)available=getResources().getDisplayMetrics().widthPixels;return Math.round(available*.87f);}
+ void resizeShelfContents(){int width=shelfContentWidth();for(int i=0;i<shelves.getChildCount();i++){View child=shelves.getChildAt(i);ViewGroup.LayoutParams lp=child.getLayoutParams();if(lp.width!=width){lp.width=width;child.setLayoutParams(lp);}}}
  void populate(){
  shelves.removeAllViews();
  ArrayList<ArrayList<Integer>> grouped=new ArrayList<>();for(int i=0;i<9;i++)grouped.add(new ArrayList<>());
@@ -187,11 +201,12 @@ public class MainActivity extends Activity {
  }
  int pages=1;for(ArrayList<Integer> group:grouped){sortBooks(group);pages=Math.max(pages,(group.size()+BOOKS_PER_SHELF-1)/BOOKS_PER_SHELF);}
  page=Math.max(0,Math.min(page,pages-1));final int totalPages=pages;
- LinearLayout nav=new LinearLayout(this);nav.setGravity(Gravity.CENTER_VERTICAL);nav.setBackground(bg(0xD9234035,12));
+ LinearLayout nav=new LinearLayout(this);pagingBar=nav;nav.setGravity(Gravity.CENTER_VERTICAL);nav.setBackground(bg(0xD9234035,12));
  TextView prev=label("‹",26,0xFFFFEDCA);prev.setGravity(Gravity.CENTER);prev.setContentDescription("이전 페이지");prev.setEnabled(page>0);prev.setAlpha(page>0?1f:.35f);nav.addView(prev,new LinearLayout.LayoutParams(dp(48),dp(48)));prev.setOnClickListener(v->{if(page>0){page--;populate();}});
  pageSummary=label((page+1)+" / "+pages+"  ·  "+visibleTotal+"권",12,0xFFFFEACA);pageSummary.setGravity(Gravity.CENTER);nav.addView(pageSummary,new LinearLayout.LayoutParams(0,dp(48),1));
  TextView next=label("›",26,0xFFFFEDCA);next.setGravity(Gravity.CENTER);next.setContentDescription("다음 페이지");next.setEnabled(page<pages-1);next.setAlpha(page<pages-1?1f:.35f);nav.addView(next,new LinearLayout.LayoutParams(dp(48),dp(48)));next.setOnClickListener(v->{if(page<totalPages-1){page++;populate();}});
- int maxWidth=Math.min(getResources().getDisplayMetrics().widthPixels-dp(20),dp(480));
+ int maxWidth=shelfContentWidth();
+ nav.setVisibility(pages>1?View.VISIBLE:View.GONE);
  shelves.addView(nav,new LinearLayout.LayoutParams(maxWidth,dp(48)));
  BookshelfView furniture=new BookshelfView(this,assets.shelf(shelfThemeIndex));currentCabinet=furniture;
  for(int cell=0;cell<9;cell++){
@@ -208,7 +223,7 @@ public class MainActivity extends Activity {
   plate.setOnClickListener(v->edit(-1,categories[category]));plate.setOnDragListener((v,e)->handleBookDrop(v,e,category,-1));furniture.addView(plate,new FrameLayout.LayoutParams(-1,-1));
  }
  LinearLayout.LayoutParams fp=new LinearLayout.LayoutParams(maxWidth,-2);fp.topMargin=dp(8);shelves.addView(furniture,fp);
- TextView tip=label(visibleTotal==0?(filter.isEmpty()?"＋ 또는 명패를 눌러 첫 책을 꽂아보세요":"검색 결과가 없어요"):"책 열기 · 길게 눌러 이동 · 두 손가락으로 축소",12,0xFFFFF5DE);tip.setGravity(Gravity.CENTER);tip.setPadding(dp(8),dp(10),dp(8),dp(10));tip.setBackground(bg(0xCC244036,12));shelves.addView(tip,new LinearLayout.LayoutParams(maxWidth,-2));
+ if(visibleTotal==0){TextView empty=label(filter.isEmpty()?"＋ 또는 명패를 눌러 첫 책을 꽂아보세요":"검색 결과가 없어요",12,0xFFFFF5DE);empty.setGravity(Gravity.CENTER);empty.setPadding(dp(8),dp(8),dp(8),dp(8));empty.setBackground(bg(0xCC244036,12));shelves.addView(empty,new LinearLayout.LayoutParams(maxWidth,-2));}
  }
  void sortBooks(List<Integer> group){Collections.sort(group,(a,b)->{JSONObject x=sites.optJSONObject(a),y=sites.optJSONObject(b);int order=Long.compare(x.optLong("sortOrder",a*1000L),y.optLong("sortOrder",b*1000L));return order!=0?order:Integer.compare(a,b);});}
  class BookView extends BookArtworkView {
