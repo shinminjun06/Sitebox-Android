@@ -34,6 +34,8 @@ public class MainActivity extends Activity {
  View revealOverlay;
  BookshelfView currentCabinet;
  ImageView miniature;
+ FurnitureShadow sceneShadow;
+ Bitmap sceneBackdrop;
  boolean sceneCollapsed=false,sceneAnimating=false,restoreCollapsed=false;
 
 
@@ -70,7 +72,8 @@ public class MainActivity extends Activity {
  void draw(){
  stage=new LibraryStage(this,()->collapseToScene(true));stage.setBackgroundColor(0xffd4c4a7);
  backdrop=new ImageView(this);backdrop.setScaleType(ImageView.ScaleType.CENTER_CROP);
- backdrop.setImageBitmap(assets.get("school_morning.jpg"));stage.addView(backdrop,new FrameLayout.LayoutParams(-1,-1));
+ sceneBackdrop=assets.scene(getResources().getConfiguration().orientation==android.content.res.Configuration.ORIENTATION_LANDSCAPE);
+ backdrop.setImageBitmap(sceneBackdrop);stage.addView(backdrop,new FrameLayout.LayoutParams(-1,-1));
  LinearLayout root=new LinearLayout(this);controls=root;root.setOrientation(LinearLayout.VERTICAL);root.setFocusableInTouchMode(true);
  root.setOnApplyWindowInsetsListener((view,insets)->{
   if(Build.VERSION.SDK_INT>=30){android.graphics.Insets sys=insets.getInsets(WindowInsets.Type.systemBars()|WindowInsets.Type.displayCutout()|WindowInsets.Type.ime());view.setPadding(sys.left,sys.top,sys.right,sys.bottom);}
@@ -96,6 +99,7 @@ public class MainActivity extends Activity {
  revealOverlay.setOnClickListener(v->{backgroundOnly=false;root.setVisibility(View.VISIBLE);revealOverlay.setVisibility(View.GONE);});
  View.OnLongClickListener reveal=v->{backgroundOnly=true;root.setVisibility(View.INVISIBLE);revealOverlay.setVisibility(View.VISIBLE);return true;};
  header.setOnLongClickListener(reveal);shelves.setOnLongClickListener(reveal);shelfScroll.setOnLongClickListener(reveal);
+ sceneShadow=new FurnitureShadow(this);sceneShadow.setVisibility(View.GONE);stage.addView(sceneShadow,new FrameLayout.LayoutParams(1,1));
  miniature=new ImageView(this);miniature.setScaleType(ImageView.ScaleType.FIT_XY);miniature.setContentDescription("작아진 책장 열기");miniature.setVisibility(View.GONE);miniature.setPivotX(0);miniature.setPivotY(0);stage.addView(miniature,new FrameLayout.LayoutParams(1,1));miniature.setOnClickListener(v->expandFromScene(true));
  setContentView(stage);root.requestApplyInsets();
  search.addTextChangedListener(new TextWatcher(){public void beforeTextChanged(CharSequence s,int a,int c,int f){}public void onTextChanged(CharSequence s,int a,int b,int c){filter=s.toString();page=0;populate();}public void afterTextChanged(Editable e){}});
@@ -161,7 +165,7 @@ public class MainActivity extends Activity {
   float x=cabinetPosition[0]-stagePosition[0],y=cabinetPosition[1]-stagePosition[1];return new RectF(x,y,x+currentCabinet.getWidth(),y+currentCabinet.getHeight());
  }
  float[] sceneBounds(){
-  Bitmap scene=assets.get("school_morning.jpg");float iw=scene==null?852:scene.getWidth(),ih=scene==null?1846:scene.getHeight();
+  Bitmap scene=sceneBackdrop;float iw=scene==null?852:scene.getWidth(),ih=scene==null?1846:scene.getHeight();
   int left=0,top=0,right=0,bottom=0;WindowInsets insets=stage.getRootWindowInsets();
   if(insets!=null){if(Build.VERSION.SDK_INT>=30){android.graphics.Insets sys=insets.getInsets(WindowInsets.Type.systemBars()|WindowInsets.Type.displayCutout());left=sys.left;top=sys.top;right=sys.right;bottom=sys.bottom;}else {left=insets.getSystemWindowInsetLeft();top=insets.getSystemWindowInsetTop();right=insets.getSystemWindowInsetRight();bottom=insets.getSystemWindowInsetBottom();}}
   return BookLayout.sceneBounds(stage.getWidth(),stage.getHeight(),iw,ih,left,top,right,bottom);
@@ -175,6 +179,10 @@ public class MainActivity extends Activity {
   Canvas canvas=new Canvas(snapshot);canvas.scale(sampling,sampling);currentCabinet.draw(canvas);
   miniature.animate().cancel();miniature.setImageBitmap(snapshot);miniature.setLayoutParams(new FrameLayout.LayoutParams(width,height));miniature.setX(from.left);miniature.setY(from.top);miniature.setScaleX(1);miniature.setScaleY(1);miniature.setVisibility(View.VISIBLE);miniature.setEnabled(false);
   float[] target=sceneBounds();float scale=(target[2]-target[0])/width;
+  float shadowWidth=(target[2]-target[0])*1.04f,shadowHeight=Math.max(dp(10),(target[3]-target[1])*.055f);
+  sceneShadow.animate().cancel();sceneShadow.setLayoutParams(new FrameLayout.LayoutParams(Math.round(shadowWidth),Math.round(shadowHeight)));
+  sceneShadow.setX((target[0]+target[2]-shadowWidth)*.5f);sceneShadow.setY(target[3]-shadowHeight*.55f);sceneShadow.setVisibility(View.VISIBLE);sceneShadow.setAlpha(animate?0:1);
+  if(animate)sceneShadow.animate().alpha(1).setStartDelay(170).setDuration(170).start();
   Runnable finish=()->{controls.setVisibility(View.INVISIBLE);controls.setAlpha(1);sceneAnimating=false;miniature.setEnabled(true);};
   if(animate){controls.animate().setStartDelay(0).withEndAction(null).alpha(0).setDuration(180).start();miniature.animate().x(target[0]).y(target[1]).scaleX(scale).scaleY(scale).setDuration(340).setInterpolator(new android.view.animation.DecelerateInterpolator()).withEndAction(finish).start();}
   else {miniature.setX(target[0]);miniature.setY(target[1]);miniature.setScaleX(scale);miniature.setScaleY(scale);finish.run();}
@@ -182,12 +190,13 @@ public class MainActivity extends Activity {
  void expandFromScene(boolean animate){
   if(!sceneCollapsed||sceneAnimating)return;
   sceneCollapsed=false;sceneAnimating=animate;RectF target=cabinetBounds();miniature.setEnabled(false);controls.setAlpha(animate?0:1);controls.setVisibility(View.VISIBLE);
+  sceneShadow.animate().cancel();if(animate)sceneShadow.animate().alpha(0).setStartDelay(0).setDuration(170).withEndAction(()->sceneShadow.setVisibility(View.GONE)).start();else sceneShadow.setVisibility(View.GONE);
   Runnable finish=()->{miniature.setVisibility(View.GONE);miniature.setImageDrawable(null);controls.setAlpha(1);sceneAnimating=false;};
   if(animate){controls.animate().alpha(1).setStartDelay(170).setDuration(170).withEndAction(()->controls.animate().setStartDelay(0)).start();miniature.animate().x(target.left).y(target.top).scaleX(1).scaleY(1).setDuration(340).setInterpolator(new android.view.animation.DecelerateInterpolator()).withEndAction(finish).start();}
   else finish.run();
  }
  @Override public void onBackPressed(){if(sceneCollapsed||sceneAnimating){expandFromScene(true);return;}super.onBackPressed();}
- @Override protected void onDestroy(){if(controls!=null)controls.animate().cancel();if(miniature!=null){miniature.animate().cancel();miniature.setImageDrawable(null);}super.onDestroy();}
+ @Override protected void onDestroy(){if(controls!=null)controls.animate().cancel();if(sceneShadow!=null)sceneShadow.animate().cancel();if(miniature!=null){miniature.animate().cancel();miniature.setImageDrawable(null);}super.onDestroy();}
   void showBook(int index){
  JSONObject o=sites.optJSONObject(index);if(o==null)return;
  final String url=o.optString("url");

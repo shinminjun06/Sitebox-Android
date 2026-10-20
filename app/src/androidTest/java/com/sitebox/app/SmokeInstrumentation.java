@@ -118,10 +118,10 @@ public final class SmokeInstrumentation extends Instrumentation {
   try {
    final MainActivity before=activity;main(()->{activity.search.setText("개발");activity.setRequestedOrientation(android.content.pm.ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);});
    for(int i=0;i<60&&activity==before;i++)android.os.SystemClock.sleep(100);waitForIdleSync();
-   main(()->{check(activity.getResources().getConfiguration().orientation==android.content.res.Configuration.ORIENTATION_LANDSCAPE,"landscape rotation");check(activity.filter.equals("개발"),"filter survives Activity recreation");if(originallyCollapsed)check(activity.sceneCollapsed,"collapsed cabinet survives landscape recreation");});
-   snapshot("landscape-top.png");main(()->activity.shelfScroll.fullScroll(View.FOCUS_DOWN));snapshot("landscape-bottom.png");
+   main(()->{check(activity.getResources().getConfiguration().orientation==android.content.res.Configuration.ORIENTATION_LANDSCAPE,"landscape rotation");check(activity.filter.equals("개발"),"filter survives Activity recreation");if(originallyCollapsed){check(activity.sceneCollapsed,"collapsed cabinet survives landscape recreation");checkRoomGrounding();}});
+   snapshot(originallyCollapsed?"scene-landscape.png":"landscape-top.png");main(()->activity.shelfScroll.fullScroll(View.FOCUS_DOWN));snapshot("landscape-bottom.png");
    MainActivity landscape=activity;main(()->activity.setRequestedOrientation(android.content.pm.ActivityInfo.SCREEN_ORIENTATION_PORTRAIT));for(int i=0;i<60&&activity==landscape;i++)android.os.SystemClock.sleep(100);waitForIdleSync();
-   main(()->{check(activity.getResources().getConfiguration().orientation==android.content.res.Configuration.ORIENTATION_PORTRAIT,"portrait restored");if(originallyCollapsed){check(activity.sceneCollapsed,"collapsed cabinet survives portrait recreation");activity.expandFromScene(false);}activity.search.setText("");});snapshot("portrait-restored.png");
+   main(()->{check(activity.getResources().getConfiguration().orientation==android.content.res.Configuration.ORIENTATION_PORTRAIT,"portrait restored");if(originallyCollapsed){check(activity.sceneCollapsed,"collapsed cabinet survives portrait recreation");checkRoomGrounding();}});if(originallyCollapsed)snapshot("scene-portrait.png");main(()->{if(originallyCollapsed)activity.expandFromScene(false);activity.search.setText("");});snapshot("portrait-restored.png");
   }finally{activity.getApplication().unregisterActivityLifecycleCallbacks(listener);}
  }
  void crudDialogs(){
@@ -142,6 +142,16 @@ public final class SmokeInstrumentation extends Instrumentation {
  void collectEdits(android.view.accessibility.AccessibilityNodeInfo node,java.util.List<android.view.accessibility.AccessibilityNodeInfo> found){if(node==null)return;if("android.widget.EditText".contentEquals(node.getClassName()))found.add(node);for(int i=0;i<node.getChildCount();i++)collectEdits(node.getChild(i),found);}
  void setText(android.view.accessibility.AccessibilityNodeInfo node,String text){Bundle args=new Bundle();args.putCharSequence(android.view.accessibility.AccessibilityNodeInfo.ACTION_ARGUMENT_SET_TEXT_CHARSEQUENCE,text);check(node.performAction(android.view.accessibility.AccessibilityNodeInfo.ACTION_SET_TEXT,args),"text field accepts edit");}
  void clickText(String text){android.view.accessibility.AccessibilityNodeInfo root=getUiAutomation().getRootInActiveWindow();if(root!=null)for(android.view.accessibility.AccessibilityNodeInfo node:root.findAccessibilityNodeInfosByText(text)){if(text.contentEquals(node.getText())&&node.performAction(android.view.accessibility.AccessibilityNodeInfo.ACTION_CLICK))return;}throw new AssertionError("click target: "+text);}
+ void checkRoomGrounding(){
+  Bitmap room=activity.sceneBackdrop;boolean landscape=activity.getResources().getConfiguration().orientation==android.content.res.Configuration.ORIENTATION_LANDSCAPE;
+  check(room!=null&&(room.getWidth()>room.getHeight())==landscape,"orientation-specific classroom artwork loaded");
+  float scale=Math.max((float)activity.stage.getWidth()/room.getWidth(),(float)activity.stage.getHeight()/room.getHeight());
+  float offset=(activity.stage.getHeight()-room.getHeight()*scale)*.5f;
+  float sill=offset+room.getHeight()*scale*(landscape?.40f:.455f),floor=offset+room.getHeight()*scale*(landscape?.81f:.77f);
+  float top=activity.miniature.getY(),feet=top+activity.miniature.getHeight()*activity.miniature.getScaleY();
+  check(top>sill&&feet>floor&&feet<floor+room.getHeight()*scale*.06f,"live cabinet stands beneath sill on classroom floor");
+  check(activity.sceneShadow.getVisibility()==View.VISIBLE&&activity.sceneShadow.getAlpha()>.99f,"contact shadow visible beneath compact cabinet");
+ }
  void pinchCollapseRestore(){
   final int count=activity.sites.length(),oldPage=activity.page;final String oldFilter=activity.filter;
   pinch(false);android.os.SystemClock.sleep(500);waitForIdleSync();
@@ -149,6 +159,7 @@ public final class SmokeInstrumentation extends Instrumentation {
   pinch(true);android.os.SystemClock.sleep(650);waitForIdleSync();
   main(()->{
    check(activity.sceneCollapsed&&!activity.sceneAnimating,"inward two-finger gesture collapses cabinet");
+   checkRoomGrounding();
    check(activity.controls.getVisibility()==View.INVISIBLE,"header and full-size library hidden in scene");
    check(activity.miniature.getVisibility()==View.VISIBLE&&activity.miniature.getScaleX()<.75f,"live cabinet snapshot shrinks into background");
    float x=activity.miniature.getX(),y=activity.miniature.getY();
@@ -156,7 +167,7 @@ public final class SmokeInstrumentation extends Instrumentation {
    check(activity.sites.length()==count&&activity.page==oldPage&&activity.filter.equals(oldFilter),"pinch preserves bookmarks page and search");
   });
   snapshot("pinch-collapsed.png");clickDescription("작아진 책장 열기");android.os.SystemClock.sleep(650);waitForIdleSync();
-  main(()->{check(!activity.sceneCollapsed&&!activity.sceneAnimating,"tap miniature restores full-size cabinet");check(activity.controls.getVisibility()==View.VISIBLE&&activity.miniature.getVisibility()==View.GONE,"full controls restored without overlay");});
+  main(()->{check(!activity.sceneCollapsed&&!activity.sceneAnimating,"tap miniature restores full-size cabinet");check(activity.sceneShadow.getVisibility()==View.GONE,"contact shadow removed on expansion");check(activity.controls.getVisibility()==View.VISIBLE&&activity.miniature.getVisibility()==View.GONE,"full controls restored without overlay");});
   snapshot("pinch-restored.png");pinch(true);android.os.SystemClock.sleep(650);waitForIdleSync();rotateScreens();
  }
  void clickDescription(String description){android.view.accessibility.AccessibilityNodeInfo root=getUiAutomation().getRootInActiveWindow();android.view.accessibility.AccessibilityNodeInfo node=findDescription(root,description);if(node==null||!node.performAction(android.view.accessibility.AccessibilityNodeInfo.ACTION_CLICK))throw new AssertionError("click description "+description);waitForIdleSync();}

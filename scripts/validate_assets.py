@@ -17,3 +17,12 @@ for kind,keys in [('shelves',['oak','walnut','white_oak']),('books',['classic','
    count+=1
 assert count==15
 print('PASS: 15 raster assets, 6 theme manifests; dimensions, format, alpha, paths')
+
+for name,wide in [('portrait',False),('landscape',True)]:
+ path=Path('app/src/main/assets/scenes')/('classroom_'+name+'.webp')
+ with Image.open(path) as room:
+  room.load()
+  assert room.format=='WEBP' and room.mode=='RGB',path
+  assert (room.width>room.height)==wide and max(room.size)<=2048,(path,room.size)
+  assert path.stat().st_size<500000,path
+print('PASS: portrait and landscape classroom backgrounds; orientation, decode, memory and file-size bounds')

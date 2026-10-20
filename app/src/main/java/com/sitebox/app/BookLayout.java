@@ -13,11 +13,13 @@ final class BookLayout {
   float availableHeight=Math.max(1,height-insetTop-insetBottom-2*padding);
   float imageScale=Math.max(width/imageWidth,height/imageHeight);
   float xOffset=(width-imageWidth*imageScale)*.5f,yOffset=(height-imageHeight*imageScale)*.5f;
-  float h=Math.min(imageHeight*imageScale*.29f,Math.min(availableHeight*.62f,availableWidth*1.3f*.70f));
+  boolean landscape=imageWidth>imageHeight;
+  // Match the actual sill and floor in each orientation's independently composed room.
+  float h=Math.min(imageHeight*imageScale*(landscape?.38f:.31f),Math.min(availableHeight*.62f,availableWidth*1.3f*.70f));
   float w=h/1.3f;
-  float center=xOffset+imageWidth*imageScale*.56f;
+  float center=xOffset+imageWidth*imageScale*.52f;
   float left=Math.max(insetLeft+padding,Math.min(center-w*.5f,width-insetRight-padding-w));
-  float bottom=Math.max(insetTop+padding+h,Math.min(yOffset+imageHeight*imageScale*.75f,height-insetBottom-padding));
+  float bottom=Math.max(insetTop+padding+h,Math.min(yOffset+imageHeight*imageScale*(landscape?.84f:.80f),height-insetBottom-padding));
   return new float[]{left,bottom-h,left+w,bottom};
  }
 }

@@ -27,3 +27,6 @@ side to 3.5% of displayed width, center live titles within the spine only, and k
 them between the foil bands (31%–72% of height). CJK titles use upright glyphs.
 The pinch scene uses a bounded snapshot of the current cabinet, not a second
 independently editable book dataset.
+
+2.2 adds orientation-specific classroom nook artwork and matched furniture anchors.
+See [scene artwork and prompts](SCENE_ARTWORK.md); original background stays as fallback.

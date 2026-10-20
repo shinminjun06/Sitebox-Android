@@ -14,6 +14,15 @@ public class BookLayoutTest {
    if(bounds[0]<0||bounds[1]<24||bounds[2]>screen[0]||bounds[3]>screen[1]-24)throw new AssertionError("Miniature must remain visible");
    if(Math.abs((bounds[3]-bounds[1])/(bounds[2]-bounds[0])-1.3f)>.001f)throw new AssertionError("Furniture aspect ratio changes");
   }
+  // The cabinet must sit beneath the sill and reach the floor in the shipped room art.
+  for(float[] profile:new float[][]{{720,1560,852,1846,.455f,.77f},{1560,720,1672,941,.40f,.81f}}){
+   float w=profile[0],h=profile[1],iw=profile[2],ih=profile[3];
+   float scale=Math.max(w/iw,h/ih),offset=(h-ih*scale)*.5f;
+   float[] cabinet=(float[])scene.invoke(null,w,h,iw,ih,0f,24f,0f,24f);
+   float sill=offset+ih*scale*profile[4],floor=offset+ih*scale*profile[5];
+   if(cabinet[1]<sill+8)throw new AssertionError("Cabinet crown overlaps classroom windowsill");
+   if(cabinet[3]<floor+8||cabinet[3]>floor+ih*scale*.06f)throw new AssertionError("Cabinet feet must stand on classroom floor, not float on wall");
+  }
   System.out.println("PASS: seven-book capacity, thin paper edge, scene anchors in portrait/landscape/small screens");
  }
 }
