@@ -4,7 +4,7 @@ package com.sitebox.app;
 final class SceneTheme {
  static final String PREFERENCE_KEY="backgroundTheme";
  static final SceneTheme[] ALL={
-  new SceneTheme("classroom","햇살 교실",.52f,.80f,.31f),
+  new SceneTheme("classroom","햇살 교실",.62f,.69f,.23f),
   new SceneTheme("library","고전 도서관",0.34f,0.69f,0.18f),
   new SceneTheme("bedroom","나만의 방",0.65f,0.62f,0.20f),
   new SceneTheme("greenhouse","유리 온실",0.62f,0.74f,0.17f),

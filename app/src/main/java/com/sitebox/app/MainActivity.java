@@ -107,7 +107,7 @@ public class MainActivity extends Activity {
  sceneShadow=new FurnitureShadow(this);sceneShadow.setVisibility(View.GONE);stage.addView(sceneShadow,new FrameLayout.LayoutParams(1,1));
  miniature=new ImageView(this);miniature.setScaleType(ImageView.ScaleType.FIT_XY);miniature.setContentDescription("작아진 책장 열기");miniature.setVisibility(View.GONE);miniature.setPivotX(0);miniature.setPivotY(0);stage.addView(miniature,new FrameLayout.LayoutParams(1,1));miniature.setOnClickListener(v->expandFromScene(true));
  setContentView(stage);root.requestApplyInsets();
- search.addTextChangedListener(new TextWatcher(){public void beforeTextChanged(CharSequence s,int a,int c,int f){}public void onTextChanged(CharSequence s,int a,int b,int c){filter=s.toString();page=0;populate();}public void afterTextChanged(Editable e){}});
+ search.addTextChangedListener(new TextWatcher(){public void beforeTextChanged(CharSequence s,int a,int c,int f){}public void onTextChanged(CharSequence s,int a,int b,int c){filter=s.toString();updateSearchIndicator();page=0;populate();}public void afterTextChanged(Editable e){}});
  populate();root.requestFocus();
  if(!getPreferences(0).getBoolean("gestureTipSeen",false)){
   TextView tip=label("두 손가락으로 축소 · 작은 책장을 눌러 복원  ×",12,0xFFFFF1D5);tip.setGravity(Gravity.CENTER);tip.setMinHeight(dp(48));tip.setContentDescription("책장 사용 팁 닫기");header.addView(tip);
@@ -185,9 +185,10 @@ public class MainActivity extends Activity {
  }
  void setSearchExpanded(boolean expanded){
   searchExpanded=expanded;if(search==null)return;
-  search.setVisibility(expanded?View.VISIBLE:View.GONE);searchToggle.setSelected(expanded);searchToggle.setContentDescription(expanded?"검색 접기":"검색 펼치기");
+  search.setVisibility(expanded?View.VISIBLE:View.GONE);searchToggle.setSelected(expanded);updateSearchIndicator();
   if(!expanded){search.clearFocus();((android.view.inputmethod.InputMethodManager)getSystemService(INPUT_METHOD_SERVICE)).hideSoftInputFromWindow(search.getWindowToken(),0);}
  }
+ void updateSearchIndicator(){searchToggle.setText(filter.isEmpty()?"검색":"검색 중");searchToggle.setContentDescription((searchExpanded?"검색 접기":"검색 펼치기")+(filter.isEmpty()?"":" · 현재 검색: "+filter));}
  int shelfContentWidth(){int available=shelfScroll.getWidth();if(available<=0)available=getResources().getDisplayMetrics().widthPixels;return Math.round(available*.87f);}
  void resizeShelfContents(){int width=shelfContentWidth();for(int i=0;i<shelves.getChildCount();i++){View child=shelves.getChildAt(i);ViewGroup.LayoutParams lp=child.getLayoutParams();if(lp.width!=width){lp.width=width;child.setLayoutParams(lp);}}}
  void populate(){

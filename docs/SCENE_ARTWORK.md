@@ -1,36 +1,34 @@
-# Classroom nook · 2.2
+# Classroom nook · 2.4
 
-The 2.1 room was attractive but its foreground desk, narrow wall and tall window did
-not provide a planned furniture footprint. 2.2 uses two coordinated room assets.
+The 2.4 classroom uses coordinated portrait and landscape room assets with a
+more distant viewpoint and an open aisle along the left side. The deeper room
+composition leaves breathing space around the independently rendered cabinet.
 The live cabinet is never baked into either background.
 
-Built-in image generation edited the existing school_morning.jpg reference.
-The reference remains bundled unchanged as a fallback. New RGB WebP files are
-quality 93, converted from the generated PNG without repainting room details:
+Built-in image generation edited the school classroom reference. The original
+school_morning.jpg remains bundled unchanged as a fallback. The generated PNGs
+were converted to RGB WebP at quality 91 without repainting room details:
 
-- scenes/classroom_portrait.webp · 852×1846 · sill ~45.5%, floor ~77%.
-- scenes/classroom_landscape.webp · 1672×941 · sill ~40%, floor ~81%.
+- scenes/classroom_portrait.webp · 852×1846 · sill ~43%, floor ~66.5%.
+- scenes/classroom_landscape.webp · 1672×941 · sill ~45%, floor ~72%.
 
-Portrait prompt: retain warm sunny Korean school classroom, blue sky and leafy
-school grounds; front-facing level wall; windows above 45% image height, clear
-cream wall underneath, oak skirting and honey oak floor; unobstructed center
-for an independently rendered 3×3 cabinet. Plant and chalkboard at left margin,
-minimal desk corner at far bottom right, no center clutter, no text or cabinet.
-
-Landscape prompt: same classroom in 16:9, windows above ~36%, broad clear wall,
-skirting around79%, floor below; empty center for live bookshelf. Warm upper-left
-sunlight, straight wall, no foreground desks, no text or baked furniture.
-The generated result's actual landmarks are measured above rather than assumed
-from the prompt's requested coordinates.
+Both compositions retain a warm sunny Korean school classroom, blue sky,
+leafy school grounds, cream walls, oak trim and honey oak floors. The viewpoint
+looks farther into the classroom, with a clear left aisle and open wall/floor
+space toward the right for the live 3×3 cabinet. Foreground furniture stays out
+of this footprint; no text, books or cabinet are baked into the room image.
+The landmarks above are measured from the generated result.
 
 Runtime uses the same CENTER_CROP transform for backdrop and furniture anchors.
-Portrait cabinet height is 31% of image height, feet at80%, center at52% width.
-Landscape uses38% height and84% feet to remain beneath its lower windowsill.
+Portrait cabinet height is 23% of image height, feet at 69%, center at 62% width.
+Landscape uses 27% height, feet at 75%, and center at 62% width.
 Safe-area clamps preserve reachability on short or cropped viewports.
 Near-square windows (width/height >=0.8) also use the wide composition so that
 the room floor remains visible on foldables and multiwindow views.
-A soft warm radial contact shadow is a separate non-interactive layer below the cabinet,
-fading with the transition. No books, categories, ordering or preferences change.
+A soft warm radial contact shadow is a separate non-interactive layer below the
+cabinet, fading with the transition. Expanded controls apply a subtle uniform
+warm scrim; the complete room is visible when the cabinet is collapsed.
+No books, categories, ordering or existing theme preferences change.
 
 Validation includes wall/floor alignment checks at portrait and landscape sizes,
 actual native pinch/tap/rotation tests and real screenshots. The final report

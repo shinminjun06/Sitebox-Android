@@ -92,6 +92,7 @@ public final class SmokeInstrumentation extends Instrumentation {
    });
    snapshot("final-home.png");
    main(()->activity.edit(-1));snapshot("add-dialog.png");clickText("취소");waitForIdleSync();
+   collapsedSearchRotation();
    renameCategory();
    rotateScreens();
    pinchCollapseRestore();
@@ -211,6 +212,41 @@ public final class SmokeInstrumentation extends Instrumentation {
   java.util.ArrayList<android.view.accessibility.AccessibilityNodeInfo> fields=new java.util.ArrayList<>();collectEdits(getUiAutomation().getRootInActiveWindow(),fields);
   check(fields.size()==9,"nine editable category fields");setText(fields.get(0),"학습");clickText("저장");waitForIdleSync();
   main(()->{check(activity.categories[0].equals("학습"),"category name edited");for(int i=0;i<activity.sites.length();i++)check(!activity.sites.optJSONObject(i).optString("category").equals(original),"book category references renamed");});
+ }
+ void collapsedSearchRotation(){
+  final String originalSites=activity.sites.toString();
+  android.app.Application application=activity.getApplication();
+  android.app.Application.ActivityLifecycleCallbacks listener=new android.app.Application.ActivityLifecycleCallbacks(){
+   public void onActivityCreated(Activity a,Bundle b){}public void onActivityStarted(Activity a){}
+   public void onActivityResumed(Activity a){if(a instanceof MainActivity)activity=(MainActivity)a;}
+   public void onActivityPaused(Activity a){}public void onActivityStopped(Activity a){}
+   public void onActivitySaveInstanceState(Activity a,Bundle b){}public void onActivityDestroyed(Activity a){}
+  };
+  application.registerActivityLifecycleCallbacks(listener);
+  try{
+   main(()->{
+    activity.sites=new JSONArray();
+    for(int i=0;i<8;i++){JSONObject item=new JSONObject();try{item.put("name","rotation match "+i);item.put("url","https://example.com/rotation/"+i);item.put("category",activity.categories[0]);}catch(Exception e){throw new RuntimeException(e);}activity.sites.put(item);}
+    activity.save();activity.search.setText("rotation match");activity.setSearchExpanded(false);activity.page=1;activity.populate();
+   });
+   for(int orientation:new int[]{android.content.pm.ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE,android.content.pm.ActivityInfo.SCREEN_ORIENTATION_PORTRAIT}){
+    MainActivity before=activity;main(()->activity.setRequestedOrientation(orientation));
+    long deadline=android.os.SystemClock.uptimeMillis()+8000;
+    while(activity==before&&android.os.SystemClock.uptimeMillis()<deadline)android.os.SystemClock.sleep(50);
+    check(activity!=before,"collapsed search rotation recreates activity");waitForIdleSync();
+    main(()->{
+     check(activity.filter.equals("rotation match")&&activity.page==1,"collapsed query and second page survive rotation");
+     check(!activity.searchExpanded&&activity.search.getVisibility()==View.GONE,"collapsed search stays collapsed after rotation");
+     check(activity.searchToggle.getText().toString().equals("검색 중"),"collapsed search has active filter indicator");
+     check(activity.searchToggle.getContentDescription().toString().contains("rotation match"),"search action announces current query");
+     check(activity.pageSummary.getText().toString().contains("2 / 2"),"second filtered page remains selected");
+    });
+   }
+   main(()->{activity.search.setText("");check(activity.searchToggle.getText().toString().equals("검색"),"clearing filter resets search indicator");check(activity.searchToggle.getContentDescription().toString().equals("검색 펼치기"),"clearing filter resets search description");});
+  }finally{
+   application.unregisterActivityLifecycleCallbacks(listener);
+   main(()->{try{activity.sites=new JSONArray(originalSites);}catch(Exception e){throw new RuntimeException(e);}activity.search.setText("");activity.page=0;activity.save();activity.populate();});
+  }
  }
  void rotateScreens(){
   final boolean originallyCollapsed=activity.sceneCollapsed;
