@@ -24,6 +24,11 @@ public class MainActivity extends Activity {
  ImageView backdrop;
  boolean backgroundOnly=false;
  String filter=""; int page=0;
+ final HashMap<String,Bitmap> textureCache=new HashMap<>();
+ Bitmap texture(String path){if(textureCache.containsKey(path))return textureCache.get(path);Bitmap bitmap=null;try(java.io.InputStream in=getAssets().open(path)){bitmap=BitmapFactory.decodeStream(in);}catch(Exception ignored){}textureCache.put(path,bitmap);return bitmap;}
+ String shelfTexturePath(){return "themes/shelves/"+new String[]{"oak","walnut","white_oak"}[shelfThemeIndex]+"/frame.png";}
+ String bookTexturePath(int variant){return "themes/books/"+new String[]{"classic","pastel","modern"}[bookThemeIndex]+"/"+new String[]{"navy","burgundy","ivory","green","brown","teal","blue","tan"}[variant%8]+".png";}
+
  int shelfThemeIndex=0,bookThemeIndex=0;
  final String[] shelfThemeNames={"햇살 원목","짙은 월넛","화이트 오크"};
  final String[] bookThemeNames={"고전 양장본","파스텔 북","모던 북"};
@@ -93,12 +98,15 @@ public class MainActivity extends Activity {
  Spinner bookPicker=new Spinner(this);bookPicker.setAdapter(new ArrayAdapter<String>(this,android.R.layout.simple_spinner_dropdown_item,bookThemeNames));bookPicker.setSelection(bookThemeIndex);layout.addView(bookPicker);
  new AlertDialog.Builder(this).setTitle("책장 · 책 테마").setView(layout).setNegativeButton("취소",null).setPositiveButton("적용",(d,w)->{shelfThemeIndex=shelfPicker.getSelectedItemPosition();bookThemeIndex=bookPicker.getSelectedItemPosition();save();populate();}).show();
  }
- // Draw wood grain at any screen density without raster image assets.
+ // Texture images take precedence; Canvas drawing remains a fallback when assets are absent.
+
  class WoodPanel extends android.graphics.drawable.Drawable {
   final boolean vertical;final boolean recess;Paint brush=new Paint(3);
   WoodPanel(boolean vertical,boolean recess){this.vertical=vertical;this.recess=recess;}
   @Override public void draw(Canvas c){
    android.graphics.Rect r=getBounds();float w=r.width(),h=r.height();if(w<=0||h<=0)return;
+   Bitmap woodTexture=texture(shelfTexturePath());
+   if(woodTexture!=null){brush.setStyle(Paint.Style.FILL);brush.setAlpha(255);brush.setShader(null);c.drawBitmap(woodTexture,null,r,brush);return;}
    int[] palette;
    if(shelfThemeIndex==1)palette=recess?new int[]{0xFF26180F,0xFF4E2F20,0xFF392216,0xFF20130E}:new int[]{0xFF9A6C4D,0xFF72492F,0xFF56341F,0xFF3C2619};
    else if(shelfThemeIndex==2)palette=recess?new int[]{0xFFB3A18D,0xFFE0D1BA,0xFFCCBBA4,0xFF97836C}:new int[]{0xFFFFF4E1,0xFFEAD9C0,0xFFD5BEA0,0xFFBDA183};
@@ -182,11 +190,16 @@ public class MainActivity extends Activity {
  BookView(Context c,JSONObject obj,int index){super(c);item=obj;idx=index;setLayerType(View.LAYER_TYPE_SOFTWARE,null);setContentDescription(obj.optString("name"));}
  @Override protected void onDraw(Canvas canvas){super.onDraw(canvas);
  float w=getWidth(),h=getHeight(),left=dp(1),bottom=h-dp(1);
- int color=covers[(item.optString("name").hashCode()&0x7fffffff)%covers.length];
+ int variant=(item.optString("name").hashCode()&0x7fffffff)%covers.length;
+ int color=covers[variant];
  if(bookThemeIndex==1){int[] pastel={0xFF9CB8B5,0xFFD7A9B2,0xFFEAD7AB,0xFFB5ACD6,0xFFA7BFCF};color=pastel[(item.optString("name").hashCode()&0x7fffffff)%pastel.length];}
  else if(bookThemeIndex==2){int[] modern={0xFF2E343B,0xFF4D5963,0xFF8B8F88,0xFFBBADA0,0xFF4C6C7A};color=modern[(item.optString("name").hashCode()&0x7fffffff)%modern.length];}
  int variation=Math.abs(item.optString("name").hashCode())%4;
  float top=dp(5+variation*4),right=w-dp(1),spineRight=Math.max(left+dp(5),right-dp(2));
+ Bitmap bookTexture=texture(bookTexturePath(variant));
+ if(bookTexture!=null){p.setStyle(Paint.Style.FILL);p.setShader(null);p.setColor(Color.WHITE);p.setAlpha(255);canvas.drawBitmap(bookTexture,null,new RectF(left,top,right,bottom),p);
+ canvas.save();canvas.rotate(-90,w/2,(top+bottom)/2);p.setTypeface(Typeface.create("serif",Typeface.BOLD));p.setTextAlign(Paint.Align.CENTER);p.setTextSize(dp(9));p.setColor(0xFFFFE8BC);String bookName=item.optString("name","Site");if(bookName.length()>12)bookName=bookName.substring(0,11)+"…";canvas.drawText(bookName,w/2,(top+bottom)/2+dp(3),p);canvas.restore();return;}
+
  float cx=(left+spineRight)/2f;
  p.setStyle(Paint.Style.FILL);
  p.setShadowLayer(dp(2),dp(1),dp(1),0x880F0906);p.setColor(0xFF271810);
