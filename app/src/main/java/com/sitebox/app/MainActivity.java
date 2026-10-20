@@ -29,7 +29,7 @@ public class MainActivity extends Activity {
   final int background,header,frame,innerDark,innerLight,trim,edge,shadow,gold,paper;
   ShelfTheme(int a,int b,int c,int d,int e,int f,int g,int h,int i,int j){background=a;header=b;frame=c;innerDark=d;innerLight=e;trim=f;edge=g;shadow=h;gold=i;paper=j;}
  }
- final ShelfTheme walnut=new ShelfTheme(0xFF211610,0xFF302018,0xFF71472C,0xFF180F0B,0xFF43291B,0xFFB78A53,0xFF55321F,0xFF120B08,0xFFD9B777,0xFFF3E4C9);
+ final ShelfTheme walnut=new ShelfTheme(0xFF211610,0xFF302018,0xFF9D7451,0xFF493323,0xFF795638,0xFFD1A36A,0xFF765039,0xFF2C1A12,0xFFD9B777,0xFFF3E4C9);
  ShelfTheme theme=walnut;
  final int[] covers={0xFF315B57,0xFF8C493E,0xFF334C70,0xFF755A84,0xFFAD783A,0xFF566B42,0xFF5F4149,0xFF476B78};
  int dp(float v){return (int)(getResources().getDisplayMetrics().density*v+0.5f);}
@@ -42,7 +42,7 @@ public class MainActivity extends Activity {
  stage=new FrameLayout(this);
  stage.setBackgroundColor(theme.background);
  backdrop=new ImageView(this);
- backdrop.setScaleType(ImageView.ScaleType.CENTER_CROP);
+ // Show the whole scene instead of zooming and cropping it.\n backdrop.setScaleType(ImageView.ScaleType.FIT_XY);
  try{
   java.io.InputStream scene=getAssets().open("school_morning.jpg");
   Bitmap bmp=BitmapFactory.decodeStream(scene);scene.close();
@@ -60,7 +60,7 @@ public class MainActivity extends Activity {
  search=new EditText(this);search.setSingleLine(true);search.setTextColor(0xFFF5E8D1);search.setHintTextColor(0xFFBEA994);search.setTextSize(15);search.setHint("⌕  책 제목 · 주소 · 카테고리 검색");search.setPadding(dp(14),0,dp(12),0);search.setBackground(bg(0xDD4D382B,12));search.setText(filter);
  LinearLayout.LayoutParams sp=new LinearLayout.LayoutParams(-1,dp(46));sp.topMargin=dp(12);header.addView(search,sp);root.addView(header);
  ScrollView sc=new ScrollView(this);sc.setFillViewport(true);sc.setBackgroundColor(Color.TRANSPARENT);
- shelves=new LinearLayout(this);shelves.setOrientation(1);shelves.setPadding(dp(12),dp(14),dp(12),dp(25));shelves.setBackgroundColor(Color.TRANSPARENT);
+ shelves=new LinearLayout(this);shelves.setOrientation(1);shelves.setPadding(dp(12),dp(32),dp(12),dp(25));shelves.setBackgroundColor(Color.TRANSPARENT);
  sc.addView(shelves);root.addView(sc,new LinearLayout.LayoutParams(-1,0,1));
  stage.addView(root,new FrameLayout.LayoutParams(-1,-1));
  View overlay=new View(this);overlay.setBackgroundColor(Color.TRANSPARENT);overlay.setVisibility(View.GONE);
@@ -86,7 +86,7 @@ public class MainActivity extends Activity {
  TextView prev=label("◀",19,0xFFF3D7B0);prev.setGravity(Gravity.CENTER);nav.addView(prev,new LinearLayout.LayoutParams(dp(45),dp(42)));prev.setOnClickListener(v->{if(page>0){page--;populate();}});
  TextView count=label("나무 책장  "+(page+1)+" / "+pages+"   ·   "+ids.size()+"권",14,0xFFE9D2B0);count.setGravity(Gravity.CENTER);nav.addView(count,new LinearLayout.LayoutParams(0,dp(42),1));
  TextView next=label("▶",19,0xFFF3D7B0);next.setGravity(Gravity.CENTER);nav.addView(next,new LinearLayout.LayoutParams(dp(45),dp(42)));next.setOnClickListener(v->{if(page<pages-1){page++;populate();}});
- shelves.addView(nav);
+ nav.setBackground(bg(0xBB382619,10));\n shelves.addView(nav);
  for(int shelfRow=0;shelfRow<3;shelfRow++){
  LinearLayout compartments=new LinearLayout(this);compartments.setOrientation(LinearLayout.HORIZONTAL);compartments.setPadding(dp(4),0,dp(4),0);compartments.setBackgroundColor(theme.frame);
  for(int shelfCol=0;shelfCol<3;shelfCol++){
@@ -107,7 +107,7 @@ public class MainActivity extends Activity {
  View lip=new View(this);GradientDrawable wood=new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM,new int[]{theme.trim,theme.frame,theme.edge});wood.setStroke(dp(1),theme.gold);lip.setBackground(wood);shelves.addView(lip,new LinearLayout.LayoutParams(-1,dp(16)));
  View shadow=new View(this);shadow.setBackgroundColor(theme.shadow);shelves.addView(shadow,new LinearLayout.LayoutParams(-1,dp(7)));
  }
- TextView tip=label("책을 누르면 책 펼치기  ·  길게 누르면 관리",12,0xFFCBB394);tip.setGravity(Gravity.CENTER);tip.setPadding(0,dp(18),0,dp(8));shelves.addView(tip);
+ View foot=new View(this);GradientDrawable base=new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM,new int[]{0xAA2C1A12,0x002C1A12});foot.setBackground(base);shelves.addView(foot,new LinearLayout.LayoutParams(-1,dp(26)));\n TextView tip=label("책을 누르면 책 펼치기  ·  길게 누르면 관리",12,0xFFFFFFFF);tip.setGravity(Gravity.CENTER);tip.setPadding(0,dp(12),0,dp(8));tip.setBackground(bg(0x99382418,8));shelves.addView(tip);
  }
  class BookView extends View {
  Paint p=new Paint(3);JSONObject item;int idx;long down;float y;
