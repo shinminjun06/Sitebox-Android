@@ -8,6 +8,8 @@ import android.graphics.drawable.*;
 import android.view.*;
 import android.widget.*;
 import android.text.*;
+import android.webkit.WebView;
+import android.webkit.WebViewClient;
 import org.json.*;
 import java.util.*;
 
@@ -68,7 +70,7 @@ public class MainActivity extends Activity {
  View lip=new View(this);GradientDrawable wood=new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM,new int[]{0xFFD09A5E,0xFF986036,0xFF4D2D1D});wood.setStroke(dp(1),0xFFBD8954);lip.setBackground(wood);shelves.addView(lip,new LinearLayout.LayoutParams(-1,dp(16)));
  View shadow=new View(this);shadow.setBackgroundColor(0xFF21140F);shelves.addView(shadow,new LinearLayout.LayoutParams(-1,dp(7)));
  }
- TextView tip=label("책을 누르면 사이트 열기  ·  길게 누르면 편집 / 즐겨찾기",12,0xFFCBB394);tip.setGravity(Gravity.CENTER);tip.setPadding(0,dp(18),0,dp(8));shelves.addView(tip);
+ TextView tip=label("책을 누르면 책 펼치기  ·  길게 누르면 관리",12,0xFFCBB394);tip.setGravity(Gravity.CENTER);tip.setPadding(0,dp(18),0,dp(8));shelves.addView(tip);
  }
  class BookView extends View {
  Paint p=new Paint(3);JSONObject item;int idx;long down;float y;
@@ -86,7 +88,29 @@ public class MainActivity extends Activity {
  canvas.drawText(name,(left+right)/2,(top+bottom)/2+dp(3),p);canvas.restore();
  if(item.optBoolean("fav")){p.setTextSize(dp(11));p.setTextAlign(Paint.Align.CENTER);p.setColor(0xFFFFD477);canvas.drawText("★",w/2,top+dp(24),p);}
  }
- @Override public boolean onTouchEvent(android.view.MotionEvent e){if(e.getAction()==MotionEvent.ACTION_DOWN){down=System.currentTimeMillis();y=e.getY();return true;}if(e.getAction()==MotionEvent.ACTION_UP){if(System.currentTimeMillis()-down>550&&Math.abs(e.getY()-y)<dp(20))options(idx);else open(item.optString("url"));return true;}return true;}
+ @Override public boolean onTouchEvent(android.view.MotionEvent e){if(e.getAction()==MotionEvent.ACTION_DOWN){down=System.currentTimeMillis();y=e.getY();return true;}if(e.getAction()==MotionEvent.ACTION_UP){if(System.currentTimeMillis()-down>550&&Math.abs(e.getY()-y)<dp(20))options(idx);else {animate().scaleX(0.12f).setDuration(170).withEndAction(()->{animate().scaleX(1f).setDuration(220).start();showBook(idx);}).start();}return true;}return true;}
+ }
+ void showBook(int index){
+ JSONObject o=sites.optJSONObject(index);if(o==null)return;
+ final String url=o.optString("url");
+ final String safeUrl=url.matches("(?i)^https?://.*")?url:"https://"+url;
+ LinearLayout spread=new LinearLayout(this);spread.setOrientation(1);spread.setPadding(dp(12),dp(12),dp(12),dp(10));spread.setBackgroundColor(0xFFF3E4C9);
+ TextView title=label("📖  "+o.optString("name"),21,0xFF4A2C1C);title.setTypeface(Typeface.SERIF,Typeface.BOLD);spread.addView(title);
+ TextView address=label(safeUrl,12,0xFF73513B);address.setPadding(0,dp(8),0,dp(10));address.setOnClickListener(v->edit(index));spread.addView(address);
+ TextView previewTitle=label("사이트 미리보기",14,0xFF6D442A);spread.addView(previewTitle);
+ WebView web=new WebView(this);web.setBackgroundColor(0xFFFFFFFF);web.getSettings().setJavaScriptEnabled(false);web.getSettings().setDomStorageEnabled(false);
+ web.setWebViewClient(new WebViewClient(){@Override public boolean shouldOverrideUrlLoading(WebView view,String next){return true;}});
+ spread.addView(web,new LinearLayout.LayoutParams(-1,dp(215)));
+ TextView hint=label("일부 사이트는 미리보기를 지원하지 않을 수 있어요.",11,0xFF876B52);spread.addView(hint);
+ TextView memoTitle=label("나의 세부사항 · 탭해서 수정",15,0xFF4B3021);memoTitle.setPadding(0,dp(13),0,dp(6));spread.addView(memoTitle);
+ TextView memo=label(o.optString("notes").isEmpty()?"＋ 여기를 눌러 메모를 작성하세요.":o.optString("notes"),14,0xFF533D2E);
+ memo.setPadding(dp(12),dp(12),dp(12),dp(12));memo.setBackground(bg(0xFFE5D0AA,8));spread.addView(memo);
+ memo.setOnClickListener(v->{EditText editor=new EditText(this);editor.setMinLines(4);editor.setGravity(Gravity.TOP);editor.setText(o.optString("notes"));editor.setHint("이 사이트에 관한 나만의 기록, 사용법, 아이디어...");new AlertDialog.Builder(this).setTitle("나의 세부사항 수정").setView(editor).setNegativeButton("취소",null).setPositiveButton("저장",(d,w)->{try{o.put("notes",editor.getText().toString());save();memo.setText(o.optString("notes").isEmpty()?"＋ 여기를 눌러 메모를 작성하세요.":o.optString("notes"));}catch(Exception e){}}).show();});
+ ScrollView scroll=new ScrollView(this);scroll.setFillViewport(true);scroll.addView(spread);
+ AlertDialog dialog=new AlertDialog.Builder(this).setView(scroll).setNegativeButton("닫기",(d,w)->{}).setNeutralButton("정보 수정",(d,w)->edit(index)).setPositiveButton("사이트 방문",(d,w)->open(safeUrl)).create();
+ dialog.setOnDismissListener(d->{web.stopLoading();web.destroy();});
+ dialog.show();dialog.getWindow().setLayout(getResources().getDisplayMetrics().widthPixels-dp(22),-2);
+ web.loadUrl(safeUrl);
  }
  void open(String url){try{String u=url.matches("(?i)^https?://.*")?url:"https://"+url;startActivity(new Intent(Intent.ACTION_VIEW,android.net.Uri.parse(u)));}catch(Exception e){Toast.makeText(this,"사이트를 열 수 없어요.",Toast.LENGTH_SHORT).show();}}
  void options(int index){JSONObject o=sites.optJSONObject(index);if(o==null)return;String[] choices={o.optBoolean("fav")?"즐겨찾기 해제":"★ 즐겨찾기","책 정보 수정","책장에서 삭제"};new AlertDialog.Builder(this).setTitle(o.optString("name")).setItems(choices,(d,which)->{if(which==0){try{o.put("fav",!o.optBoolean("fav"));save();populate();}catch(Exception e){}}else if(which==1)edit(index);else new AlertDialog.Builder(this).setMessage("이 사이트를 삭제할까요?").setNegativeButton("취소",null).setPositiveButton("삭제",(a,b)->{sites.remove(index);save();populate();}).show();}).setNegativeButton("닫기",null).show();}
@@ -95,6 +119,6 @@ public class MainActivity extends Activity {
  EditText url=new EditText(this);url.setHint("사이트 주소 (example.com)");url.setSingleLine();url.setInputType(17);url.setText(old.optString("url"));fields.addView(url);
  EditText cat=new EditText(this);cat.setHint("책장 이름 (예: 공부, AI, 게임)");cat.setSingleLine();cat.setText(old.optString("category"));fields.addView(cat);
  AlertDialog dialog=new AlertDialog.Builder(this).setTitle(index<0?"책장에 사이트 추가":"책 정보 수정").setView(fields).setNegativeButton("취소",null).setPositiveButton("저장",null).create();
- dialog.setOnShowListener(v->dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(btn->{String n=name.getText().toString().trim(),u=url.getText().toString().trim();if(n.isEmpty()||u.isEmpty()){Toast.makeText(this,"제목과 주소를 입력해 주세요.",Toast.LENGTH_SHORT).show();return;}if(!u.matches("(?i)^https?://.*"))u="https://"+u;try{JSONObject item=new JSONObject();item.put("name",n);item.put("url",u);item.put("category",cat.getText().toString().trim());item.put("fav",old.optBoolean("fav"));if(index<0)sites.put(item);else sites.put(index,item);save();populate();dialog.dismiss();}catch(Exception e){Toast.makeText(this,"저장하지 못했어요.",Toast.LENGTH_SHORT).show();}}));dialog.show();
+ dialog.setOnShowListener(v->dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(btn->{String n=name.getText().toString().trim(),u=url.getText().toString().trim();if(n.isEmpty()||u.isEmpty()){Toast.makeText(this,"제목과 주소를 입력해 주세요.",Toast.LENGTH_SHORT).show();return;}if(!u.matches("(?i)^https?://.*"))u="https://"+u;try{JSONObject item=new JSONObject();item.put("name",n);item.put("url",u);item.put("category",cat.getText().toString().trim());item.put("fav",old.optBoolean("fav"));item.put("notes",old.optString("notes"));if(index<0)sites.put(item);else sites.put(index,item);save();populate();dialog.dismiss();}catch(Exception e){Toast.makeText(this,"저장하지 못했어요.",Toast.LENGTH_SHORT).show();}}));dialog.show();
  }
 }
