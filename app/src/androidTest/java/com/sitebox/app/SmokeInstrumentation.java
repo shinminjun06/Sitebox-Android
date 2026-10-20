@@ -143,7 +143,7 @@ public final class SmokeInstrumentation extends Instrumentation {
  void setText(android.view.accessibility.AccessibilityNodeInfo node,String text){Bundle args=new Bundle();args.putCharSequence(android.view.accessibility.AccessibilityNodeInfo.ACTION_ARGUMENT_SET_TEXT_CHARSEQUENCE,text);check(node.performAction(android.view.accessibility.AccessibilityNodeInfo.ACTION_SET_TEXT,args),"text field accepts edit");}
  void clickText(String text){android.view.accessibility.AccessibilityNodeInfo root=getUiAutomation().getRootInActiveWindow();if(root!=null)for(android.view.accessibility.AccessibilityNodeInfo node:root.findAccessibilityNodeInfosByText(text)){if(text.contentEquals(node.getText())&&node.performAction(android.view.accessibility.AccessibilityNodeInfo.ACTION_CLICK))return;}throw new AssertionError("click target: "+text);}
  void checkRoomGrounding(){
-  Bitmap room=activity.sceneBackdrop;boolean landscape=activity.getResources().getConfiguration().orientation==android.content.res.Configuration.ORIENTATION_LANDSCAPE;
+  Bitmap room=activity.sceneBackdrop;android.util.DisplayMetrics viewport=activity.getResources().getDisplayMetrics();boolean landscape=BookLayout.wideScene(viewport.widthPixels,viewport.heightPixels);
   check(room!=null&&(room.getWidth()>room.getHeight())==landscape,"orientation-specific classroom artwork loaded");
   float scale=Math.max((float)activity.stage.getWidth()/room.getWidth(),(float)activity.stage.getHeight()/room.getHeight());
   float offset=(activity.stage.getHeight()-room.getHeight()*scale)*.5f;

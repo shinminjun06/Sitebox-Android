@@ -14,8 +14,10 @@ public class BookLayoutTest {
    if(bounds[0]<0||bounds[1]<24||bounds[2]>screen[0]||bounds[3]>screen[1]-24)throw new AssertionError("Miniature must remain visible");
    if(Math.abs((bounds[3]-bounds[1])/(bounds[2]-bounds[0])-1.3f)>.001f)throw new AssertionError("Furniture aspect ratio changes");
   }
+  java.lang.reflect.Method wide=layout.getDeclaredMethod("wideScene",float.class,float.class);
+  if((Boolean)wide.invoke(null,720f,1560f)||(Boolean)wide.invoke(null,1080f,2400f)||!(Boolean)wide.invoke(null,1200f,1440f)||!(Boolean)wide.invoke(null,1080f,1080f))throw new AssertionError("Room composition must adapt to near-square windows");
   // The cabinet must sit beneath the sill and reach the floor in the shipped room art.
-  for(float[] profile:new float[][]{{720,1560,852,1846,.455f,.77f},{1560,720,1672,941,.40f,.81f}}){
+  for(float[] profile:new float[][]{{720,1560,852,1846,.455f,.77f},{1560,720,1672,941,.40f,.81f},{1200,1440,1672,941,.40f,.81f},{1080,1080,1672,941,.40f,.81f}}){
    float w=profile[0],h=profile[1],iw=profile[2],ih=profile[3];
    float scale=Math.max(w/iw,h/ih),offset=(h-ih*scale)*.5f;
    float[] cabinet=(float[])scene.invoke(null,w,h,iw,ih,0f,24f,0f,24f);

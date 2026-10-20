@@ -26,8 +26,10 @@ from the prompt's requested coordinates.
 Runtime uses the same CENTER_CROP transform for backdrop and furniture anchors.
 Portrait cabinet height is 31% of image height, feet at80%, center at52% width.
 Landscape uses38% height and84% feet to remain beneath its lower windowsill.
-Safe-area clamps preserve reachability on short or cropped viewports. A subtle
-warm radial contact shadow is a separate non-interactive layer below the cabinet,
+Safe-area clamps preserve reachability on short or cropped viewports.
+Near-square windows (width/height >=0.8) also use the wide composition so that
+the room floor remains visible on foldables and multiwindow views.
+A soft warm radial contact shadow is a separate non-interactive layer below the cabinet,
 fading with the transition. No books, categories, ordering or preferences change.
 
 Validation includes wall/floor alignment checks at portrait and landscape sizes,

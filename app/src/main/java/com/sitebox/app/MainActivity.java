@@ -72,7 +72,8 @@ public class MainActivity extends Activity {
  void draw(){
  stage=new LibraryStage(this,()->collapseToScene(true));stage.setBackgroundColor(0xffd4c4a7);
  backdrop=new ImageView(this);backdrop.setScaleType(ImageView.ScaleType.CENTER_CROP);
- sceneBackdrop=assets.scene(getResources().getConfiguration().orientation==android.content.res.Configuration.ORIENTATION_LANDSCAPE);
+ android.util.DisplayMetrics viewport=getResources().getDisplayMetrics();
+ sceneBackdrop=assets.scene(BookLayout.wideScene(viewport.widthPixels,viewport.heightPixels));
  backdrop.setImageBitmap(sceneBackdrop);stage.addView(backdrop,new FrameLayout.LayoutParams(-1,-1));
  LinearLayout root=new LinearLayout(this);controls=root;root.setOrientation(LinearLayout.VERTICAL);root.setFocusableInTouchMode(true);
  root.setOnApplyWindowInsetsListener((view,insets)->{

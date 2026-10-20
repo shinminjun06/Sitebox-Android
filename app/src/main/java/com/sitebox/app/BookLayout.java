@@ -7,6 +7,8 @@ final class BookLayout {
  static final float TITLE_TOP=.31f,TITLE_BOTTOM=.72f;
  private BookLayout(){}
  static float spineRight(float left,float right){return right-(right-left)*.035f;}
+ // A portrait bitmap crops the floor out in near-square foldable/multiwindow views.
+ static boolean wideScene(float width,float height){return width>=height*.8f;}
  static float[] sceneBounds(float width,float height,float imageWidth,float imageHeight,float insetLeft,float insetTop,float insetRight,float insetBottom){
   float padding=Math.min(width,height)*.025f;
   float availableWidth=Math.max(1,width-insetLeft-insetRight-2*padding);
