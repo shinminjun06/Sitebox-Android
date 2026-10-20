@@ -18,7 +18,7 @@ jobs:
           ISSUE_BODY: ${{ github.event.issue.body }}
         run: |
           python3 - <<'PY'
-          import os, re, urllib.request, urllib.parse, pathlib, imghdr
+          import os, re, urllib.request, urllib.parse, pathlib
           body=os.environ.get('ISSUE_BODY','').strip()
           url=body.splitlines()[0].strip() if body else ''
           parsed=urllib.parse.urlparse(url)
