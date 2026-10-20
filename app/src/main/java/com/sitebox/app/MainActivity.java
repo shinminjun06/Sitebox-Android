@@ -5,6 +5,7 @@ import android.os.*;
 import android.content.*;
 import android.graphics.*;
 import android.graphics.drawable.*;
+import android.graphics.BitmapFactory;
 import android.view.*;
 import android.widget.*;
 import android.text.*;
@@ -37,9 +38,10 @@ public class MainActivity extends Activity {
  void draw(){
  LinearLayout root=new LinearLayout(this);root.setOrientation(1);root.setBackgroundColor(theme.background);
  LinearLayout header=new LinearLayout(this);header.setOrientation(1);header.setPadding(dp(20),dp(22),dp(20),dp(12));header.setBackgroundColor(theme.header);
- TextView eyebrow=label("YOUR PERSONAL LIBRARY",11,0xFFC9A978);eyebrow.setLetterSpacing(.19f);header.addView(eyebrow);
+ try{java.io.InputStream scene=getAssets().open("school_morning.jpg");Bitmap bmp=BitmapFactory.decodeStream(scene);scene.close();if(bmp!=null){Bitmap window=Bitmap.createBitmap(bmp,0,0,bmp.getWidth(),Math.min(bmp.getHeight(),(int)(bmp.getWidth()*.43f)));BitmapDrawable photo=new BitmapDrawable(getResources(),window);photo.setGravity(Gravity.FILL);header.setBackground(photo);header.setPadding(dp(20),dp(45),dp(20),dp(18));}}catch(Exception ignored){}
+ TextView eyebrow=label("맑은 아침의 학교 서재",12,0xFFFFE8BD);eyebrow.setLetterSpacing(.19f);header.addView(eyebrow);
  LinearLayout headline=new LinearLayout(this);headline.setGravity(Gravity.CENTER_VERTICAL);
- TextView title=label("SiteBox  ·  서재",27,0xFFF5E8D1);title.setTypeface(Typeface.SERIF,Typeface.BOLD);headline.addView(title,new LinearLayout.LayoutParams(0,-2,1));
+ TextView title=label("SiteBox  ·  서재",27,0xFFFFFFFF);title.setTypeface(Typeface.SERIF,Typeface.BOLD);headline.addView(title,new LinearLayout.LayoutParams(0,-2,1));
  TextView add=label("＋",30,0xFFF8EBD5);add.setGravity(Gravity.CENTER);add.setBackground(bg(0xFF775135,14));headline.addView(add,new LinearLayout.LayoutParams(dp(48),dp(48)));add.setOnClickListener(v->edit(-1));
  header.addView(headline);
  search=new EditText(this);search.setSingleLine(true);search.setTextColor(0xFFF5E8D1);search.setHintTextColor(0xFFBEA994);search.setTextSize(15);search.setHint("⌕  책 제목 · 주소 · 카테고리 검색");search.setPadding(dp(14),0,dp(12),0);search.setBackground(bg(0xFF4D382B,12));search.setText(filter);
