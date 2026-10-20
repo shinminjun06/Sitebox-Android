@@ -15,7 +15,7 @@ public class MainActivity extends Activity {
  JSONArray sites=new JSONArray();
  LinearLayout shelves;
  EditText search;
- String filter="";
+ String filter=""; int page=0;
  final int[] covers={0xFF315B57,0xFF8C493E,0xFF334C70,0xFF755A84,0xFFAD783A,0xFF566B42,0xFF5F4149,0xFF476B78};
  int dp(float v){return (int)(getResources().getDisplayMetrics().density*v+0.5f);}
  GradientDrawable bg(int color,int radius){GradientDrawable d=new GradientDrawable();d.setColor(color);d.setCornerRadius(dp(radius));return d;}
@@ -34,39 +34,50 @@ public class MainActivity extends Activity {
  search=new EditText(this);search.setSingleLine(true);search.setTextColor(0xFFF5E8D1);search.setHintTextColor(0xFFBEA994);search.setTextSize(15);search.setHint("⌕  책 제목 · 주소 · 카테고리 검색");search.setPadding(dp(14),0,dp(12),0);search.setBackground(bg(0xFF4D382B,12));search.setText(filter);
  LinearLayout.LayoutParams sp=new LinearLayout.LayoutParams(-1,dp(46));sp.topMargin=dp(12);header.addView(search,sp);root.addView(header);
  ScrollView sc=new ScrollView(this);sc.setFillViewport(true);shelves=new LinearLayout(this);shelves.setOrientation(1);shelves.setPadding(dp(12),dp(14),dp(12),dp(25));shelves.setBackgroundColor(0xFF38271E);sc.addView(shelves);root.addView(sc,new LinearLayout.LayoutParams(-1,0,1));setContentView(root);
- search.addTextChangedListener(new TextWatcher(){public void beforeTextChanged(CharSequence s,int a,int c,int f){}public void onTextChanged(CharSequence s,int a,int b,int c){filter=s.toString();populate();}public void afterTextChanged(Editable e){}});
+ search.addTextChangedListener(new TextWatcher(){public void beforeTextChanged(CharSequence s,int a,int c,int f){}public void onTextChanged(CharSequence s,int a,int b,int c){filter=s.toString();page=0;populate();}public void afterTextChanged(Editable e){}});
  populate();
  }
  void populate(){
  shelves.removeAllViews();
- LinkedHashMap<String,ArrayList<Integer>> groups=new LinkedHashMap<>();
- for(int i=0;i<sites.length();i++){JSONObject o=sites.optJSONObject(i);if(o==null)continue;String name=o.optString("name"),url=o.optString("url"),cat=o.optString("category","");if(!(name+" "+url+" "+cat).toLowerCase(Locale.ROOT).contains(filter.toLowerCase(Locale.ROOT)))continue;String group=cat.trim().isEmpty()?"기타":cat.trim();if(!groups.containsKey(group))groups.put(group,new ArrayList<>());groups.get(group).add(i);}
- if(groups.isEmpty()){TextView empty=label(sites.length()==0?"아직 책장이 비어 있어요.\n오른쪽 위 + 버튼으로 첫 사이트를 꽂아보세요.":"검색 결과가 없어요.",16,0xFFE1C7A8);empty.setGravity(Gravity.CENTER);empty.setPadding(dp(20),dp(85),dp(20),dp(70));shelves.addView(empty);return;}
- for(Map.Entry<String,ArrayList<Integer>> entry:groups.entrySet()){
- TextView section=label("✦  "+entry.getKey()+"   ·   "+entry.getValue().size()+"권",17,0xFFF0D8B3);section.setTypeface(Typeface.SERIF,Typeface.BOLD);section.setPadding(dp(12),dp(15),0,dp(12));shelves.addView(section);
- ArrayList<Integer> ids=entry.getValue();Collections.sort(ids,(a,b)->Boolean.compare(sites.optJSONObject(b).optBoolean("fav"),sites.optJSONObject(a).optBoolean("fav")));
- for(int start=0;start<ids.size();start+=4){
- LinearLayout row=new LinearLayout(this);row.setGravity(Gravity.BOTTOM);row.setPadding(dp(7),dp(9),dp(7),0);row.setBackgroundColor(0xFF463025);
- for(int k=0;k<4;k++){int pos=start+k;if(pos<ids.size()){int idx=ids.get(pos);BookView book=new BookView(this,sites.optJSONObject(idx),idx);LinearLayout.LayoutParams p=new LinearLayout.LayoutParams(0,dp(156),1);p.setMargins(dp(2),0,dp(2),0);row.addView(book,p);}else{View space=new View(this);row.addView(space,new LinearLayout.LayoutParams(0,dp(156),1));}}
+ ArrayList<Integer> ids=new ArrayList<>();
+ for(int i=0;i<sites.length();i++){JSONObject o=sites.optJSONObject(i);if(o==null)continue;String all=o.optString("name")+" "+o.optString("url")+" "+o.optString("category");if(all.toLowerCase(Locale.ROOT).contains(filter.toLowerCase(Locale.ROOT)))ids.add(i);}
+ Collections.sort(ids,(a,b)->Boolean.compare(sites.optJSONObject(b).optBoolean("fav"),sites.optJSONObject(a).optBoolean("fav")));
+ int pages=Math.max(1,(ids.size()+62)/63);page=Math.max(0,Math.min(page,pages-1));
+ LinearLayout nav=new LinearLayout(this);nav.setGravity(Gravity.CENTER_VERTICAL);
+ TextView prev=label("◀",19,0xFFF3D7B0);prev.setGravity(Gravity.CENTER);nav.addView(prev,new LinearLayout.LayoutParams(dp(45),dp(42)));prev.setOnClickListener(v->{if(page>0){page--;populate();}});
+ TextView count=label("나무 책장  "+(page+1)+" / "+pages+"   ·   "+ids.size()+"권",14,0xFFE9D2B0);count.setGravity(Gravity.CENTER);nav.addView(count,new LinearLayout.LayoutParams(0,dp(42),1));
+ TextView next=label("▶",19,0xFFF3D7B0);next.setGravity(Gravity.CENTER);nav.addView(next,new LinearLayout.LayoutParams(dp(45),dp(42)));next.setOnClickListener(v->{if(page<pages-1){page++;populate();}});
+ shelves.addView(nav);
+ for(int shelf=0;shelf<9;shelf++){
+ LinearLayout row=new LinearLayout(this);row.setGravity(Gravity.BOTTOM);row.setPadding(dp(4),dp(10),dp(4),0);
+ GradientDrawable back=new GradientDrawable(GradientDrawable.Orientation.LEFT_RIGHT,new int[]{0xFF24150F,0xFF543929,0xFF291911});back.setStroke(dp(3),0xFF805334);row.setBackground(back);
+ for(int k=0;k<7;k++){
+ int pos=page*63+shelf*7+k;
+ LinearLayout.LayoutParams p=new LinearLayout.LayoutParams(0,dp(112),1);p.setMargins(dp(1),0,dp(1),0);
+ if(pos<ids.size()){int idx=ids.get(pos);row.addView(new BookView(this,sites.optJSONObject(idx),idx),p);}
+ else {View blank=new View(this);row.addView(blank,p);}
+ }
  shelves.addView(row);
- View lip=new View(this);GradientDrawable wood=new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM,new int[]{0xFFAD7545,0xFF7A4A2D,0xFF4A2D20});wood.setStroke(dp(1),0xFFBE8956);lip.setBackground(wood);shelves.addView(lip,new LinearLayout.LayoutParams(-1,dp(18)));
- View shadow=new View(this);shadow.setBackgroundColor(0xFF251813);shelves.addView(shadow,new LinearLayout.LayoutParams(-1,dp(8)));
+ View lip=new View(this);GradientDrawable wood=new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM,new int[]{0xFFD09A5E,0xFF986036,0xFF4D2D1D});wood.setStroke(dp(1),0xFFBD8954);lip.setBackground(wood);shelves.addView(lip,new LinearLayout.LayoutParams(-1,dp(15)));
+ View shadow=new View(this);shadow.setBackgroundColor(0xFF21140F);shelves.addView(shadow,new LinearLayout.LayoutParams(-1,dp(6)));
  }
- }
+ TextView tip=label("책을 누르면 사이트 열기  ·  길게 누르면 편집 / 즐겨찾기",12,0xFFCBB394);tip.setGravity(Gravity.CENTER);tip.setPadding(0,dp(18),0,dp(8));shelves.addView(tip);
  }
  class BookView extends View {
  Paint p=new Paint(3);JSONObject item;int idx;long down;float y;
  BookView(Context c,JSONObject obj,int index){super(c);item=obj;idx=index;setLayerType(View.LAYER_TYPE_SOFTWARE,null);setContentDescription(obj.optString("name"));}
- @Override protected void onDraw(Canvas canvas){super.onDraw(canvas);float w=getWidth(),h=getHeight(),left=dp(3),top=dp(7),right=w-dp(3),bottom=h;int color=covers[Math.abs(item.optString("name").hashCode()%covers.length)];
- p.setShadowLayer(dp(4),dp(2),dp(3),0x99000000);p.setColor(0xFF17100C);canvas.drawRoundRect(left+dp(3),top+dp(2),right,bottom,dp(3),dp(3),p);p.clearShadowLayer();
- p.setColor(color);canvas.drawRoundRect(left,top,right-dp(3),bottom-dp(1),dp(3),dp(3),p);
- p.setColor(0x55000000);canvas.drawRect(left+dp(5),top,right-dp(12),bottom-dp(1),p);
- p.setColor(0xFFCCA875);canvas.drawRect(left+dp(8),top+dp(12),right-dp(12),top+dp(14),p);canvas.drawRect(left+dp(8),bottom-dp(18),right-dp(12),bottom-dp(16),p);
- p.setColor(0xFFF9E7C5);p.setTypeface(Typeface.create("serif",Typeface.BOLD));p.setTextAlign(Paint.Align.CENTER);p.setTextSize(dp(13));
- String name=item.optString("name","Site");int max=Math.max(3,(int)((right-left)/dp(13)));ArrayList<String> lines=new ArrayList<>();for(int i=0;i<name.length()&&lines.size()<4;i+=max)lines.add(name.substring(i,Math.min(name.length(),i+max)));
- float center=(top+bottom)/2-dp((lines.size()-1)*9);for(String line:lines){canvas.drawText(line,(left+right)/2,center,p);center+=dp(18);}
- if(item.optBoolean("fav")){p.setColor(0xFFFFD477);p.setTextSize(dp(19));canvas.drawText("★",(left+right)/2,top+dp(34),p);}
- p.setTextSize(dp(10));p.setColor(0xFFDDC9A7);canvas.drawText("SITEBOX",(left+right)/2,bottom-dp(29),p);
+ @Override protected void onDraw(Canvas canvas){super.onDraw(canvas);
+ float w=getWidth(),h=getHeight(),left=dp(1),top=dp(5),right=w-dp(1),bottom=h;
+ int color=covers[(item.optString("name").hashCode()&0x7fffffff)%covers.length];
+ p.setShadowLayer(dp(2),dp(1),dp(1),0xBB000000);p.setColor(0xFF100C0A);canvas.drawRoundRect(left+dp(2),top+dp(2),right,bottom,dp(2),dp(2),p);p.clearShadowLayer();
+ p.setColor(color);canvas.drawRoundRect(left,top,right-dp(2),bottom-dp(1),dp(2),dp(2),p);
+ p.setColor(0x66000000);canvas.drawRect(left+dp(3),top,right-dp(8),bottom-dp(1),p);
+ p.setColor(0xFFE1B980);canvas.drawRect(left+dp(4),top+dp(9),right-dp(6),top+dp(11),p);canvas.drawRect(left+dp(4),bottom-dp(10),right-dp(6),bottom-dp(8),p);
+ canvas.save();canvas.rotate(-90,(left+right)/2,(top+bottom)/2);
+ p.setTypeface(Typeface.create("serif",Typeface.BOLD));p.setTextAlign(Paint.Align.CENTER);p.setTextSize(dp(10));p.setColor(0xFFF9E6C6);
+ String name=item.optString("name","Site");if(name.length()>14)name=name.substring(0,13)+"…";
+ canvas.drawText(name,(left+right)/2,(top+bottom)/2+dp(3),p);canvas.restore();
+ if(item.optBoolean("fav")){p.setTextSize(dp(11));p.setTextAlign(Paint.Align.CENTER);p.setColor(0xFFFFD477);canvas.drawText("★",w/2,top+dp(24),p);}
  }
  @Override public boolean onTouchEvent(android.view.MotionEvent e){if(e.getAction()==MotionEvent.ACTION_DOWN){down=System.currentTimeMillis();y=e.getY();return true;}if(e.getAction()==MotionEvent.ACTION_UP){if(System.currentTimeMillis()-down>550&&Math.abs(e.getY()-y)<dp(20))options(idx);else open(item.optString("url"));return true;}return true;}
  }
