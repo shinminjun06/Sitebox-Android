@@ -15,7 +15,7 @@ import java.io.FileOutputStream;
 
 /** Device tests with no external test dependency. Restores original user preferences. */
 public final class SmokeInstrumentation extends Instrumentation {
- MainActivity activity;
+ volatile MainActivity activity;
  String backupSites,backupCategories,demoSites;
  int backupShelf,backupBook;
  StringBuilder checks=new StringBuilder();
@@ -78,12 +78,44 @@ public final class SmokeInstrumentation extends Instrumentation {
    });
    snapshot("final-home.png");
    main(()->activity.edit(-1));snapshot("add-dialog.png");clickText("취소");waitForIdleSync();
+   renameCategory();
+   rotateScreens();
+   main(()->{
+    View root=((ViewGroup)activity.stage).getChildAt(1);View header=((ViewGroup)root).getChildAt(0);
+    check(header.performLongClick()&&activity.backgroundOnly,"classroom-only reveal preserved");
+    ((ViewGroup)activity.stage).getChildAt(2).performClick();check(!activity.backgroundOnly,"classroom reveal returns to controls");
+    check(activity.assets.get("themes/missing.webp")==null,"missing artwork handled without crash");
+   });
+   android.os.Debug.MemoryInfo memory=new android.os.Debug.MemoryInfo();android.os.Debug.getMemoryInfo(memory);checks.append("MEMORY totalPssKiB=").append(memory.getTotalPss()).append("\n");
    checks.append("PASS all nine theme combinations rendered\n");
   }catch(Throwable failure){try{snapshot("failure.png");}catch(Throwable ignored){}code=Activity.RESULT_CANCELED;result.putString("failure",failure.toString());checks.append("FAIL ").append(failure);}
   finally{
    if(activity!=null&&backupSites!=null){main(()->{activity.getPreferences(0).edit().putString("sites",backupSites).putString("categories",backupCategories).putInt("shelfTheme",backupShelf).putInt("bookTheme",backupBook).commit();activity.finish();});}
   }
   result.putString("stream",checks.toString());finish(code,result);
+ }
+ void renameCategory(){
+  String original=activity.categories[0];main(()->activity.manageCategories());android.os.SystemClock.sleep(300);
+  java.util.ArrayList<android.view.accessibility.AccessibilityNodeInfo> fields=new java.util.ArrayList<>();collectEdits(getUiAutomation().getRootInActiveWindow(),fields);
+  check(fields.size()==9,"nine editable category fields");setText(fields.get(0),"학습");clickText("저장");waitForIdleSync();
+  main(()->{check(activity.categories[0].equals("학습"),"category name edited");for(int i=0;i<activity.sites.length();i++)check(!activity.sites.optJSONObject(i).optString("category").equals(original),"book category references renamed");});
+ }
+ void rotateScreens(){
+  android.app.Application.ActivityLifecycleCallbacks listener=new android.app.Application.ActivityLifecycleCallbacks(){
+   public void onActivityCreated(Activity a,Bundle b){} public void onActivityStarted(Activity a){}
+   public void onActivityResumed(Activity a){if(a instanceof MainActivity)activity=(MainActivity)a;}
+   public void onActivityPaused(Activity a){} public void onActivityStopped(Activity a){}
+   public void onActivitySaveInstanceState(Activity a,Bundle b){} public void onActivityDestroyed(Activity a){}
+  };
+  activity.getApplication().registerActivityLifecycleCallbacks(listener);
+  try {
+   final MainActivity before=activity;main(()->{activity.search.setText("개발");activity.setRequestedOrientation(android.content.pm.ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);});
+   for(int i=0;i<60&&activity==before;i++)android.os.SystemClock.sleep(100);waitForIdleSync();
+   main(()->{check(activity.getResources().getConfiguration().orientation==android.content.res.Configuration.ORIENTATION_LANDSCAPE,"landscape rotation");check(activity.filter.equals("개발"),"filter survives Activity recreation");});
+   snapshot("landscape-top.png");main(()->activity.shelfScroll.fullScroll(View.FOCUS_DOWN));snapshot("landscape-bottom.png");
+   MainActivity landscape=activity;main(()->activity.setRequestedOrientation(android.content.pm.ActivityInfo.SCREEN_ORIENTATION_PORTRAIT));for(int i=0;i<60&&activity==landscape;i++)android.os.SystemClock.sleep(100);waitForIdleSync();
+   main(()->{check(activity.getResources().getConfiguration().orientation==android.content.res.Configuration.ORIENTATION_PORTRAIT,"portrait restored");activity.search.setText("");});snapshot("portrait-restored.png");
+  }finally{activity.getApplication().unregisterActivityLifecycleCallbacks(listener);}
  }
  void crudDialogs(){
   final int original=activity.sites.length();
@@ -119,7 +151,7 @@ public final class SmokeInstrumentation extends Instrumentation {
   for(int i=1;i<=20;i++){touch(down,android.view.MotionEvent.ACTION_MOVE,start[0]+(end[0]-start[0])*i/20f,start[1]+(end[1]-start[1])*i/20f);android.os.SystemClock.sleep(30);}
   touch(down,android.view.MotionEvent.ACTION_UP,end[0],end[1]);android.os.SystemClock.sleep(350);waitForIdleSync();
  }
- void touch(long down,int action,float x,float y){android.view.MotionEvent event=android.view.MotionEvent.obtain(down,android.os.SystemClock.uptimeMillis(),action,x,y,0);event.setSource(android.view.InputDevice.SOURCE_TOUCHSCREEN);sendPointerSync(event);event.recycle();}
+ void touch(long down,int action,float x,float y){android.view.MotionEvent event=android.view.MotionEvent.obtain(down,android.os.SystemClock.uptimeMillis(),action,x,y,0);event.setSource(android.view.InputDevice.SOURCE_TOUCHSCREEN);if(!getUiAutomation().injectInputEvent(event,true))throw new AssertionError("native touch injection");event.recycle();}
  void snapshot(String name){
   android.os.SystemClock.sleep(450);waitForIdleSync();
   try{
