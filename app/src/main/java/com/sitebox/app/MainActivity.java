@@ -48,18 +48,25 @@ public class MainActivity extends Activity {
  TextView count=label("나무 책장  "+(page+1)+" / "+pages+"   ·   "+ids.size()+"권",14,0xFFE9D2B0);count.setGravity(Gravity.CENTER);nav.addView(count,new LinearLayout.LayoutParams(0,dp(42),1));
  TextView next=label("▶",19,0xFFF3D7B0);next.setGravity(Gravity.CENTER);nav.addView(next,new LinearLayout.LayoutParams(dp(45),dp(42)));next.setOnClickListener(v->{if(page<pages-1){page++;populate();}});
  shelves.addView(nav);
- for(int shelf=0;shelf<9;shelf++){
- LinearLayout row=new LinearLayout(this);row.setGravity(Gravity.BOTTOM);row.setPadding(dp(4),dp(10),dp(4),0);
- GradientDrawable back=new GradientDrawable(GradientDrawable.Orientation.LEFT_RIGHT,new int[]{0xFF24150F,0xFF543929,0xFF291911});back.setStroke(dp(3),0xFF805334);row.setBackground(back);
+ for(int shelfRow=0;shelfRow<3;shelfRow++){
+ LinearLayout compartments=new LinearLayout(this);compartments.setOrientation(LinearLayout.HORIZONTAL);compartments.setPadding(dp(4),0,dp(4),0);compartments.setBackgroundColor(0xFF8B5937);
+ for(int shelfCol=0;shelfCol<3;shelfCol++){
+ int cell=shelfRow*3+shelfCol;
+ LinearLayout compartment=new LinearLayout(this);compartment.setOrientation(LinearLayout.VERTICAL);
+ GradientDrawable back=new GradientDrawable(GradientDrawable.Orientation.LEFT_RIGHT,new int[]{0xFF24150F,0xFF543929,0xFF291911});back.setStroke(dp(2),0xFF805334);compartment.setBackground(back);
+ LinearLayout books=new LinearLayout(this);books.setGravity(Gravity.BOTTOM);books.setPadding(dp(2),dp(7),dp(2),0);
  for(int k=0;k<7;k++){
- int pos=page*63+shelf*7+k;
- LinearLayout.LayoutParams p=new LinearLayout.LayoutParams(0,dp(112),1);p.setMargins(dp(1),0,dp(1),0);
- if(pos<ids.size()){int idx=ids.get(pos);row.addView(new BookView(this,sites.optJSONObject(idx),idx),p);}
- else {View blank=new View(this);row.addView(blank,p);}
+ int pos=page*63+cell*7+k;
+ LinearLayout.LayoutParams bp=new LinearLayout.LayoutParams(0,dp(105),1);bp.setMargins(0,0,0,0);
+ if(pos<ids.size()){int idx=ids.get(pos);books.addView(new BookView(this,sites.optJSONObject(idx),idx),bp);}
+ else books.addView(new View(this),bp);
  }
- shelves.addView(row);
- View lip=new View(this);GradientDrawable wood=new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM,new int[]{0xFFD09A5E,0xFF986036,0xFF4D2D1D});wood.setStroke(dp(1),0xFFBD8954);lip.setBackground(wood);shelves.addView(lip,new LinearLayout.LayoutParams(-1,dp(15)));
- View shadow=new View(this);shadow.setBackgroundColor(0xFF21140F);shelves.addView(shadow,new LinearLayout.LayoutParams(-1,dp(6)));
+ compartment.addView(books);
+ LinearLayout.LayoutParams cp=new LinearLayout.LayoutParams(0,-2,1);cp.setMargins(dp(2),dp(2),dp(2),0);compartments.addView(compartment,cp);
+ }
+ shelves.addView(compartments);
+ View lip=new View(this);GradientDrawable wood=new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM,new int[]{0xFFD09A5E,0xFF986036,0xFF4D2D1D});wood.setStroke(dp(1),0xFFBD8954);lip.setBackground(wood);shelves.addView(lip,new LinearLayout.LayoutParams(-1,dp(16)));
+ View shadow=new View(this);shadow.setBackgroundColor(0xFF21140F);shelves.addView(shadow,new LinearLayout.LayoutParams(-1,dp(7)));
  }
  TextView tip=label("책을 누르면 사이트 열기  ·  길게 누르면 편집 / 즐겨찾기",12,0xFFCBB394);tip.setGravity(Gravity.CENTER);tip.setPadding(0,dp(18),0,dp(8));shelves.addView(tip);
  }
