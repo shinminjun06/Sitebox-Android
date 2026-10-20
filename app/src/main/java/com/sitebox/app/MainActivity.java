@@ -10,6 +10,8 @@ import android.widget.*;
 import android.text.*;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
+import android.webkit.WebResourceRequest;
+import android.webkit.WebResourceError;
 import org.json.*;
 import java.util.*;
 
@@ -98,10 +100,21 @@ public class MainActivity extends Activity {
  TextView title=label("📖  "+o.optString("name"),21,0xFF4A2C1C);title.setTypeface(Typeface.SERIF,Typeface.BOLD);spread.addView(title);
  TextView address=label(safeUrl,12,0xFF73513B);address.setPadding(0,dp(8),0,dp(10));address.setOnClickListener(v->edit(index));spread.addView(address);
  TextView previewTitle=label("사이트 미리보기",14,0xFF6D442A);spread.addView(previewTitle);
- WebView web=new WebView(this);web.setBackgroundColor(0xFFFFFFFF);web.getSettings().setJavaScriptEnabled(false);web.getSettings().setDomStorageEnabled(false);
- web.setWebViewClient(new WebViewClient(){@Override public boolean shouldOverrideUrlLoading(WebView view,String next){return true;}});
- spread.addView(web,new LinearLayout.LayoutParams(-1,dp(215)));
- TextView hint=label("일부 사이트는 미리보기를 지원하지 않을 수 있어요.",11,0xFF876B52);spread.addView(hint);
+ TextView status=label("미리보기를 불러오는 중…",12,0xFF876B52);status.setPadding(0,dp(5),0,dp(6));spread.addView(status);
+ WebView web=new WebView(this);web.setBackgroundColor(0xFFFFFFFF);
+ web.getSettings().setJavaScriptEnabled(true);
+ web.getSettings().setDomStorageEnabled(true);
+ web.getSettings().setLoadsImagesAutomatically(true);
+ web.getSettings().setUseWideViewPort(true);
+ web.getSettings().setLoadWithOverviewMode(true);
+ web.getSettings().setMixedContentMode(android.webkit.WebSettings.MIXED_CONTENT_NEVER_ALLOW);
+ web.setWebViewClient(new WebViewClient(){
+ @Override public void onPageStarted(WebView view,String u,android.graphics.Bitmap icon){status.setText("미리보기를 불러오는 중…");}
+ @Override public void onPageFinished(WebView view,String u){if(status.getText().toString().contains("불러오는 중"))status.setText("미리보기 로딩 완료 · 화면이 비어 있다면 사이트에서 앱 내 표시를 제한할 수 있어요.");}
+ @Override public void onReceivedError(WebView view,WebResourceRequest req,WebResourceError error){if(req.isForMainFrame())status.setText("미리보기를 표시할 수 없어요: "+error.getDescription()+" · 아래 사이트 방문 버튼을 이용하세요.");}
+ @Override public boolean shouldOverrideUrlLoading(WebView view,WebResourceRequest req){return !req.getUrl().getScheme().equals("https")&&!req.getUrl().getScheme().equals("http");}
+ });
+ spread.addView(web,new LinearLayout.LayoutParams(-1,dp(260)));
  TextView memoTitle=label("나의 세부사항 · 탭해서 수정",15,0xFF4B3021);memoTitle.setPadding(0,dp(13),0,dp(6));spread.addView(memoTitle);
  TextView memo=label(o.optString("notes").isEmpty()?"＋ 여기를 눌러 메모를 작성하세요.":o.optString("notes"),14,0xFF533D2E);
  memo.setPadding(dp(12),dp(12),dp(12),dp(12));memo.setBackground(bg(0xFFE5D0AA,8));spread.addView(memo);
