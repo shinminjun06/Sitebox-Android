@@ -8,6 +8,8 @@ public class LibraryRulesTest {
   eq(LibraryRules.move(Arrays.asList(0,1,2),1,1,false),Arrays.asList(0,1,2));
   eq(LibraryRules.move(Arrays.asList(1,2),0,1,false),Arrays.asList(0,1,2));
   eq(LibraryRules.move(Collections.emptyList(),7,-1,true),Arrays.asList(7));
+  eq(LibraryRules.webUrl("example.com:8080/path"),"https://example.com:8080/path");
+  eq(LibraryRules.webUrl("https://학교.kr/자료"),"https://xn--9d0b527e.kr/자료");
   eq(LibraryRules.webUrl("example.com"),"https://example.com");
   eq(LibraryRules.webUrl("HTTPS://example.com/a?q=x"),"HTTPS://example.com/a?q=x");
   for(String bad:new String[]{"javascript:alert(1)","file:///tmp/x","https://","https://a b","intent://x","content://x"})eq(LibraryRules.webUrl(bad),"");

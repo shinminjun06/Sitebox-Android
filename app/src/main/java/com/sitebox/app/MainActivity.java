@@ -28,6 +28,7 @@ public class MainActivity extends Activity {
  ThemeAssets assets;
  BookView dragSource;
  ScrollView shelfScroll;
+ long lastDragScroll=0;
  TextView pageSummary;
 
  int shelfThemeIndex=0,bookThemeIndex=0;
@@ -85,6 +86,10 @@ public class MainActivity extends Activity {
  shelfScroll=new ScrollView(this);shelfScroll.setFillViewport(true);shelfScroll.setClipToPadding(false);
  shelves=new LinearLayout(this);shelves.setOrientation(LinearLayout.VERTICAL);shelves.setGravity(Gravity.CENTER_HORIZONTAL);shelves.setPadding(dp(10),dp(8),dp(10),dp(14));
  shelfScroll.addView(shelves);root.addView(shelfScroll,new LinearLayout.LayoutParams(-1,0,1));stage.addView(root,new FrameLayout.LayoutParams(-1,-1));
+ View revealOverlay=new View(this);revealOverlay.setContentDescription("서재 화면으로 돌아가기");revealOverlay.setVisibility(View.GONE);stage.addView(revealOverlay,new FrameLayout.LayoutParams(-1,-1));
+ revealOverlay.setOnClickListener(v->{backgroundOnly=false;root.setVisibility(View.VISIBLE);revealOverlay.setVisibility(View.GONE);});
+ View.OnLongClickListener reveal=v->{backgroundOnly=true;root.setVisibility(View.INVISIBLE);revealOverlay.setVisibility(View.VISIBLE);return true;};
+ header.setOnLongClickListener(reveal);shelves.setOnLongClickListener(reveal);shelfScroll.setOnLongClickListener(reveal);
  setContentView(stage);root.requestApplyInsets();
  search.addTextChangedListener(new TextWatcher(){public void beforeTextChanged(CharSequence s,int a,int c,int f){}public void onTextChanged(CharSequence s,int a,int b,int c){filter=s.toString();page=0;populate();}public void afterTextChanged(Editable e){}});
  populate();root.requestFocus();
@@ -189,7 +194,7 @@ public class MainActivity extends Activity {
  memo.setOnClickListener(v->{EditText editor=new EditText(this);editor.setMinLines(4);editor.setGravity(Gravity.TOP);editor.setText(o.optString("notes"));editor.setHint("이 사이트에 관한 나만의 기록, 사용법, 아이디어...");new AlertDialog.Builder(this).setTitle("나의 세부사항 수정").setView(editor).setNegativeButton("취소",null).setPositiveButton("저장",(d,w)->{try{o.put("notes",editor.getText().toString());save();memo.setText(o.optString("notes").isEmpty()?"＋ 여기를 눌러 메모를 작성하세요.":o.optString("notes"));}catch(Exception e){}}).show();});
  ScrollView scroll=new ScrollView(this);scroll.setFillViewport(true);scroll.addView(spread);
  AlertDialog dialog=new AlertDialog.Builder(this).setView(scroll).setNegativeButton("닫기",(d,w)->{}).setNeutralButton("정보 수정",(d,w)->edit(index)).setPositiveButton("사이트 방문",(d,w)->open(safeUrl)).create();
- dialog.setOnDismissListener(d->{web.stopLoading();web.destroy();});
+ dialog.setOnDismissListener(d->{web.stopLoading();if(web.getParent() instanceof android.view.ViewGroup)((android.view.ViewGroup)web.getParent()).removeView(web);web.destroy();});
  delete.setOnClickListener(v->new AlertDialog.Builder(this).setMessage("이 사이트를 삭제할까요?").setNegativeButton("취소",null).setPositiveButton("삭제",(d,w)->{sites.remove(index);save();populate();dialog.dismiss();}).show());
  dialog.show();dialog.getWindow().setLayout(getResources().getDisplayMetrics().widthPixels-dp(22),-2);
  if(!safeUrl.isEmpty())web.loadUrl(safeUrl);else status.setText("잘못된 주소입니다. 정보를 수정해 주세요.");
@@ -214,19 +219,23 @@ public class MainActivity extends Activity {
  switch(event.getAction()){
   case DragEvent.ACTION_DRAG_STARTED:return true;
   case DragEvent.ACTION_DRAG_ENTERED:target.setForeground(new android.graphics.drawable.ColorDrawable(0x66F5D48A));return true;
+  case DragEvent.ACTION_DRAG_LOCATION:
+   int[] location=new int[2],viewport=new int[2];target.getLocationOnScreen(location);shelfScroll.getLocationOnScreen(viewport);
+   float y=location[1]+event.getY();long now=SystemClock.uptimeMillis();
+   if(now-lastDragScroll>40){if(y<viewport[1]+dp(48))shelfScroll.smoothScrollBy(0,-dp(18));else if(y>viewport[1]+shelfScroll.getHeight()-dp(48))shelfScroll.smoothScrollBy(0,dp(18));lastDragScroll=now;}return true;
   case DragEvent.ACTION_DRAG_EXITED:target.setForeground(null);return true;
-  case DragEvent.ACTION_DROP:target.setForeground(null);moveBookTo((Integer)event.getLocalState(),category,anchor);return true;
+  case DragEvent.ACTION_DROP:target.setForeground(null);if(dragSource!=null){dragSource.setAlpha(1);dragSource=null;}moveBookTo((Integer)event.getLocalState(),category,anchor);return true;
   case DragEvent.ACTION_DRAG_ENDED:target.setForeground(null);if(dragSource!=null){dragSource.setAlpha(1);dragSource=null;}return true;
   default:return true;
  }
  }
  void moveBookTo(int index,int category,int anchor){
- JSONObject selected=sites.optJSONObject(index);if(selected==null)return;
+ JSONObject selected=sites.optJSONObject(index);if(selected==null||index==anchor)return;
  ArrayList<Integer> ordered=new ArrayList<>();
  for(int i=0;i<sites.length();i++){JSONObject o=sites.optJSONObject(i);if(o!=null&&categoryIndex(o.optString("category"))==category)ordered.add(i);}
  sortBooks(ordered);
  List<Integer> moved=LibraryRules.move(ordered,index,anchor,anchor<0);
- try{selected.put("category",categories[category]);for(int i=0;i<moved.size();i++)sites.optJSONObject(moved.get(i)).put("sortOrder",i*1000L);save();page=moved.indexOf(index)/BOOKS_PER_SHELF;populate();}catch(Exception e){Toast.makeText(this,"이동하지 못했어요.",Toast.LENGTH_SHORT).show();}
+ try{selected.put("category",categories[category]);for(int i=0;i<moved.size();i++)sites.optJSONObject(moved.get(i)).put("sortOrder",i*1000L);save();int visibleBefore=0;String query=filter.toLowerCase(Locale.ROOT);for(int id:moved){if(id==index)break;JSONObject o=sites.optJSONObject(id);String text=o.optString("name")+" "+o.optString("url")+" "+o.optString("category");if(text.toLowerCase(Locale.ROOT).contains(query))visibleBefore++;}page=visibleBefore/BOOKS_PER_SHELF;populate();}catch(Exception e){Toast.makeText(this,"이동하지 못했어요.",Toast.LENGTH_SHORT).show();}
  }
 
  void options(int index){JSONObject o=sites.optJSONObject(index);if(o==null)return;String[] choices={o.optBoolean("fav")?"즐겨찾기 해제":"★ 즐겨찾기","책 정보 수정","책장에서 삭제"};new AlertDialog.Builder(this).setTitle(o.optString("name")).setItems(choices,(d,which)->{if(which==0){try{o.put("fav",!o.optBoolean("fav"));save();populate();}catch(Exception e){}}else if(which==1)edit(index);else new AlertDialog.Builder(this).setMessage("이 사이트를 삭제할까요?").setNegativeButton("취소",null).setPositiveButton("삭제",(a,b)->{sites.remove(index);save();populate();}).show();}).setNegativeButton("닫기",null).show();}

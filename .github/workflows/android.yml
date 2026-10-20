@@ -26,6 +26,11 @@ jobs:
         run: |
           python3 -m pip install --user Pillow
           sh tests/run.sh
+      - name: Keep debug update signing stable across builds
+        uses: actions/cache@v4
+        with:
+          path: ~/.android/debug.keystore
+          key: sitebox-debug-signing-v1
       - name: Build debug APK
         run: gradle :app:assembleDebug :app:assembleDebugAndroidTest :app:lintDebug --no-daemon
       - name: Record provenance
@@ -62,6 +67,7 @@ jobs:
             device-qa/
             device-tests.txt
       - uses: actions/upload-artifact@v4
+        if: always()
         with:
           name: SiteBox-debug-apk
           path: |
