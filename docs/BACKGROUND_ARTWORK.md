@@ -34,7 +34,7 @@ actual wall/floor boundaries. These source-image coordinates are in SceneTheme:
 |bedroom|.65|.62|.20|
 |greenhouse|.62|.74|.17|
 |cafe|.68|.69|.22|
-|tatami|.42|.68|.24|
+|tatami|.42|.68|.21|
 |attic|.68|.58|.19|
 |lab|.36|.67|.21|
 |wizard|.36|.68|.20|

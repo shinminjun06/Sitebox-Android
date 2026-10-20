@@ -140,7 +140,7 @@ public final class SmokeInstrumentation extends Instrumentation {
   do {
    waitForIdleSync();android.view.accessibility.AccessibilityNodeInfo root=getUiAutomation().getRootInActiveWindow();
    if(root!=null)for(android.view.accessibility.AccessibilityNodeInfo node:root.findAccessibilityNodeInfosByText(name)){
-    if(name.contentEquals(node.getText())){android.view.accessibility.AccessibilityNodeInfo target=node;while(target!=null){if(target.isClickable()&&target.performAction(android.view.accessibility.AccessibilityNodeInfo.ACTION_CLICK))return;target=target.getParent();}}
+    if(name.contentEquals(node.getText()==null?"":node.getText())){android.view.accessibility.AccessibilityNodeInfo target=node;while(target!=null){if(target.isClickable()&&target.performAction(android.view.accessibility.AccessibilityNodeInfo.ACTION_CLICK))return;target=target.getParent();}}
    }
    scrollDialogForward(root);android.os.SystemClock.sleep(50);
   }while(android.os.SystemClock.uptimeMillis()<deadline);
@@ -242,7 +242,7 @@ public final class SmokeInstrumentation extends Instrumentation {
  void clickText(String text){
   long deadline=android.os.SystemClock.uptimeMillis()+5000;
   do {waitForIdleSync();android.view.accessibility.AccessibilityNodeInfo root=getUiAutomation().getRootInActiveWindow();if(root!=null)for(android.view.accessibility.AccessibilityNodeInfo node:root.findAccessibilityNodeInfosByText(text)){
-   if(text.contentEquals(node.getText())){android.view.accessibility.AccessibilityNodeInfo target=node;while(target!=null){if(target.isClickable()&&target.performAction(android.view.accessibility.AccessibilityNodeInfo.ACTION_CLICK))return;target=target.getParent();}}
+   if(text.contentEquals(node.getText()==null?"":node.getText())){android.view.accessibility.AccessibilityNodeInfo target=node;while(target!=null){if(target.isClickable()&&target.performAction(android.view.accessibility.AccessibilityNodeInfo.ACTION_CLICK))return;target=target.getParent();}}
   }android.os.SystemClock.sleep(50);}while(android.os.SystemClock.uptimeMillis()<deadline);
   throw new AssertionError("click target: "+text);
  }

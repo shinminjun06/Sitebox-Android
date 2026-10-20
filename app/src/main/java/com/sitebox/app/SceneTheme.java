@@ -9,7 +9,7 @@ final class SceneTheme {
   new SceneTheme("bedroom","나만의 방",0.65f,0.62f,0.20f),
   new SceneTheme("greenhouse","유리 온실",0.62f,0.74f,0.17f),
   new SceneTheme("cafe","북카페",0.68f,0.69f,0.22f),
-  new SceneTheme("tatami","일본식 다다미방",0.42f,0.68f,0.24f),
+  new SceneTheme("tatami","일본식 다다미방",0.42f,0.68f,0.21f),
   new SceneTheme("attic","다락방",0.68f,0.58f,0.19f),
   new SceneTheme("lab","미래 연구실",0.36f,0.67f,0.21f),
   new SceneTheme("wizard","마법사의 서재",0.36f,0.68f,0.20f),
