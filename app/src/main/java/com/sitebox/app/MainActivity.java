@@ -80,6 +80,34 @@ public class MainActivity extends Activity {
  search.addTextChangedListener(new TextWatcher(){public void beforeTextChanged(CharSequence s,int a,int c,int f){}public void onTextChanged(CharSequence s,int a,int b,int c){filter=s.toString();page=0;populate();}public void afterTextChanged(Editable e){}});
  populate();
  }
+ 
+ // Draw wood grain at any screen density without raster image assets.
+ class WoodPanel extends android.graphics.drawable.Drawable {
+  final boolean vertical;final boolean recess;Paint brush=new Paint(3);
+  WoodPanel(boolean vertical,boolean recess){this.vertical=vertical;this.recess=recess;}
+  @Override public void draw(Canvas c){
+   android.graphics.Rect r=getBounds();float w=r.width(),h=r.height();if(w<=0||h<=0)return;
+   int[] palette=recess?new int[]{0xFF493020,0xFF855A38,0xFF70482D,0xFF382419}:new int[]{0xFFF3C58A,0xFFD49C63,0xFFBD8050,0xFF9A5F38};
+   brush.setShader(new LinearGradient(r.left,r.top,r.left+(vertical?w:0),r.top+(vertical?0:h),palette,null,Shader.TileMode.CLAMP));
+   c.drawRect(r,brush);brush.setShader(null);
+   brush.setStyle(Paint.Style.STROKE);brush.setStrokeWidth(dp(.65f));
+   int count=vertical?Math.max(7,(int)(w/dp(5))):Math.max(4,(int)(h/dp(4)));
+   for(int i=0;i<count;i++){
+    float fraction=(i+.35f)/(count+.5f);
+    brush.setColor(i%3==0?0x3DFFE3B5:0x29704022);
+    Path grain=new Path();
+    if(vertical){float x=r.left+w*fraction;grain.moveTo(x,r.top);grain.cubicTo(x+dp(2),r.top+h*.32f,x-dp(2),r.top+h*.68f,x+dp(1),r.bottom);}
+    else{float y=r.top+h*fraction;grain.moveTo(r.left,y);grain.cubicTo(r.left+w*.3f,y+dp(1),r.left+w*.65f,y-dp(1),r.right,y);}
+    c.drawPath(grain,brush);
+   }
+   brush.setStyle(Paint.Style.FILL);
+   brush.setColor(recess?0x7A211309:0x55FFF2D5);c.drawRect(r.left,r.top,r.right,r.top+dp(1),brush);
+   brush.setColor(recess?0x4420140C:0x55522B16);c.drawRect(r.left,r.bottom-dp(2),r.right,r.bottom,brush);
+  }
+  @Override public void setAlpha(int a){brush.setAlpha(a);}
+  @Override public void setColorFilter(android.graphics.ColorFilter cf){brush.setColorFilter(cf);}
+  @Override public int getOpacity(){return android.graphics.PixelFormat.OPAQUE;}
+ }
  void populate(){
  shelves.removeAllViews();
  ArrayList<ArrayList<Integer>> grouped=new ArrayList<>();
@@ -102,17 +130,17 @@ public class MainActivity extends Activity {
  TextView next=label("▶",19,0xFFF3D7B0);next.setGravity(Gravity.CENTER);nav.addView(next,new LinearLayout.LayoutParams(dp(45),dp(42)));next.setOnClickListener(v->{if(page<totalPages-1){page++;populate();}});
  nav.setBackground(bg(0xBB382619,10));
  shelves.addView(nav);
- View crown=new View(this);GradientDrawable cap=new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM,new int[]{0xFFFFD59B,0xFFD29A60,0xFF996037});cap.setCornerRadius(dp(4));crown.setBackground(cap);shelves.addView(crown,new LinearLayout.LayoutParams(-1,dp(13)));
+ View crown=new View(this);GradientDrawable cap=new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM,new int[]{0xFFFFD59B,0xFFD29A60,0xFF996037});cap.setCornerRadius(dp(4));crown.setBackground(new WoodPanel(false,false));shelves.addView(crown,new LinearLayout.LayoutParams(-1,dp(17)));
  for(int shelfRow=0;shelfRow<3;shelfRow++){
- LinearLayout compartments=new LinearLayout(this);compartments.setOrientation(LinearLayout.HORIZONTAL);compartments.setPadding(dp(7),0,dp(7),0);compartments.setBackgroundColor(0xFFB57B4C);
+ LinearLayout compartments=new LinearLayout(this);compartments.setOrientation(LinearLayout.HORIZONTAL);compartments.setPadding(dp(7),0,dp(7),0);compartments.setBackground(new WoodPanel(true,false));
  for(int shelfCol=0;shelfCol<3;shelfCol++){
  int cell=shelfRow*3+shelfCol;
  LinearLayout compartment=new LinearLayout(this);compartment.setOrientation(LinearLayout.VERTICAL);
- GradientDrawable back=new GradientDrawable(GradientDrawable.Orientation.LEFT_RIGHT,new int[]{0xFF4D2E20,0xFF865635,0xFF6A412B,0xFF38251C});back.setStroke(dp(4),0xFFC18A58);compartment.setBackground(back);
+ GradientDrawable back=new GradientDrawable(GradientDrawable.Orientation.LEFT_RIGHT,new int[]{0xFF4D2E20,0xFF865635,0xFF6A412B,0xFF38251C});back.setStroke(dp(4),0xFFC18A58);compartment.setBackground(new WoodPanel(true,true));
  LinearLayout books=new LinearLayout(this);books.setGravity(Gravity.BOTTOM);books.setPadding(dp(4),dp(12),dp(4),0);
  for(int k=0;k<7;k++){
  int pos=page*7+k;
- LinearLayout.LayoutParams bp=new LinearLayout.LayoutParams(0,dp(118),1);bp.setMargins(0,0,0,0);
+ LinearLayout.LayoutParams bp=new LinearLayout.LayoutParams(0,dp(132),1);bp.setMargins(0,0,0,0);
  View slot;
  if(pos<grouped.get(cell).size()){int idx=grouped.get(cell).get(pos);slot=new BookView(this,sites.optJSONObject(idx),idx);}
  else slot=new View(this);
@@ -127,10 +155,10 @@ public class MainActivity extends Activity {
  LinearLayout.LayoutParams cp=new LinearLayout.LayoutParams(0,-2,1);cp.setMargins(dp(2),dp(2),dp(2),0);compartments.addView(compartment,cp);
  }
  shelves.addView(compartments);
- View lip=new View(this);GradientDrawable wood=new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM,new int[]{0xFFFFD49A,0xFFD39A61,0xFF9E653C,0xFF764629});wood.setStroke(dp(1),theme.gold);lip.setBackground(wood);shelves.addView(lip,new LinearLayout.LayoutParams(-1,dp(12)));
+ View lip=new View(this);GradientDrawable wood=new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM,new int[]{0xFFFFD49A,0xFFD39A61,0xFF9E653C,0xFF764629});wood.setStroke(dp(1),theme.gold);lip.setBackground(new WoodPanel(false,false));shelves.addView(lip,new LinearLayout.LayoutParams(-1,dp(12)));
  View shadow=new View(this);shadow.setBackgroundColor(theme.shadow);shelves.addView(shadow,new LinearLayout.LayoutParams(-1,dp(3)));
  }
- View pedestal=new View(this);GradientDrawable plinth=new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM,new int[]{0xFFF0C08A,0xFFBC8050,0xFF88512F});pedestal.setBackground(plinth);shelves.addView(pedestal,new LinearLayout.LayoutParams(-1,dp(18)));
+ View pedestal=new View(this);GradientDrawable plinth=new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM,new int[]{0xFFF0C08A,0xFFBC8050,0xFF88512F});pedestal.setBackground(new WoodPanel(false,false));shelves.addView(pedestal,new LinearLayout.LayoutParams(-1,dp(18)));
  View foot=new View(this);GradientDrawable base=new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM,new int[]{0xAA2C1A12,0x002C1A12});foot.setBackground(base);shelves.addView(foot,new LinearLayout.LayoutParams(-1,dp(26)));
  TextView tip=label("책을 누르면 열기  ·  길게 누르면 이동",12,0xFFFFFFFF);tip.setGravity(Gravity.CENTER);tip.setPadding(0,dp(12),0,dp(8));tip.setBackground(bg(0x99382418,8));shelves.addView(tip);
  }
@@ -138,30 +166,31 @@ public class MainActivity extends Activity {
  Paint p=new Paint(3);JSONObject item;int idx;float downX,downY;boolean dragging=false;Handler handler=new Handler(Looper.getMainLooper());Runnable startDrag;
  BookView(Context c,JSONObject obj,int index){super(c);item=obj;idx=index;setLayerType(View.LAYER_TYPE_SOFTWARE,null);setContentDescription(obj.optString("name"));}
  @Override protected void onDraw(Canvas canvas){super.onDraw(canvas);
- float w=getWidth(),h=getHeight(),left=dp(1),top=dp(9),right=w-dp(1),bottom=h;
+ float w=getWidth(),h=getHeight(),left=dp(1),bottom=h-dp(1);
  int color=covers[(item.optString("name").hashCode()&0x7fffffff)%covers.length];
- float spineRight=Math.max(left+dp(5),right-dp(1));
- p.setStyle(Paint.Style.FILL);
- p.setShadowLayer(dp(2),dp(1),dp(1),0x88000000);p.setColor(0xFF29190F);
- canvas.drawRoundRect(left+dp(1),top+dp(2),right,bottom,dp(2),dp(2),p);p.clearShadowLayer();
- p.setColor(color);canvas.drawRoundRect(left,top,spineRight,bottom-dp(1),dp(2),dp(2),p);
- p.setColor(0x44FFFFFF);canvas.drawRect(left+dp(1),top+dp(2),left+dp(3),bottom-dp(2),p);
- p.setColor(0x66000000);canvas.drawRect(spineRight-dp(3),top+dp(1),spineRight,bottom-dp(2),p);
+ int variation=Math.abs(item.optString("name").hashCode())%4;
+ float top=dp(5+variation*3),right=w-dp(1),spineRight=Math.max(left+dp(5),right-dp(2));
  float cx=(left+spineRight)/2f;
- p.setStrokeWidth(dp(0.7f));p.setStyle(Paint.Style.STROKE);p.setColor(0xFFDBB36E);
- canvas.drawRect(left+dp(3),top+dp(6),spineRight-dp(3),bottom-dp(6),p);
- canvas.drawLine(left+dp(3),top+dp(16),spineRight-dp(3),top+dp(16),p);
- canvas.drawLine(left+dp(3),bottom-dp(16),spineRight-dp(3),bottom-dp(16),p);
  p.setStyle(Paint.Style.FILL);
- p.setColor(0xFFE9C17D);
- canvas.drawCircle(cx,top+dp(28),dp(2),p);
- canvas.drawCircle(cx,bottom-dp(28),dp(2),p);
- p.setStyle(Paint.Style.STROKE);p.setStrokeWidth(dp(0.8f));
- canvas.drawOval(cx-dp(3),top+dp(32),cx+dp(3),top+dp(42),p);
- canvas.drawOval(cx-dp(3),bottom-dp(42),cx+dp(3),bottom-dp(32),p);
- p.setStyle(Paint.Style.FILL);
+ p.setShadowLayer(dp(2),dp(1),dp(1),0x880F0906);p.setColor(0xFF271810);
+ canvas.drawRoundRect(left+dp(1),top+dp(2),right,bottom,dp(2),dp(2),p);p.clearShadowLayer();
+ // Cream page block and curved leather binding.
+ p.setColor(0xFFEAD5AD);canvas.drawRect(spineRight-dp(1),top+dp(3),right,bottom-dp(3),p);
+ p.setShader(new LinearGradient(left,top,spineRight,top,new int[]{0xFF241B18,color,color,0xFF1D1816},new float[]{0f,.18f,.73f,1f},Shader.TileMode.CLAMP));
+ canvas.drawRoundRect(left,top,spineRight,bottom,dp(2),dp(2),p);p.setShader(null);
+ p.setColor(0x55FFFFFF);canvas.drawRect(left+dp(2),top+dp(2),left+dp(3),bottom-dp(2),p);
+ p.setColor(0xFFCFAC71);
+ for(int i=0;i<3;i++){float yy=top+dp(6+i*3);canvas.drawRect(left+dp(2),yy,spineRight-dp(2),yy+dp(.7f),p);}
+ for(int i=0;i<3;i++){float yy=bottom-dp(7+i*3);canvas.drawRect(left+dp(2),yy,spineRight-dp(2),yy+dp(.7f),p);}
+ p.setStyle(Paint.Style.STROKE);p.setStrokeWidth(dp(.65f));p.setColor(0xFFD9AF65);
+ canvas.drawRect(left+dp(3),top+dp(18),spineRight-dp(3),bottom-dp(18),p);
+ float ornamentY=top+dp(31);
+ Path diamond=new Path();diamond.moveTo(cx,ornamentY-dp(5));diamond.lineTo(cx+dp(3),ornamentY);diamond.lineTo(cx,ornamentY+dp(5));diamond.lineTo(cx-dp(3),ornamentY);diamond.close();canvas.drawPath(diamond,p);
+ canvas.drawCircle(cx,bottom-dp(30),dp(3),p);
+ p.setStyle(Paint.Style.FILL);p.setColor(0xFFE6C07A);
+ canvas.drawCircle(cx,ornamentY,dp(1),p);canvas.drawCircle(cx,bottom-dp(30),dp(1),p);
  canvas.save();canvas.rotate(-90,cx,(top+bottom)/2);
- p.setTypeface(Typeface.create("serif",Typeface.BOLD));p.setTextAlign(Paint.Align.CENTER);p.setTextSize(dp(9));p.setColor(color==0xFFEAD9B6?0xFF694524:0xFFF5D9A3);
+ p.setTypeface(Typeface.create("serif",Typeface.BOLD));p.setTextAlign(Paint.Align.CENTER);p.setTextSize(dp(9));p.setColor(color==0xFFEAD9B6?0xFF543921:0xFFFFE4A9);
  String name=item.optString("name","Site");if(name.length()>12)name=name.substring(0,11)+"…";
  canvas.drawText(name,cx,(top+bottom)/2+dp(3),p);canvas.restore();
  if(item.optBoolean("fav")){p.setTextSize(dp(11));p.setTextAlign(Paint.Align.CENTER);p.setColor(0xFFFFD477);canvas.drawText("★",w/2,top+dp(24),p);}
