@@ -18,6 +18,12 @@ row bounds (0,328), (344,696), (710,1054). Alpha-trimmed and resampled to 160×5
 Cropping and size normalization retain the generated surfaces rather than synthesizing
 striped substitute textures. Four variants per style; heights vary in live views.
 
-Runtime: 3 books per cell. Cabinet width capped at 480dp; portrait height 1.30×width.
+Runtime: 7 books per cell. Cabinet width capped at 480dp; portrait height 1.30×width.
 Book data is unchanged when paginating. Gold plates use native gradient drawable +
 editable text. Canvas draws bitmap, title, star and fallback solid only; no material grain.
+
+2.1 rendering: draw the first 76% of book artwork as the spine, compress its paper
+side to 3.5% of displayed width, center live titles within the spine only, and keep
+them between the foil bands (31%–72% of height). CJK titles use upright glyphs.
+The pinch scene uses a bounded snapshot of the current cabinet, not a second
+independently editable book dataset.

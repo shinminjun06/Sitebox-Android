@@ -20,7 +20,7 @@ final class BookshelfView extends FrameLayout {
  }
  @Override protected void onMeasure(int widthSpec,int heightSpec){
   int width=MeasureSpec.getSize(widthSpec);
-  // The cabinet is wide enough for three readable books in every cubby.
+  // The cabinet is wide enough for seven proportionate books in every cubby.
   int height=Math.round(width*1.30f);
   setMeasuredDimension(width,height);
   cabinet.measure(MeasureSpec.makeMeasureSpec(width,MeasureSpec.EXACTLY),MeasureSpec.makeMeasureSpec(height,MeasureSpec.EXACTLY));

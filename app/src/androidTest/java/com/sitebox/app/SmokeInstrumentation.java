@@ -29,21 +29,26 @@ public final class SmokeInstrumentation extends Instrumentation {
    SharedPreferences prefs=activity.getPreferences(0);backupSites=prefs.getString("sites","[]");backupCategories=prefs.getString("categories","[]");backupShelf=prefs.getInt("shelfTheme",0);backupBook=prefs.getInt("bookTheme",0);
    main(()->{
     activity.sites=new JSONArray();activity.filter="";activity.page=0;
-    for(int cell=0;cell<9;cell++)for(int k=0;k<(cell==0?7:3);k++){
+    for(int cell=0;cell<9;cell++)for(int k=0;k<(cell==0?8:3);k++){
      JSONObject item=new JSONObject();try{item.put("name",new String[]{"나의 공부","개발 노트","AI 연구","게임 자료","영상 모음","쇼핑 목록","함께 읽기","생활 기록","기타 사이트"}[cell]+" "+(k+1));item.put("url","https://example.com/"+cell+"/"+k);item.put("category",activity.categories[cell]);item.put("fav",k==0);item.put("sortOrder",k*1000L);}catch(Exception e){throw new RuntimeException(e);}activity.sites.put(item);
     }
     activity.save();activity.populate();
    });
    main(()->{
-    check(activity.sites.length()==31,"fixture 31 books across 9 categories");
+    check(activity.sites.length()==32,"fixture 32 books across 9 categories");
     BookshelfView shelf=(BookshelfView)activity.shelves.getChildAt(1);
+    ViewGroup firstCell=(ViewGroup)shelf.getChildAt(1);check(firstCell.getChildCount()==7,"seven actual book views fit one cubby");
+    for(int i=0;i<7;i++){View book=firstCell.getChildAt(i);check(book instanceof BookArtworkView&&book.getRight()<=firstCell.getWidth(),"all seven spines stay inside cell");BookArtworkView art=(BookArtworkView)book;check(Math.abs(art.titleX-art.spine.centerX())<.01f&&art.paper.width()<art.spine.width()*.05f,"title centered on spine and paper side is thin");}
     check(shelf.getChildCount()==19,"9 live cells + 9 editable labels + furniture bitmap");
     int[] pos=new int[2];shelf.getLocationOnScreen(pos);int[] searchPos=new int[2];activity.search.getLocationOnScreen(searchPos);
     check(pos[1]>=searchPos[1]+activity.search.getHeight(),"cabinet starts below search");
     check(shelf.getChildAt(1).getHeight()==shelf.getChildAt(17).getHeight()||Math.abs(shelf.getChildAt(1).getHeight()-shelf.getChildAt(17).getHeight())<=1,"equal first/last row geometry");
-    check(activity.pageSummary.getText().toString().contains("/ 3"),"three pages for seven books");
+    check(activity.pageSummary.getText().toString().contains("/ 2"),"eighth book starts second page after seven visible books");
    });
    snapshot("oak-classic.png");
+   final String fullFixture=activity.sites.toString();
+   main(()->{try{JSONObject single=new JSONObject();single.put("name","naver");single.put("url","https://naver.com");single.put("category",activity.categories[5]);activity.sites=new JSONArray().put(single);activity.populate();}catch(Exception error){throw new RuntimeException(error);}});
+   snapshot("single-book-naver.png");main(()->{try{activity.sites=new JSONArray(fullFixture);activity.populate();}catch(Exception error){throw new RuntimeException(error);}});
    for(int s=0;s<3;s++)for(int b=0;b<3;b++){
     final int si=s,bi=b;main(()->{activity.shelfThemeIndex=si;activity.bookThemeIndex=bi;activity.save();activity.populate();});
     snapshot("theme-"+s+"-"+b+".png");
@@ -53,7 +58,7 @@ public final class SmokeInstrumentation extends Instrumentation {
    main(()->{
     check(activity.sites.optJSONObject(0).optString("category").equals(activity.categories[1]),"long-press native drag delivered cross-cell drop");
     check(activity.dragSource==null||activity.dragSource.getAlpha()==1f,"drag source opacity restored");
-    int count=activity.sites.length();activity.moveBookTo(0,1,7);
+    int count=activity.sites.length();activity.moveBookTo(0,1,8);
     check(activity.sites.length()==count,"move does not lose books");
     check(activity.sites.optJSONObject(0).optString("category").equals(activity.categories[1]),"cross-category native-drop operation");
     activity.moveBookTo(0,1,0);check(activity.sites.optJSONObject(0).optLong("sortOrder")==0,"self-drop preserves order");
@@ -70,16 +75,17 @@ public final class SmokeInstrumentation extends Instrumentation {
    main(()->{
     // Hidden books before matched books reproduce the review's filtered pagination defect.
     demoSites=activity.sites.toString();activity.sites=new JSONArray();
-    for(int i=0;i<7;i++){JSONObject item=new JSONObject();try{item.put("name",i<3?"hidden "+i:"matched "+i);item.put("url","https://example.com/"+i);item.put("category",activity.categories[0]);item.put("sortOrder",i*1000L);}catch(Exception e){throw new RuntimeException(e);}activity.sites.put(item);}
-    activity.search.setText("matched");activity.page=0;activity.populate();activity.moveBookTo(3,0,3);
+    for(int i=0;i<15;i++){JSONObject item=new JSONObject();try{item.put("name",i<7?"hidden "+i:"matched "+i);item.put("url","https://example.com/"+i);item.put("category",activity.categories[0]);item.put("sortOrder",i*1000L);}catch(Exception e){throw new RuntimeException(e);}activity.sites.put(item);}
+    activity.search.setText("matched");activity.page=0;activity.populate();activity.moveBookTo(7,0,7);
     check(activity.page==0,"filtered self-drop keeps visible page");
-    activity.moveBookTo(4,0,3);check(activity.page==0,"filtered reorder derives filtered page");
+    activity.moveBookTo(8,0,7);check(activity.page==0,"filtered reorder derives filtered page");
     activity.search.setText("");try{activity.sites=new JSONArray(demoSites);}catch(Exception e){throw new RuntimeException(e);}activity.save();activity.populate();
    });
    snapshot("final-home.png");
    main(()->activity.edit(-1));snapshot("add-dialog.png");clickText("취소");waitForIdleSync();
    renameCategory();
    rotateScreens();
+   pinchCollapseRestore();
    main(()->{
     View root=((ViewGroup)activity.stage).getChildAt(1);View header=((ViewGroup)root).getChildAt(0);
     check(header.performLongClick()&&activity.backgroundOnly,"classroom-only reveal preserved");
@@ -101,6 +107,7 @@ public final class SmokeInstrumentation extends Instrumentation {
   main(()->{check(activity.categories[0].equals("학습"),"category name edited");for(int i=0;i<activity.sites.length();i++)check(!activity.sites.optJSONObject(i).optString("category").equals(original),"book category references renamed");});
  }
  void rotateScreens(){
+  final boolean originallyCollapsed=activity.sceneCollapsed;
   android.app.Application.ActivityLifecycleCallbacks listener=new android.app.Application.ActivityLifecycleCallbacks(){
    public void onActivityCreated(Activity a,Bundle b){} public void onActivityStarted(Activity a){}
    public void onActivityResumed(Activity a){if(a instanceof MainActivity)activity=(MainActivity)a;}
@@ -111,10 +118,10 @@ public final class SmokeInstrumentation extends Instrumentation {
   try {
    final MainActivity before=activity;main(()->{activity.search.setText("개발");activity.setRequestedOrientation(android.content.pm.ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);});
    for(int i=0;i<60&&activity==before;i++)android.os.SystemClock.sleep(100);waitForIdleSync();
-   main(()->{check(activity.getResources().getConfiguration().orientation==android.content.res.Configuration.ORIENTATION_LANDSCAPE,"landscape rotation");check(activity.filter.equals("개발"),"filter survives Activity recreation");});
+   main(()->{check(activity.getResources().getConfiguration().orientation==android.content.res.Configuration.ORIENTATION_LANDSCAPE,"landscape rotation");check(activity.filter.equals("개발"),"filter survives Activity recreation");if(originallyCollapsed)check(activity.sceneCollapsed,"collapsed cabinet survives landscape recreation");});
    snapshot("landscape-top.png");main(()->activity.shelfScroll.fullScroll(View.FOCUS_DOWN));snapshot("landscape-bottom.png");
    MainActivity landscape=activity;main(()->activity.setRequestedOrientation(android.content.pm.ActivityInfo.SCREEN_ORIENTATION_PORTRAIT));for(int i=0;i<60&&activity==landscape;i++)android.os.SystemClock.sleep(100);waitForIdleSync();
-   main(()->{check(activity.getResources().getConfiguration().orientation==android.content.res.Configuration.ORIENTATION_PORTRAIT,"portrait restored");activity.search.setText("");});snapshot("portrait-restored.png");
+   main(()->{check(activity.getResources().getConfiguration().orientation==android.content.res.Configuration.ORIENTATION_PORTRAIT,"portrait restored");if(originallyCollapsed){check(activity.sceneCollapsed,"collapsed cabinet survives portrait recreation");activity.expandFromScene(false);}activity.search.setText("");});snapshot("portrait-restored.png");
   }finally{activity.getApplication().unregisterActivityLifecycleCallbacks(listener);}
  }
  void crudDialogs(){
@@ -135,6 +142,41 @@ public final class SmokeInstrumentation extends Instrumentation {
  void collectEdits(android.view.accessibility.AccessibilityNodeInfo node,java.util.List<android.view.accessibility.AccessibilityNodeInfo> found){if(node==null)return;if("android.widget.EditText".contentEquals(node.getClassName()))found.add(node);for(int i=0;i<node.getChildCount();i++)collectEdits(node.getChild(i),found);}
  void setText(android.view.accessibility.AccessibilityNodeInfo node,String text){Bundle args=new Bundle();args.putCharSequence(android.view.accessibility.AccessibilityNodeInfo.ACTION_ARGUMENT_SET_TEXT_CHARSEQUENCE,text);check(node.performAction(android.view.accessibility.AccessibilityNodeInfo.ACTION_SET_TEXT,args),"text field accepts edit");}
  void clickText(String text){android.view.accessibility.AccessibilityNodeInfo root=getUiAutomation().getRootInActiveWindow();if(root!=null)for(android.view.accessibility.AccessibilityNodeInfo node:root.findAccessibilityNodeInfosByText(text)){if(text.contentEquals(node.getText())&&node.performAction(android.view.accessibility.AccessibilityNodeInfo.ACTION_CLICK))return;}throw new AssertionError("click target: "+text);}
+ void pinchCollapseRestore(){
+  final int count=activity.sites.length(),oldPage=activity.page;final String oldFilter=activity.filter;
+  pinch(false);android.os.SystemClock.sleep(500);waitForIdleSync();
+  main(()->check(!activity.sceneCollapsed,"outward pinch does not collapse cabinet"));
+  pinch(true);android.os.SystemClock.sleep(650);waitForIdleSync();
+  main(()->{
+   check(activity.sceneCollapsed&&!activity.sceneAnimating,"inward two-finger gesture collapses cabinet");
+   check(activity.controls.getVisibility()==View.INVISIBLE,"header and full-size library hidden in scene");
+   check(activity.miniature.getVisibility()==View.VISIBLE&&activity.miniature.getScaleX()<.75f,"live cabinet snapshot shrinks into background");
+   float x=activity.miniature.getX(),y=activity.miniature.getY();
+   check(x>=0&&y>=0&&x+activity.miniature.getWidth()*activity.miniature.getScaleX()<=activity.stage.getWidth()+1&&y+activity.miniature.getHeight()*activity.miniature.getScaleY()<=activity.stage.getHeight()+1,"miniature remains inside screen");
+   check(activity.sites.length()==count&&activity.page==oldPage&&activity.filter.equals(oldFilter),"pinch preserves bookmarks page and search");
+  });
+  snapshot("pinch-collapsed.png");clickDescription("작아진 책장 열기");android.os.SystemClock.sleep(650);waitForIdleSync();
+  main(()->{check(!activity.sceneCollapsed&&!activity.sceneAnimating,"tap miniature restores full-size cabinet");check(activity.controls.getVisibility()==View.VISIBLE&&activity.miniature.getVisibility()==View.GONE,"full controls restored without overlay");});
+  snapshot("pinch-restored.png");pinch(true);android.os.SystemClock.sleep(650);waitForIdleSync();rotateScreens();
+ }
+ void clickDescription(String description){android.view.accessibility.AccessibilityNodeInfo root=getUiAutomation().getRootInActiveWindow();android.view.accessibility.AccessibilityNodeInfo node=findDescription(root,description);if(node==null||!node.performAction(android.view.accessibility.AccessibilityNodeInfo.ACTION_CLICK))throw new AssertionError("click description "+description);waitForIdleSync();}
+ android.view.accessibility.AccessibilityNodeInfo findDescription(android.view.accessibility.AccessibilityNodeInfo root,String description){if(root==null)return null;if(root.getContentDescription()!=null&&description.contentEquals(root.getContentDescription()))return root;for(int i=0;i<root.getChildCount();i++){android.view.accessibility.AccessibilityNodeInfo found=findDescription(root.getChild(i),description);if(found!=null)return found;}return null;}
+ void pinch(boolean inward){
+  float width=activity.stage.getWidth(),y=activity.stage.getHeight()*.54f;
+  float start=inward?.06f:.38f,end=inward?.38f:.06f;
+  long down=android.os.SystemClock.uptimeMillis();touch(down,android.view.MotionEvent.ACTION_DOWN,width*start,y);
+  twoFinger(down,android.view.MotionEvent.ACTION_POINTER_DOWN|(1<<android.view.MotionEvent.ACTION_POINTER_INDEX_SHIFT),width*start,width*(1-start),y);
+  for(int i=1;i<=24;i++){float f=start+(end-start)*i/24f;twoFinger(down,android.view.MotionEvent.ACTION_MOVE,width*f,width*(1-f),y);android.os.SystemClock.sleep(18);}
+  twoFinger(down,android.view.MotionEvent.ACTION_POINTER_UP|(1<<android.view.MotionEvent.ACTION_POINTER_INDEX_SHIFT),width*end,width*(1-end),y);
+  touch(down,android.view.MotionEvent.ACTION_UP,width*end,y);waitForIdleSync();
+ }
+ void twoFinger(long down,int action,float left,float right,float y){
+  android.view.MotionEvent.PointerProperties[] properties={new android.view.MotionEvent.PointerProperties(),new android.view.MotionEvent.PointerProperties()};
+  android.view.MotionEvent.PointerCoords[] coords={new android.view.MotionEvent.PointerCoords(),new android.view.MotionEvent.PointerCoords()};
+  for(int i=0;i<2;i++){properties[i].id=i;properties[i].toolType=android.view.MotionEvent.TOOL_TYPE_FINGER;coords[i].x=i==0?left:right;coords[i].y=y;coords[i].pressure=1;coords[i].size=1;}
+  android.view.MotionEvent event=android.view.MotionEvent.obtain(down,android.os.SystemClock.uptimeMillis(),action,2,properties,coords,0,0,1,1,0,0,android.view.InputDevice.SOURCE_TOUCHSCREEN,0);
+  if(!getUiAutomation().injectInputEvent(event,true))throw new AssertionError("two-finger input injection");event.recycle();
+ }
  void nativeDrag(){
   final int[] start=new int[2],end=new int[2];
   main(()->{

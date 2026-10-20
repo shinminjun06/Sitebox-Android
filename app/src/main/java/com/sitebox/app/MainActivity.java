@@ -24,12 +24,18 @@ public class MainActivity extends Activity {
  ImageView backdrop;
  boolean backgroundOnly=false;
  String filter=""; int page=0;
- static final int BOOKS_PER_SHELF=3;
+ static final int BOOKS_PER_SHELF=BookLayout.CAPACITY;
  ThemeAssets assets;
  BookView dragSource;
  ScrollView shelfScroll;
  long lastDragScroll=0;
  TextView pageSummary;
+ LinearLayout controls;
+ View revealOverlay;
+ BookshelfView currentCabinet;
+ ImageView miniature;
+ boolean sceneCollapsed=false,sceneAnimating=false,restoreCollapsed=false;
+
 
  int shelfThemeIndex=0,bookThemeIndex=0;
  final String[] shelfThemeNames={"햇살 원목","짙은 월넛","화이트 오크"};
@@ -50,22 +56,22 @@ public class MainActivity extends Activity {
  void save(){JSONArray names=new JSONArray();for(String c:categories)names.put(c);getPreferences(0).edit().putString("sites",sites.toString()).putString("categories",names.toString()).putInt("shelfTheme",shelfThemeIndex).putInt("bookTheme",bookThemeIndex).apply();}
  @Override public void onCreate(Bundle b){
  super.onCreate(b);assets=new ThemeAssets(this);load();
- if(b!=null){filter=b.getString("filter","");page=b.getInt("page",0);}
+ if(b!=null){filter=b.getString("filter","");page=b.getInt("page",0);restoreCollapsed=b.getBoolean("sceneCollapsed",false);}
  getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE);
  if(Build.VERSION.SDK_INT>=30)getWindow().setDecorFitsSystemWindows(false);
  else getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_LAYOUT_STABLE|View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN|View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION);
  getWindow().setStatusBarColor(Color.TRANSPARENT);getWindow().setNavigationBarColor(0x660F211C);
  draw();
  }
- @Override protected void onSaveInstanceState(Bundle out){super.onSaveInstanceState(out);out.putString("filter",filter);out.putInt("page",page);}
+ @Override protected void onSaveInstanceState(Bundle out){super.onSaveInstanceState(out);out.putString("filter",filter);out.putInt("page",page);out.putBoolean("sceneCollapsed",sceneCollapsed);}
  @Override public void onTrimMemory(int level){super.onTrimMemory(level);if(level>=TRIM_MEMORY_RUNNING_LOW)assets.clear();}
 
  TextView label(String s,int size,int color){TextView t=new TextView(this);t.setText(s);t.setTextSize(size);t.setTextColor(color);return t;}
  void draw(){
- stage=new FrameLayout(this);stage.setBackgroundColor(0xffd4c4a7);
+ stage=new LibraryStage(this,()->collapseToScene(true));stage.setBackgroundColor(0xffd4c4a7);
  backdrop=new ImageView(this);backdrop.setScaleType(ImageView.ScaleType.CENTER_CROP);
  backdrop.setImageBitmap(assets.get("school_morning.jpg"));stage.addView(backdrop,new FrameLayout.LayoutParams(-1,-1));
- LinearLayout root=new LinearLayout(this);root.setOrientation(LinearLayout.VERTICAL);root.setFocusableInTouchMode(true);
+ LinearLayout root=new LinearLayout(this);controls=root;root.setOrientation(LinearLayout.VERTICAL);root.setFocusableInTouchMode(true);
  root.setOnApplyWindowInsetsListener((view,insets)->{
   if(Build.VERSION.SDK_INT>=30){android.graphics.Insets sys=insets.getInsets(WindowInsets.Type.systemBars()|WindowInsets.Type.displayCutout()|WindowInsets.Type.ime());view.setPadding(sys.left,sys.top,sys.right,sys.bottom);}
   else view.setPadding(insets.getSystemWindowInsetLeft(),insets.getSystemWindowInsetTop(),insets.getSystemWindowInsetRight(),insets.getSystemWindowInsetBottom());
@@ -86,13 +92,19 @@ public class MainActivity extends Activity {
  shelfScroll=new ScrollView(this);shelfScroll.setFillViewport(true);shelfScroll.setClipToPadding(false);
  shelves=new LinearLayout(this);shelves.setOrientation(LinearLayout.VERTICAL);shelves.setGravity(Gravity.CENTER_HORIZONTAL);shelves.setPadding(dp(10),dp(8),dp(10),dp(14));
  shelfScroll.addView(shelves);root.addView(shelfScroll,new LinearLayout.LayoutParams(-1,0,1));stage.addView(root,new FrameLayout.LayoutParams(-1,-1));
- View revealOverlay=new View(this);revealOverlay.setContentDescription("서재 화면으로 돌아가기");revealOverlay.setVisibility(View.GONE);stage.addView(revealOverlay,new FrameLayout.LayoutParams(-1,-1));
+ revealOverlay=new View(this);revealOverlay.setContentDescription("서재 화면으로 돌아가기");revealOverlay.setVisibility(View.GONE);stage.addView(revealOverlay,new FrameLayout.LayoutParams(-1,-1));
  revealOverlay.setOnClickListener(v->{backgroundOnly=false;root.setVisibility(View.VISIBLE);revealOverlay.setVisibility(View.GONE);});
  View.OnLongClickListener reveal=v->{backgroundOnly=true;root.setVisibility(View.INVISIBLE);revealOverlay.setVisibility(View.VISIBLE);return true;};
  header.setOnLongClickListener(reveal);shelves.setOnLongClickListener(reveal);shelfScroll.setOnLongClickListener(reveal);
+ miniature=new ImageView(this);miniature.setScaleType(ImageView.ScaleType.FIT_XY);miniature.setContentDescription("작아진 책장 열기");miniature.setVisibility(View.GONE);miniature.setPivotX(0);miniature.setPivotY(0);stage.addView(miniature,new FrameLayout.LayoutParams(1,1));miniature.setOnClickListener(v->expandFromScene(true));
  setContentView(stage);root.requestApplyInsets();
  search.addTextChangedListener(new TextWatcher(){public void beforeTextChanged(CharSequence s,int a,int c,int f){}public void onTextChanged(CharSequence s,int a,int b,int c){filter=s.toString();page=0;populate();}public void afterTextChanged(Editable e){}});
  populate();root.requestFocus();
+ if(restoreCollapsed){
+  controls.setVisibility(View.INVISIBLE);
+  stage.getViewTreeObserver().addOnPreDrawListener(new android.view.ViewTreeObserver.OnPreDrawListener(){public boolean onPreDraw(){if(currentCabinet.getWidth()>0){stage.getViewTreeObserver().removeOnPreDrawListener(this);collapseToScene(false);}return true;}});
+ }
+
  }
  
  void showThemes(){
@@ -120,7 +132,7 @@ public class MainActivity extends Activity {
  TextView next=label("›",26,0xFFFFEDCA);next.setGravity(Gravity.CENTER);next.setContentDescription("다음 페이지");next.setEnabled(page<pages-1);next.setAlpha(page<pages-1?1f:.35f);nav.addView(next,new LinearLayout.LayoutParams(dp(48),dp(48)));next.setOnClickListener(v->{if(page<totalPages-1){page++;populate();}});
  int maxWidth=Math.min(getResources().getDisplayMetrics().widthPixels-dp(20),dp(480));
  shelves.addView(nav,new LinearLayout.LayoutParams(maxWidth,dp(48)));
- BookshelfView furniture=new BookshelfView(this,assets.shelf(shelfThemeIndex));
+ BookshelfView furniture=new BookshelfView(this,assets.shelf(shelfThemeIndex));currentCabinet=furniture;
  for(int cell=0;cell<9;cell++){
   final int category=cell;LinearLayout books=new LinearLayout(this);books.setGravity(Gravity.BOTTOM);books.setPadding(dp(2),dp(6),dp(2),0);books.setTag(cell);
   for(int slot=0;slot<BOOKS_PER_SHELF;slot++){
@@ -135,31 +147,47 @@ public class MainActivity extends Activity {
   plate.setOnClickListener(v->edit(-1,categories[category]));plate.setOnDragListener((v,e)->handleBookDrop(v,e,category,-1));furniture.addView(plate,new FrameLayout.LayoutParams(-1,-1));
  }
  LinearLayout.LayoutParams fp=new LinearLayout.LayoutParams(maxWidth,-2);fp.topMargin=dp(8);shelves.addView(furniture,fp);
- TextView tip=label(visibleTotal==0?(filter.isEmpty()?"＋ 또는 명패를 눌러 첫 책을 꽂아보세요":"검색 결과가 없어요"):"책을 눌러 열기 · 길게 눌러 이동",12,0xFFFFF5DE);tip.setGravity(Gravity.CENTER);tip.setPadding(dp(8),dp(10),dp(8),dp(10));tip.setBackground(bg(0xCC244036,12));shelves.addView(tip,new LinearLayout.LayoutParams(maxWidth,-2));
+ TextView tip=label(visibleTotal==0?(filter.isEmpty()?"＋ 또는 명패를 눌러 첫 책을 꽂아보세요":"검색 결과가 없어요"):"책 열기 · 길게 눌러 이동 · 두 손가락으로 축소",12,0xFFFFF5DE);tip.setGravity(Gravity.CENTER);tip.setPadding(dp(8),dp(10),dp(8),dp(10));tip.setBackground(bg(0xCC244036,12));shelves.addView(tip,new LinearLayout.LayoutParams(maxWidth,-2));
  }
  void sortBooks(List<Integer> group){Collections.sort(group,(a,b)->{JSONObject x=sites.optJSONObject(a),y=sites.optJSONObject(b);int order=Long.compare(x.optLong("sortOrder",a*1000L),y.optLong("sortOrder",b*1000L));return order!=0?order:Integer.compare(a,b);});}
- class BookView extends View {
-  final Paint paint=new Paint(Paint.ANTI_ALIAS_FLAG|Paint.FILTER_BITMAP_FLAG);
-  final RectF bookBounds=new RectF();
-  final android.text.TextPaint titlePaint=new android.text.TextPaint();
-  final JSONObject item;final int idx;final Bitmap artwork;
-  BookView(Context c,JSONObject obj,int index){super(c);item=obj;idx=index;artwork=assets.book(bookThemeIndex,Math.floorMod(obj.optString("name").hashCode(),4));setContentDescription(obj.optString("name")+(obj.optBoolean("fav")?", 즐겨찾기":""));setFocusable(true);setClickable(true);setOnClickListener(v->showBook(idx));
+ class BookView extends BookArtworkView {
+  final int idx;
+  BookView(Context c,JSONObject obj,int index){super(c,obj,assets.book(bookThemeIndex,Math.floorMod(obj.optString("name").hashCode(),4)),bookThemeIndex);idx=index;setFocusable(true);setClickable(true);setOnClickListener(v->showBook(idx));
    setOnLongClickListener(v->{performHapticFeedback(HapticFeedbackConstants.LONG_PRESS);boolean started=startDragAndDrop(ClipData.newPlainText("sitebox-book",String.valueOf(idx)),new View.DragShadowBuilder(this),Integer.valueOf(idx),0);if(started){dragSource=this;setAlpha(.25f);}return started;});
   }
-  @Override protected void onDraw(Canvas c){super.onDraw(c);
-   float w=getWidth(),h=getHeight();if(w<1||h<1)return;
-   int variant=Math.floorMod(item.optString("name").hashCode(),4);
-   float top=h*(.08f+Math.floorMod(item.optString("name").hashCode(),4)*.025f),bottom=h-1,left=1,right=w-1;
-   paint.setAlpha(255);paint.setStyle(Paint.Style.FILL);paint.setShader(null);
-   bookBounds.set(left,top,right,bottom);if(artwork!=null)c.drawBitmap(artwork,null,bookBounds,paint);
-   else {paint.setColor(covers[variant]);c.drawRoundRect(left,top,right,bottom,dp(2),dp(2),paint);}
-   boolean light=(bookThemeIndex==1)||(bookThemeIndex==0&&variant==2)||(bookThemeIndex==2&&variant>=2);
-   paint.setTypeface(Typeface.create(bookThemeIndex==2?"sans-serif-medium":"serif",Typeface.BOLD));paint.setTextAlign(Paint.Align.CENTER);paint.setTextSize(Math.min(dp(10),w*.40f));paint.setColor(light?0xFF342D25:0xFFFFEDC2);
-   float centerY=(top+bottom)*.5f;titlePaint.set(paint);CharSequence name=TextUtils.ellipsize(item.optString("name","Site"),titlePaint,(bottom-top)*.58f,TextUtils.TruncateAt.END);
-   c.save();c.rotate(-90,w*.48f,centerY);c.drawText(name.toString(),w*.48f,centerY-(paint.ascent()+paint.descent())*.5f,paint);c.restore();
-   if(item.optBoolean("fav")){paint.setColor(light?0xFF78521E:0xFFFFDC7A);paint.setTextSize(Math.min(dp(12),w*.55f));c.drawText("★",w*.48f,top+(bottom-top)*.17f,paint);}
-  }
  }
+ RectF cabinetBounds(){
+  int[] cabinetPosition=new int[2],stagePosition=new int[2];currentCabinet.getLocationOnScreen(cabinetPosition);stage.getLocationOnScreen(stagePosition);
+  float x=cabinetPosition[0]-stagePosition[0],y=cabinetPosition[1]-stagePosition[1];return new RectF(x,y,x+currentCabinet.getWidth(),y+currentCabinet.getHeight());
+ }
+ float[] sceneBounds(){
+  Bitmap scene=assets.get("school_morning.jpg");float iw=scene==null?852:scene.getWidth(),ih=scene==null?1846:scene.getHeight();
+  int left=0,top=0,right=0,bottom=0;WindowInsets insets=stage.getRootWindowInsets();
+  if(insets!=null){if(Build.VERSION.SDK_INT>=30){android.graphics.Insets sys=insets.getInsets(WindowInsets.Type.systemBars()|WindowInsets.Type.displayCutout());left=sys.left;top=sys.top;right=sys.right;bottom=sys.bottom;}else {left=insets.getSystemWindowInsetLeft();top=insets.getSystemWindowInsetTop();right=insets.getSystemWindowInsetRight();bottom=insets.getSystemWindowInsetBottom();}}
+  return BookLayout.sceneBounds(stage.getWidth(),stage.getHeight(),iw,ih,left,top,right,bottom);
+ }
+ void collapseToScene(boolean animate){
+  if(sceneCollapsed||sceneAnimating||currentCabinet==null||currentCabinet.getWidth()==0||dragSource!=null)return;
+  ((android.view.inputmethod.InputMethodManager)getSystemService(INPUT_METHOD_SERVICE)).hideSoftInputFromWindow(stage.getWindowToken(),0);
+  sceneCollapsed=true;sceneAnimating=animate;backgroundOnly=false;revealOverlay.setVisibility(View.GONE);
+  RectF from=cabinetBounds();int width=currentCabinet.getWidth(),height=currentCabinet.getHeight();
+  float sampling=Math.min(1f,1024f/width);Bitmap snapshot=Bitmap.createBitmap(Math.max(1,Math.round(width*sampling)),Math.max(1,Math.round(height*sampling)),Bitmap.Config.ARGB_8888);
+  Canvas canvas=new Canvas(snapshot);canvas.scale(sampling,sampling);currentCabinet.draw(canvas);
+  miniature.animate().cancel();miniature.setImageBitmap(snapshot);miniature.setLayoutParams(new FrameLayout.LayoutParams(width,height));miniature.setX(from.left);miniature.setY(from.top);miniature.setScaleX(1);miniature.setScaleY(1);miniature.setVisibility(View.VISIBLE);miniature.setEnabled(false);
+  float[] target=sceneBounds();float scale=(target[2]-target[0])/width;
+  Runnable finish=()->{controls.setVisibility(View.INVISIBLE);controls.setAlpha(1);sceneAnimating=false;miniature.setEnabled(true);};
+  if(animate){controls.animate().setStartDelay(0).withEndAction(null).alpha(0).setDuration(180).start();miniature.animate().x(target[0]).y(target[1]).scaleX(scale).scaleY(scale).setDuration(340).setInterpolator(new android.view.animation.DecelerateInterpolator()).withEndAction(finish).start();}
+  else {miniature.setX(target[0]);miniature.setY(target[1]);miniature.setScaleX(scale);miniature.setScaleY(scale);finish.run();}
+ }
+ void expandFromScene(boolean animate){
+  if(!sceneCollapsed||sceneAnimating)return;
+  sceneCollapsed=false;sceneAnimating=animate;RectF target=cabinetBounds();miniature.setEnabled(false);controls.setAlpha(animate?0:1);controls.setVisibility(View.VISIBLE);
+  Runnable finish=()->{miniature.setVisibility(View.GONE);miniature.setImageDrawable(null);controls.setAlpha(1);sceneAnimating=false;};
+  if(animate){controls.animate().alpha(1).setStartDelay(170).setDuration(170).withEndAction(()->controls.animate().setStartDelay(0)).start();miniature.animate().x(target.left).y(target.top).scaleX(1).scaleY(1).setDuration(340).setInterpolator(new android.view.animation.DecelerateInterpolator()).withEndAction(finish).start();}
+  else finish.run();
+ }
+ @Override public void onBackPressed(){if(sceneCollapsed||sceneAnimating){expandFromScene(true);return;}super.onBackPressed();}
+ @Override protected void onDestroy(){if(controls!=null)controls.animate().cancel();if(miniature!=null){miniature.animate().cancel();miniature.setImageDrawable(null);}super.onDestroy();}
   void showBook(int index){
  JSONObject o=sites.optJSONObject(index);if(o==null)return;
  final String url=o.optString("url");
