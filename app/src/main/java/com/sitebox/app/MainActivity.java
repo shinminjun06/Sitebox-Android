@@ -24,6 +24,9 @@ public class MainActivity extends Activity {
  ImageView backdrop;
  boolean backgroundOnly=false;
  String filter=""; int page=0;
+ int shelfThemeIndex=0,bookThemeIndex=0;
+ final String[] shelfThemeNames={"햇살 원목","짙은 월넛","화이트 오크"};
+ final String[] bookThemeNames={"고전 양장본","파스텔 북","모던 북"};
  // Theme palette is centralized for future theme switching.
  static class ShelfTheme {
   final int background,header,frame,innerDark,innerLight,trim,edge,shadow,gold,paper;
@@ -36,8 +39,8 @@ public class MainActivity extends Activity {
  final int[] covers={0xFF152B49,0xFF74262D,0xFFE9D8B6,0xFF133D38,0xFF693525,0xFF234C4B,0xFF253858,0xFFBBA17D};
  int dp(float v){return (int)(getResources().getDisplayMetrics().density*v+0.5f);}
  GradientDrawable bg(int color,int radius){GradientDrawable d=new GradientDrawable();d.setColor(color);d.setCornerRadius(dp(radius));return d;}
- void load(){try{sites=new JSONArray(getPreferences(0).getString("sites","[]"));}catch(Exception e){sites=new JSONArray();}try{JSONArray saved=new JSONArray(getPreferences(0).getString("categories","[]"));if(saved.length()==9)for(int i=0;i<9;i++)categories[i]=saved.optString(i,categories[i]);}catch(Exception ignored){}}
- void save(){JSONArray names=new JSONArray();for(String c:categories)names.put(c);getPreferences(0).edit().putString("sites",sites.toString()).putString("categories",names.toString()).apply();}
+ void load(){shelfThemeIndex=Math.max(0,Math.min(2,getPreferences(0).getInt("shelfTheme",0)));bookThemeIndex=Math.max(0,Math.min(2,getPreferences(0).getInt("bookTheme",0)));try{sites=new JSONArray(getPreferences(0).getString("sites","[]"));}catch(Exception e){sites=new JSONArray();}try{JSONArray saved=new JSONArray(getPreferences(0).getString("categories","[]"));if(saved.length()==9)for(int i=0;i<9;i++)categories[i]=saved.optString(i,categories[i]);}catch(Exception ignored){}}
+ void save(){JSONArray names=new JSONArray();for(String c:categories)names.put(c);getPreferences(0).edit().putString("sites",sites.toString()).putString("categories",names.toString()).putInt("shelfTheme",shelfThemeIndex).putInt("bookTheme",bookThemeIndex).apply();}
  @Override public void onCreate(Bundle b){super.onCreate(b);getWindow().setStatusBarColor(Color.rgb(47,29,21));getWindow().setNavigationBarColor(Color.rgb(47,29,21));load();draw();}
  TextView label(String s,int size,int color){TextView t=new TextView(this);t.setText(s);t.setTextSize(size);t.setTextColor(color);return t;}
  void draw(){
@@ -61,6 +64,7 @@ public class MainActivity extends Activity {
  TextView add=label("＋",30,0xFFF8EBD5);add.setGravity(Gravity.CENTER);add.setBackground(bg(0xFF775135,14));headline.addView(add,new LinearLayout.LayoutParams(dp(48),dp(48)));add.setOnClickListener(v->edit(-1));
  header.addView(headline);
  TextView manage=label("⚙ 카테고리",13,0xFFFFE6BD);manage.setGravity(Gravity.CENTER);manage.setBackground(bg(0xAA503621,9));LinearLayout.LayoutParams manageParams=new LinearLayout.LayoutParams(dp(104),dp(32));manageParams.topMargin=dp(5);header.addView(manage,manageParams);manage.setOnClickListener(v->manageCategories());
+ TextView themes=label("◈ 테마",13,0xFFFFE6BD);themes.setGravity(Gravity.CENTER);themes.setBackground(bg(0xAA503621,9));LinearLayout.LayoutParams themeParams=new LinearLayout.LayoutParams(dp(104),dp(32));themeParams.topMargin=dp(5);header.addView(themes,themeParams);themes.setOnClickListener(v->showThemes());
  search=new EditText(this);search.setSingleLine(true);search.setTextColor(0xFFF5E8D1);search.setHintTextColor(0xFFBEA994);search.setTextSize(15);search.setHint("⌕  책 제목 · 주소 · 카테고리 검색");search.setPadding(dp(14),0,dp(12),0);search.setBackground(bg(0xDD4D382B,12));search.setText(filter);
  LinearLayout.LayoutParams sp=new LinearLayout.LayoutParams(-1,dp(46));sp.topMargin=dp(12);header.addView(search,sp);root.addView(header);
  ScrollView sc=new ScrollView(this);sc.setFillViewport(true);sc.setBackgroundColor(Color.TRANSPARENT);
@@ -81,13 +85,24 @@ public class MainActivity extends Activity {
  populate();
  }
  
+ void showThemes(){
+ LinearLayout layout=new LinearLayout(this);layout.setOrientation(1);layout.setPadding(dp(22),dp(14),dp(22),dp(8));
+ TextView shelfLabel=label("책장 테마",16,0xFF3D291D);layout.addView(shelfLabel);
+ Spinner shelfPicker=new Spinner(this);shelfPicker.setAdapter(new ArrayAdapter<String>(this,android.R.layout.simple_spinner_dropdown_item,shelfThemeNames));shelfPicker.setSelection(shelfThemeIndex);layout.addView(shelfPicker);
+ TextView bookLabel=label("책 테마",16,0xFF3D291D);bookLabel.setPadding(0,dp(18),0,0);layout.addView(bookLabel);
+ Spinner bookPicker=new Spinner(this);bookPicker.setAdapter(new ArrayAdapter<String>(this,android.R.layout.simple_spinner_dropdown_item,bookThemeNames));bookPicker.setSelection(bookThemeIndex);layout.addView(bookPicker);
+ new AlertDialog.Builder(this).setTitle("책장 · 책 테마").setView(layout).setNegativeButton("취소",null).setPositiveButton("적용",(d,w)->{shelfThemeIndex=shelfPicker.getSelectedItemPosition();bookThemeIndex=bookPicker.getSelectedItemPosition();save();populate();}).show();
+ }
  // Draw wood grain at any screen density without raster image assets.
  class WoodPanel extends android.graphics.drawable.Drawable {
   final boolean vertical;final boolean recess;Paint brush=new Paint(3);
   WoodPanel(boolean vertical,boolean recess){this.vertical=vertical;this.recess=recess;}
   @Override public void draw(Canvas c){
    android.graphics.Rect r=getBounds();float w=r.width(),h=r.height();if(w<=0||h<=0)return;
-   int[] palette=recess?new int[]{0xFF56361F,0xFF96613C,0xFF7E4D2E,0xFF49301E}:new int[]{0xFFF7D29B,0xFFDEAA70,0xFFC58B57,0xFFAA6D42};
+   int[] palette;
+   if(shelfThemeIndex==1)palette=recess?new int[]{0xFF26180F,0xFF4E2F20,0xFF392216,0xFF20130E}:new int[]{0xFF9A6C4D,0xFF72492F,0xFF56341F,0xFF3C2619};
+   else if(shelfThemeIndex==2)palette=recess?new int[]{0xFFB3A18D,0xFFE0D1BA,0xFFCCBBA4,0xFF97836C}:new int[]{0xFFFFF4E1,0xFFEAD9C0,0xFFD5BEA0,0xFFBDA183};
+   else palette=recess?new int[]{0xFF56361F,0xFF96613C,0xFF7E4D2E,0xFF49301E}:new int[]{0xFFF7D29B,0xFFDEAA70,0xFFC58B57,0xFFAA6D42};
    brush.setShader(new LinearGradient(r.left,r.top,r.left+(vertical?w:0),r.top+(vertical?0:h),palette,null,Shader.TileMode.CLAMP));
    c.drawRect(r,brush);brush.setShader(null);
    brush.setStyle(Paint.Style.STROKE);brush.setStrokeWidth(dp(.65f));
@@ -168,6 +183,8 @@ public class MainActivity extends Activity {
  @Override protected void onDraw(Canvas canvas){super.onDraw(canvas);
  float w=getWidth(),h=getHeight(),left=dp(1),bottom=h-dp(1);
  int color=covers[(item.optString("name").hashCode()&0x7fffffff)%covers.length];
+ if(bookThemeIndex==1){int[] pastel={0xFF9CB8B5,0xFFD7A9B2,0xFFEAD7AB,0xFFB5ACD6,0xFFA7BFCF};color=pastel[(item.optString("name").hashCode()&0x7fffffff)%pastel.length];}
+ else if(bookThemeIndex==2){int[] modern={0xFF2E343B,0xFF4D5963,0xFF8B8F88,0xFFBBADA0,0xFF4C6C7A};color=modern[(item.optString("name").hashCode()&0x7fffffff)%modern.length];}
  int variation=Math.abs(item.optString("name").hashCode())%4;
  float top=dp(5+variation*4),right=w-dp(1),spineRight=Math.max(left+dp(5),right-dp(2));
  float cx=(left+spineRight)/2f;
@@ -179,15 +196,15 @@ public class MainActivity extends Activity {
  p.setShader(new LinearGradient(left,top,spineRight,top,new int[]{0xFF241B18,color,color,0xFF1D1816},new float[]{0f,.18f,.73f,1f},Shader.TileMode.CLAMP));
  canvas.drawRoundRect(left,top,spineRight,bottom,dp(2),dp(2),p);p.setShader(null);
  p.setColor(0x55FFFFFF);canvas.drawRect(left+dp(2),top+dp(2),left+dp(3),bottom-dp(2),p);
- p.setColor(0xFFCFAC71);
+ p.setColor(bookThemeIndex==1?0xFFF7E9D0:bookThemeIndex==2?0xFFBFC4C5:0xFFCFAC71);
  for(int i=0;i<3;i++){float yy=top+dp(6+i*3);canvas.drawRect(left+dp(2),yy,spineRight-dp(2),yy+dp(.7f),p);}
  for(int i=0;i<3;i++){float yy=bottom-dp(7+i*3);canvas.drawRect(left+dp(2),yy,spineRight-dp(2),yy+dp(.7f),p);}
- p.setStyle(Paint.Style.STROKE);p.setStrokeWidth(dp(.65f));p.setColor(0xFFD9AF65);
+ p.setStyle(Paint.Style.STROKE);p.setStrokeWidth(dp(.65f));p.setColor(bookThemeIndex==1?0xFFFFF4DC:bookThemeIndex==2?0xFFCDD4D8:0xFFD9AF65);
  canvas.drawRect(left+dp(3),top+dp(18),spineRight-dp(3),bottom-dp(18),p);
  float ornamentY=top+dp(31);
  Path diamond=new Path();diamond.moveTo(cx,ornamentY-dp(5));diamond.lineTo(cx+dp(3),ornamentY);diamond.lineTo(cx,ornamentY+dp(5));diamond.lineTo(cx-dp(3),ornamentY);diamond.close();canvas.drawPath(diamond,p);
  canvas.drawCircle(cx,bottom-dp(30),dp(3),p);canvas.drawLine(cx,ornamentY+dp(7),cx,bottom-dp(35),p);
- p.setStyle(Paint.Style.FILL);p.setColor(0xFFE6C07A);
+ p.setStyle(Paint.Style.FILL);p.setColor(bookThemeIndex==1?0xFFFFF4DC:bookThemeIndex==2?0xFFCDD4D8:0xFFE6C07A);
  canvas.drawCircle(cx,ornamentY,dp(1),p);canvas.drawCircle(cx,bottom-dp(30),dp(1),p);
  canvas.save();canvas.rotate(-90,cx,(top+bottom)/2);
  p.setTypeface(Typeface.create("serif",Typeface.BOLD));p.setTextAlign(Paint.Align.CENTER);p.setTextSize(dp(9));p.setColor(color==0xFFEAD9B6?0xFF543921:0xFFFFE4A9);
