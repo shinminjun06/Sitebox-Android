@@ -60,7 +60,7 @@ public class MainActivity extends Activity {
   if(bmp!=null)backdrop.setImageBitmap(bmp);
  }catch(Exception ignored){}
  stage.addView(backdrop,new FrameLayout.LayoutParams(-1,-1));
- LinearLayout root=new LinearLayout(this);root.setOrientation(1);root.setBackgroundColor(Color.TRANSPARENT);
+ LinearLayout root=new LinearLayout(this);root.setOrientation(1);root.setBackgroundColor(Color.TRANSPARENT);root.setFocusableInTouchMode(true);root.setDescendantFocusability(android.view.ViewGroup.FOCUS_AFTER_DESCENDANTS);
  LinearLayout header=new LinearLayout(this);header.setOrientation(1);header.setPadding(dp(20),dp(45),dp(20),dp(18));
  header.setBackgroundColor(0x33000000);
  TextView eyebrow=label("맑은 아침의 학교 서재",12,0xFFFFE8BD);eyebrow.setLetterSpacing(.19f);header.addView(eyebrow);
@@ -72,7 +72,7 @@ public class MainActivity extends Activity {
  TextView themes=label("◈ 테마",13,0xFFFFE6BD);themes.setGravity(Gravity.CENTER);themes.setBackground(bg(0xAA503621,9));LinearLayout.LayoutParams themeParams=new LinearLayout.LayoutParams(dp(104),dp(32));themeParams.topMargin=dp(5);header.addView(themes,themeParams);themes.setOnClickListener(v->showThemes());
  search=new EditText(this);search.setSingleLine(true);search.setTextColor(0xFFF5E8D1);search.setHintTextColor(0xFFBEA994);search.setTextSize(15);search.setHint("⌕  책 제목 · 주소 · 카테고리 검색");search.setPadding(dp(14),0,dp(12),0);search.setBackground(bg(0xDD4D382B,12));search.setText(filter);
  LinearLayout.LayoutParams sp=new LinearLayout.LayoutParams(-1,dp(46));sp.topMargin=dp(12);header.addView(search,sp);root.addView(header);
- ScrollView sc=new ScrollView(this);sc.setFillViewport(true);sc.setBackgroundColor(Color.TRANSPARENT);
+ ScrollView sc=new ScrollView(this);sc.setFillViewport(true);sc.setBackgroundColor(Color.TRANSPARENT);sc.setSmoothScrollingEnabled(false);
  shelves=new LinearLayout(this);shelves.setOrientation(1);shelves.setPadding(dp(13),dp(8),dp(13),dp(12));shelves.setBackgroundColor(Color.TRANSPARENT);
  sc.addView(shelves);root.addView(sc,new LinearLayout.LayoutParams(-1,0,1));
  stage.addView(root,new FrameLayout.LayoutParams(-1,-1));
@@ -106,7 +106,9 @@ public class MainActivity extends Activity {
   @Override public void draw(Canvas c){
    android.graphics.Rect r=getBounds();float w=r.width(),h=r.height();if(w<=0||h<=0)return;
    Bitmap woodTexture=texture(shelfTexturePath());
-   if(woodTexture!=null){brush.setStyle(Paint.Style.FILL);brush.setAlpha(255);brush.setShader(null);c.drawBitmap(woodTexture,null,r,brush);return;}
+   if(woodTexture!=null){brush.setStyle(Paint.Style.FILL);brush.setAlpha(255);brush.setShader(null);c.drawBitmap(woodTexture,null,r,brush);
+    if(recess){brush.setShader(new LinearGradient(r.left,r.top,r.right,r.top,new int[]{0xC91A100A,0x78302013,0x65302013,0xBD170E09},null,Shader.TileMode.CLAMP));c.drawRect(r,brush);brush.setShader(null);brush.setColor(0xB5160D08);c.drawRect(r.left,r.top,r.right,r.top+dp(5),brush);brush.setColor(0xAA170E09);c.drawRect(r.left,r.top,r.left+dp(5),r.bottom,brush);brush.setColor(0x8E0D0906);c.drawRect(r.right-dp(5),r.top,r.right,r.bottom,brush);}
+    return;}
    int[] palette;
    if(shelfThemeIndex==1)palette=recess?new int[]{0xFF26180F,0xFF4E2F20,0xFF392216,0xFF20130E}:new int[]{0xFF9A6C4D,0xFF72492F,0xFF56341F,0xFF3C2619};
    else if(shelfThemeIndex==2)palette=recess?new int[]{0xFFB3A18D,0xFFE0D1BA,0xFFCCBBA4,0xFF97836C}:new int[]{0xFFFFF4E1,0xFFEAD9C0,0xFFD5BEA0,0xFFBDA183};
