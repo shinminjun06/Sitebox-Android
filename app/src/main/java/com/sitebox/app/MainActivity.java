@@ -95,10 +95,11 @@ public class MainActivity extends Activity {
  for(ArrayList<Integer> group:grouped)Collections.sort(group,(a1,b1)->{JSONObject x=sites.optJSONObject(a1),y=sites.optJSONObject(b1);int order=Long.compare(x.optLong("sortOrder",a1*1000L),y.optLong("sortOrder",b1*1000L));return order!=0?order:Integer.compare(a1,b1);});
  int pages=1;for(ArrayList<Integer> group:grouped)pages=Math.max(pages,(group.size()+6)/7);
  page=Math.max(0,Math.min(page,pages-1));
+ final int totalPages=pages;
  LinearLayout nav=new LinearLayout(this);nav.setGravity(Gravity.CENTER_VERTICAL);
  TextView prev=label("◀",19,0xFFF3D7B0);prev.setGravity(Gravity.CENTER);nav.addView(prev,new LinearLayout.LayoutParams(dp(45),dp(42)));prev.setOnClickListener(v->{if(page>0){page--;populate();}});
  TextView count=label("나무 책장  "+(page+1)+" / "+pages+"   ·   "+visibleTotal+"권",14,0xFFE9D2B0);count.setGravity(Gravity.CENTER);nav.addView(count,new LinearLayout.LayoutParams(0,dp(42),1));
- TextView next=label("▶",19,0xFFF3D7B0);next.setGravity(Gravity.CENTER);nav.addView(next,new LinearLayout.LayoutParams(dp(45),dp(42)));next.setOnClickListener(v->{if(page<pages-1){page++;populate();}});
+ TextView next=label("▶",19,0xFFF3D7B0);next.setGravity(Gravity.CENTER);nav.addView(next,new LinearLayout.LayoutParams(dp(45),dp(42)));next.setOnClickListener(v->{if(page<totalPages-1){page++;populate();}});
  nav.setBackground(bg(0xBB382619,10));
  shelves.addView(nav);
  View crown=new View(this);GradientDrawable cap=new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM,new int[]{0xFFDDB17A,0xFF9D6940,0xFF71462B});cap.setCornerRadius(dp(4));crown.setBackground(cap);shelves.addView(crown,new LinearLayout.LayoutParams(-1,dp(13)));
