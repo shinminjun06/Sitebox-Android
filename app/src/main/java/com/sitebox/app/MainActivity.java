@@ -31,13 +31,13 @@ public class MainActivity extends Activity {
  }
  final ShelfTheme walnut=new ShelfTheme(0xFF211610,0xFF302018,0xFF9D7451,0xFF493323,0xFF795638,0xFFD1A36A,0xFF765039,0xFF2C1A12,0xFFD9B777,0xFFF3E4C9);
  ShelfTheme theme=walnut;
- final String[] categories={"공부","개발","AI","게임","영상","쇼핑","커뮤니티","생활","기타"};
+ String[] categories={"공부","개발","AI","게임","영상","쇼핑","커뮤니티","생활","기타"};
  int categoryIndex(String v){for(int i=0;i<categories.length;i++)if(categories[i].equalsIgnoreCase(v.trim()))return i;return 8;}
  final int[] covers={0xFF315B57,0xFF8C493E,0xFF334C70,0xFF755A84,0xFFAD783A,0xFF566B42,0xFF5F4149,0xFF476B78};
  int dp(float v){return (int)(getResources().getDisplayMetrics().density*v+0.5f);}
  GradientDrawable bg(int color,int radius){GradientDrawable d=new GradientDrawable();d.setColor(color);d.setCornerRadius(dp(radius));return d;}
- void load(){try{sites=new JSONArray(getPreferences(0).getString("sites","[]"));}catch(Exception e){sites=new JSONArray();}}
- void save(){getPreferences(0).edit().putString("sites",sites.toString()).apply();}
+ void load(){try{sites=new JSONArray(getPreferences(0).getString("sites","[]"));}catch(Exception e){sites=new JSONArray();}try{JSONArray saved=new JSONArray(getPreferences(0).getString("categories","[]"));if(saved.length()==9)for(int i=0;i<9;i++)categories[i]=saved.optString(i,categories[i]);}catch(Exception ignored){}}
+ void save(){JSONArray names=new JSONArray();for(String c:categories)names.put(c);getPreferences(0).edit().putString("sites",sites.toString()).putString("categories",names.toString()).apply();}
  @Override public void onCreate(Bundle b){super.onCreate(b);getWindow().setStatusBarColor(Color.rgb(47,29,21));getWindow().setNavigationBarColor(Color.rgb(47,29,21));load();draw();}
  TextView label(String s,int size,int color){TextView t=new TextView(this);t.setText(s);t.setTextSize(size);t.setTextColor(color);return t;}
  void draw(){
@@ -60,6 +60,7 @@ public class MainActivity extends Activity {
  TextView title=label("SiteBox  ·  서재",27,0xFFFFFFFF);title.setTypeface(Typeface.SERIF,Typeface.BOLD);headline.addView(title,new LinearLayout.LayoutParams(0,-2,1));
  TextView add=label("＋",30,0xFFF8EBD5);add.setGravity(Gravity.CENTER);add.setBackground(bg(0xFF775135,14));headline.addView(add,new LinearLayout.LayoutParams(dp(48),dp(48)));add.setOnClickListener(v->edit(-1));
  header.addView(headline);
+ TextView manage=label("⚙ 카테고리",13,0xFFFFE6BD);manage.setGravity(Gravity.CENTER);manage.setBackground(bg(0xAA503621,9));LinearLayout.LayoutParams manageParams=new LinearLayout.LayoutParams(dp(104),dp(32));manageParams.topMargin=dp(5);header.addView(manage,manageParams);manage.setOnClickListener(v->manageCategories());
  search=new EditText(this);search.setSingleLine(true);search.setTextColor(0xFFF5E8D1);search.setHintTextColor(0xFFBEA994);search.setTextSize(15);search.setHint("⌕  책 제목 · 주소 · 카테고리 검색");search.setPadding(dp(14),0,dp(12),0);search.setBackground(bg(0xDD4D382B,12));search.setText(filter);
  LinearLayout.LayoutParams sp=new LinearLayout.LayoutParams(-1,dp(46));sp.topMargin=dp(12);header.addView(search,sp);root.addView(header);
  ScrollView sc=new ScrollView(this);sc.setFillViewport(true);sc.setBackgroundColor(Color.TRANSPARENT);
@@ -91,7 +92,7 @@ public class MainActivity extends Activity {
  grouped.get(categoryIndex(o.optString("category"))).add(i);visibleTotal++;
  }
  }
- for(ArrayList<Integer> group:grouped)Collections.sort(group,(a1,b1)->Boolean.compare(sites.optJSONObject(b1).optBoolean("fav"),sites.optJSONObject(a1).optBoolean("fav")));
+ for(ArrayList<Integer> group:grouped)Collections.sort(group,(a1,b1)->{JSONObject x=sites.optJSONObject(a1),y=sites.optJSONObject(b1);int order=Long.compare(x.optLong("sortOrder",a1*1000L),y.optLong("sortOrder",b1*1000L));return order!=0?order:Integer.compare(a1,b1);});
  int pages=1;for(ArrayList<Integer> group:grouped)pages=Math.max(pages,(group.size()+6)/7);
  page=Math.max(0,Math.min(page,pages-1));
  LinearLayout nav=new LinearLayout(this);nav.setGravity(Gravity.CENTER_VERTICAL);
@@ -125,7 +126,7 @@ public class MainActivity extends Activity {
  }
  View pedestal=new View(this);GradientDrawable plinth=new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM,new int[]{0xFFC48C56,0xFF865331,0xFF56331E});pedestal.setBackground(plinth);shelves.addView(pedestal,new LinearLayout.LayoutParams(-1,dp(24)));
  View foot=new View(this);GradientDrawable base=new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM,new int[]{0xAA2C1A12,0x002C1A12});foot.setBackground(base);shelves.addView(foot,new LinearLayout.LayoutParams(-1,dp(26)));
- TextView tip=label("책을 누르면 책 펼치기  ·  길게 누르면 관리",12,0xFFFFFFFF);tip.setGravity(Gravity.CENTER);tip.setPadding(0,dp(12),0,dp(8));tip.setBackground(bg(0x99382418,8));shelves.addView(tip);
+ TextView tip=label("책을 누르면 열기  ·  길게 누르면 이동",12,0xFFFFFFFF);tip.setGravity(Gravity.CENTER);tip.setPadding(0,dp(12),0,dp(8));tip.setBackground(bg(0x99382418,8));shelves.addView(tip);
  }
  class BookView extends View {
  Paint p=new Paint(3);JSONObject item;int idx;long down;float y;
@@ -143,7 +144,7 @@ public class MainActivity extends Activity {
  canvas.drawText(name,(left+right)/2,(top+bottom)/2+dp(3),p);canvas.restore();
  if(item.optBoolean("fav")){p.setTextSize(dp(11));p.setTextAlign(Paint.Align.CENTER);p.setColor(0xFFFFD477);canvas.drawText("★",w/2,top+dp(24),p);}
  }
- @Override public boolean onTouchEvent(android.view.MotionEvent e){if(e.getAction()==MotionEvent.ACTION_DOWN){down=System.currentTimeMillis();y=e.getY();return true;}if(e.getAction()==MotionEvent.ACTION_UP){if(System.currentTimeMillis()-down>550&&Math.abs(e.getY()-y)<dp(20))options(idx);else {animate().scaleX(0.12f).setDuration(170).withEndAction(()->{animate().scaleX(1f).setDuration(220).start();showBook(idx);}).start();}return true;}return true;}
+ @Override public boolean onTouchEvent(android.view.MotionEvent e){if(e.getAction()==MotionEvent.ACTION_DOWN){down=System.currentTimeMillis();y=e.getY();return true;}if(e.getAction()==MotionEvent.ACTION_UP){if(System.currentTimeMillis()-down>550&&Math.abs(e.getY()-y)<dp(20))moveBook(idx);else {animate().scaleX(0.12f).setDuration(170).withEndAction(()->{animate().scaleX(1f).setDuration(220).start();showBook(idx);}).start();}return true;}return true;}
  }
  void showBook(int index){
  JSONObject o=sites.optJSONObject(index);if(o==null)return;
@@ -179,6 +180,36 @@ public class MainActivity extends Activity {
  web.loadUrl(safeUrl);
  }
  void open(String url){try{String u=url.matches("(?i)^https?://.*")?url:"https://"+url;startActivity(new Intent(Intent.ACTION_VIEW,android.net.Uri.parse(u)));}catch(Exception e){Toast.makeText(this,"사이트를 열 수 없어요.",Toast.LENGTH_SHORT).show();}}
+ void manageCategories(){
+ LinearLayout layout=new LinearLayout(this);layout.setOrientation(1);layout.setPadding(dp(20),dp(8),dp(20),dp(8));
+ EditText[] names=new EditText[9];
+ for(int i=0;i<9;i++){EditText e=new EditText(this);e.setSingleLine(true);e.setText(categories[i]);e.setHint((i+1)+"번째 칸 이름");layout.addView(e);names[i]=e;}
+ ScrollView scroll=new ScrollView(this);scroll.addView(layout);
+ new AlertDialog.Builder(this).setTitle("카테고리 이름 수정").setView(scroll).setNegativeButton("취소",null).setPositiveButton("저장",(d,w)->{
+ String[] updated=new String[9];HashSet<String> unique=new HashSet<>();
+ for(int i=0;i<9;i++){updated[i]=names[i].getText().toString().trim();if(updated[i].isEmpty()||!unique.add(updated[i].toLowerCase(Locale.ROOT))){Toast.makeText(this,"카테고리 이름은 비어 있거나 중복될 수 없어요.",Toast.LENGTH_LONG).show();return;}}
+ String[] previous=categories.clone();
+ for(int i=0;i<sites.length();i++){JSONObject o=sites.optJSONObject(i);if(o==null)continue;String old=o.optString("category");for(int j=0;j<9;j++)if(previous[j].equals(old)){try{o.put("category",updated[j]);}catch(Exception ignored){}break;}}
+ categories=updated;save();populate();
+ }).show();
+ }
+ void moveBook(int index){
+ JSONObject selected=sites.optJSONObject(index);if(selected==null)return;
+ LinearLayout layout=new LinearLayout(this);layout.setOrientation(1);layout.setPadding(dp(20),dp(12),dp(20),dp(8));
+ TextView hint=label("이동할 책장 칸",15,0xFF4A3020);layout.addView(hint);
+ Spinner target=new Spinner(this);ArrayAdapter<String> adapter=new ArrayAdapter<String>(this,android.R.layout.simple_spinner_dropdown_item,categories);target.setAdapter(adapter);target.setSelection(categoryIndex(selected.optString("category")));layout.addView(target);
+ TextView orderLabel=label("놓을 위치 (1 = 맨 왼쪽)",15,0xFF4A3020);orderLabel.setPadding(0,dp(12),0,0);layout.addView(orderLabel);
+ EditText position=new EditText(this);position.setInputType(android.text.InputType.TYPE_CLASS_NUMBER);position.setSingleLine(true);position.setText("1");layout.addView(position);
+ new AlertDialog.Builder(this).setTitle("책 위치 옮기기").setView(layout).setNegativeButton("취소",null).setNeutralButton("책 정보 수정",(d,w)->edit(index)).setPositiveButton("이동",(d,w)->{
+ int dest=target.getSelectedItemPosition();int requested=1;try{requested=Math.max(1,Integer.parseInt(position.getText().toString()));}catch(Exception ignored){}
+ ArrayList<Integer> ordered=new ArrayList<>();
+ for(int i=0;i<sites.length();i++){if(i==index)continue;JSONObject o=sites.optJSONObject(i);if(o!=null&&categoryIndex(o.optString("category"))==dest)ordered.add(i);}
+ Collections.sort(ordered,(a,b)->{JSONObject x=sites.optJSONObject(a),y=sites.optJSONObject(b);int n=Long.compare(x.optLong("sortOrder",a*1000L),y.optLong("sortOrder",b*1000L));return n!=0?n:Integer.compare(a,b);});
+ ordered.add(Math.min(requested-1,ordered.size()),index);
+ try{selected.put("category",categories[dest]);for(int i=0;i<ordered.size();i++)sites.optJSONObject(ordered.get(i)).put("sortOrder",i*1000L);save();page=(Math.min(requested,ordered.size())-1)/7;populate();}catch(Exception e){Toast.makeText(this,"이동에 실패했어요.",Toast.LENGTH_SHORT).show();}
+ }).show();
+ }
+
  void options(int index){JSONObject o=sites.optJSONObject(index);if(o==null)return;String[] choices={o.optBoolean("fav")?"즐겨찾기 해제":"★ 즐겨찾기","책 정보 수정","책장에서 삭제"};new AlertDialog.Builder(this).setTitle(o.optString("name")).setItems(choices,(d,which)->{if(which==0){try{o.put("fav",!o.optBoolean("fav"));save();populate();}catch(Exception e){}}else if(which==1)edit(index);else new AlertDialog.Builder(this).setMessage("이 사이트를 삭제할까요?").setNegativeButton("취소",null).setPositiveButton("삭제",(a,b)->{sites.remove(index);save();populate();}).show();}).setNegativeButton("닫기",null).show();}
  void edit(int index){edit(index,null);}
  void edit(int index,String selectedCategory){JSONObject old=index<0?new JSONObject():sites.optJSONObject(index);LinearLayout fields=new LinearLayout(this);fields.setPadding(dp(20),dp(8),dp(20),0);fields.setOrientation(1);
@@ -186,6 +217,6 @@ public class MainActivity extends Activity {
  EditText url=new EditText(this);url.setHint("사이트 주소 (example.com)");url.setSingleLine();url.setInputType(17);url.setText(old.optString("url"));fields.addView(url);
  Spinner cat=new Spinner(this);ArrayAdapter<String> adapter=new ArrayAdapter<String>(this,android.R.layout.simple_spinner_dropdown_item,categories);cat.setAdapter(adapter);cat.setSelection(categoryIndex(selectedCategory!=null?selectedCategory:old.optString("category")));fields.addView(cat);
  AlertDialog dialog=new AlertDialog.Builder(this).setTitle(index<0?"책장에 사이트 추가":"책 정보 수정").setView(fields).setNegativeButton("취소",null).setPositiveButton("저장",null).create();
- dialog.setOnShowListener(v->dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(btn->{String n=name.getText().toString().trim(),u=url.getText().toString().trim();if(n.isEmpty()||u.isEmpty()){Toast.makeText(this,"제목과 주소를 입력해 주세요.",Toast.LENGTH_SHORT).show();return;}if(!u.matches("(?i)^https?://.*"))u="https://"+u;try{JSONObject item=new JSONObject();item.put("name",n);item.put("url",u);item.put("category",categories[cat.getSelectedItemPosition()]);item.put("fav",old.optBoolean("fav"));item.put("notes",old.optString("notes"));if(index<0)sites.put(item);else sites.put(index,item);save();populate();dialog.dismiss();}catch(Exception e){Toast.makeText(this,"저장하지 못했어요.",Toast.LENGTH_SHORT).show();}}));dialog.show();
+ dialog.setOnShowListener(v->dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(btn->{String n=name.getText().toString().trim(),u=url.getText().toString().trim();if(n.isEmpty()||u.isEmpty()){Toast.makeText(this,"제목과 주소를 입력해 주세요.",Toast.LENGTH_SHORT).show();return;}if(!u.matches("(?i)^https?://.*"))u="https://"+u;try{JSONObject item=new JSONObject();item.put("name",n);item.put("url",u);item.put("category",categories[cat.getSelectedItemPosition()]);item.put("fav",old.optBoolean("fav"));item.put("notes",old.optString("notes"));item.put("sortOrder",old.optLong("sortOrder",sites.length()*1000L));if(index<0)sites.put(item);else sites.put(index,item);save();populate();dialog.dismiss();}catch(Exception e){Toast.makeText(this,"저장하지 못했어요.",Toast.LENGTH_SHORT).show();}}));dialog.show();
  }
 }
