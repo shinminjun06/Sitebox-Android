@@ -33,7 +33,7 @@ public class MainActivity extends Activity {
  ShelfTheme theme=walnut;
  String[] categories={"공부","개발","AI","게임","영상","쇼핑","커뮤니티","생활","기타"};
  int categoryIndex(String v){for(int i=0;i<categories.length;i++)if(categories[i].equalsIgnoreCase(v.trim()))return i;return 8;}
- final int[] covers={0xFF203A5D,0xFF742C30,0xFFEAD9B6,0xFF173E58,0xFF784035,0xFF1C5050,0xFF233957,0xFFBBA17D};
+ final int[] covers={0xFF152B49,0xFF74262D,0xFFE9D8B6,0xFF133D38,0xFF693525,0xFF234C4B,0xFF253858,0xFFBBA17D};
  int dp(float v){return (int)(getResources().getDisplayMetrics().density*v+0.5f);}
  GradientDrawable bg(int color,int radius){GradientDrawable d=new GradientDrawable();d.setColor(color);d.setCornerRadius(dp(radius));return d;}
  void load(){try{sites=new JSONArray(getPreferences(0).getString("sites","[]"));}catch(Exception e){sites=new JSONArray();}try{JSONArray saved=new JSONArray(getPreferences(0).getString("categories","[]"));if(saved.length()==9)for(int i=0;i<9;i++)categories[i]=saved.optString(i,categories[i]);}catch(Exception ignored){}}
@@ -64,7 +64,7 @@ public class MainActivity extends Activity {
  search=new EditText(this);search.setSingleLine(true);search.setTextColor(0xFFF5E8D1);search.setHintTextColor(0xFFBEA994);search.setTextSize(15);search.setHint("⌕  책 제목 · 주소 · 카테고리 검색");search.setPadding(dp(14),0,dp(12),0);search.setBackground(bg(0xDD4D382B,12));search.setText(filter);
  LinearLayout.LayoutParams sp=new LinearLayout.LayoutParams(-1,dp(46));sp.topMargin=dp(12);header.addView(search,sp);root.addView(header);
  ScrollView sc=new ScrollView(this);sc.setFillViewport(true);sc.setBackgroundColor(Color.TRANSPARENT);
- shelves=new LinearLayout(this);shelves.setOrientation(1);shelves.setPadding(dp(10),dp(15),dp(10),dp(25));shelves.setBackgroundColor(Color.TRANSPARENT);
+ shelves=new LinearLayout(this);shelves.setOrientation(1);shelves.setPadding(dp(13),dp(15),dp(13),dp(25));shelves.setBackgroundColor(Color.TRANSPARENT);
  sc.addView(shelves);root.addView(sc,new LinearLayout.LayoutParams(-1,0,1));
  stage.addView(root,new FrameLayout.LayoutParams(-1,-1));
  View overlay=new View(this);overlay.setBackgroundColor(Color.TRANSPARENT);overlay.setVisibility(View.GONE);
@@ -128,19 +128,19 @@ public class MainActivity extends Activity {
  TextView prev=label("◀",19,0xFFF3D7B0);prev.setGravity(Gravity.CENTER);nav.addView(prev,new LinearLayout.LayoutParams(dp(45),dp(42)));prev.setOnClickListener(v->{if(page>0){page--;populate();}});
  TextView count=label("나무 책장  "+(page+1)+" / "+pages+"   ·   "+visibleTotal+"권",14,0xFFE9D2B0);count.setGravity(Gravity.CENTER);nav.addView(count,new LinearLayout.LayoutParams(0,dp(42),1));
  TextView next=label("▶",19,0xFFF3D7B0);next.setGravity(Gravity.CENTER);nav.addView(next,new LinearLayout.LayoutParams(dp(45),dp(42)));next.setOnClickListener(v->{if(page<totalPages-1){page++;populate();}});
- nav.setBackground(bg(0xBB382619,10));
+ nav.setBackground(bg(0xA65D3B23,10));
  shelves.addView(nav);
  View crown=new View(this);GradientDrawable cap=new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM,new int[]{0xFFFFD59B,0xFFD29A60,0xFF996037});cap.setCornerRadius(dp(4));crown.setBackground(new WoodPanel(false,false));shelves.addView(crown,new LinearLayout.LayoutParams(-1,dp(17)));
  for(int shelfRow=0;shelfRow<3;shelfRow++){
- LinearLayout compartments=new LinearLayout(this);compartments.setOrientation(LinearLayout.HORIZONTAL);compartments.setPadding(dp(7),0,dp(7),0);compartments.setBackground(new WoodPanel(true,false));
+ LinearLayout compartments=new LinearLayout(this);compartments.setOrientation(LinearLayout.HORIZONTAL);compartments.setPadding(dp(9),0,dp(9),0);compartments.setBackground(new WoodPanel(true,false));
  for(int shelfCol=0;shelfCol<3;shelfCol++){
  int cell=shelfRow*3+shelfCol;
  LinearLayout compartment=new LinearLayout(this);compartment.setOrientation(LinearLayout.VERTICAL);
  GradientDrawable back=new GradientDrawable(GradientDrawable.Orientation.LEFT_RIGHT,new int[]{0xFF4D2E20,0xFF865635,0xFF6A412B,0xFF38251C});back.setStroke(dp(4),0xFFC18A58);compartment.setBackground(new WoodPanel(true,true));
- LinearLayout books=new LinearLayout(this);books.setGravity(Gravity.BOTTOM);books.setPadding(dp(4),dp(12),dp(4),0);
+ LinearLayout books=new LinearLayout(this);books.setGravity(Gravity.BOTTOM);books.setPadding(dp(3),dp(13),dp(3),0);
  for(int k=0;k<7;k++){
  int pos=page*7+k;
- LinearLayout.LayoutParams bp=new LinearLayout.LayoutParams(0,dp(132),1);bp.setMargins(0,0,0,0);
+ LinearLayout.LayoutParams bp=new LinearLayout.LayoutParams(0,dp(146),1);bp.setMargins(0,0,0,0);
  View slot;
  if(pos<grouped.get(cell).size()){int idx=grouped.get(cell).get(pos);slot=new BookView(this,sites.optJSONObject(idx),idx);}
  else slot=new View(this);
@@ -150,7 +150,7 @@ public class MainActivity extends Activity {
  }
  books.setOnDragListener((v,event)->handleBookDrop(v,event,cell,page*7+7));
  compartment.addView(books);
- TextView plate=label(categories[cell],11,0xFF4E3018);plate.setGravity(Gravity.CENTER);GradientDrawable brass=new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM,new int[]{0xFFFFE5A4,0xFFD6A55B,0xFFAE773B});brass.setCornerRadius(dp(5));brass.setStroke(dp(1),0xFF8D602D);plate.setBackground(brass);LinearLayout.LayoutParams plateParams=new LinearLayout.LayoutParams(-1,dp(23));plateParams.setMargins(dp(12),dp(1),dp(12),dp(6));compartment.addView(plate,plateParams);
+ TextView plate=label(categories[cell],11,0xFF4E3018);plate.setGravity(Gravity.CENTER);GradientDrawable brass=new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM,new int[]{0xFFFFE5A4,0xFFD6A55B,0xFFAE773B});brass.setCornerRadius(dp(5));brass.setStroke(dp(1),0xFF8D602D);plate.setTypeface(Typeface.SERIF,Typeface.BOLD);plate.setElevation(dp(2));plate.setBackground(brass);LinearLayout.LayoutParams plateParams=new LinearLayout.LayoutParams(-1,dp(27));plateParams.setMargins(dp(9),dp(3),dp(9),dp(9));compartment.addView(plate,plateParams);
  final int selectedCell=cell;plate.setOnClickListener(v->edit(-1,categories[selectedCell]));
  LinearLayout.LayoutParams cp=new LinearLayout.LayoutParams(0,-2,1);cp.setMargins(dp(2),dp(2),dp(2),0);compartments.addView(compartment,cp);
  }
@@ -158,8 +158,8 @@ public class MainActivity extends Activity {
  View lip=new View(this);GradientDrawable wood=new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM,new int[]{0xFFFFD49A,0xFFD39A61,0xFF9E653C,0xFF764629});wood.setStroke(dp(1),theme.gold);lip.setBackground(new WoodPanel(false,false));shelves.addView(lip,new LinearLayout.LayoutParams(-1,dp(12)));
  View shadow=new View(this);shadow.setBackgroundColor(theme.shadow);shelves.addView(shadow,new LinearLayout.LayoutParams(-1,dp(3)));
  }
- View pedestal=new View(this);GradientDrawable plinth=new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM,new int[]{0xFFF0C08A,0xFFBC8050,0xFF88512F});pedestal.setBackground(new WoodPanel(false,false));shelves.addView(pedestal,new LinearLayout.LayoutParams(-1,dp(18)));
- View foot=new View(this);GradientDrawable base=new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM,new int[]{0xAA2C1A12,0x002C1A12});foot.setBackground(base);shelves.addView(foot,new LinearLayout.LayoutParams(-1,dp(26)));
+ View pedestal=new View(this);GradientDrawable plinth=new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM,new int[]{0xFFF0C08A,0xFFBC8050,0xFF88512F});pedestal.setBackground(new WoodPanel(false,false));shelves.addView(pedestal,new LinearLayout.LayoutParams(-1,dp(30)));
+ View foot=new View(this);GradientDrawable base=new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM,new int[]{0xAA2C1A12,0x002C1A12});foot.setBackground(base);shelves.addView(foot,new LinearLayout.LayoutParams(-1,dp(16)));
  TextView tip=label("책을 누르면 열기  ·  길게 누르면 이동",12,0xFFFFFFFF);tip.setGravity(Gravity.CENTER);tip.setPadding(0,dp(12),0,dp(8));tip.setBackground(bg(0x99382418,8));shelves.addView(tip);
  }
  class BookView extends View {
@@ -169,13 +169,13 @@ public class MainActivity extends Activity {
  float w=getWidth(),h=getHeight(),left=dp(1),bottom=h-dp(1);
  int color=covers[(item.optString("name").hashCode()&0x7fffffff)%covers.length];
  int variation=Math.abs(item.optString("name").hashCode())%4;
- float top=dp(5+variation*3),right=w-dp(1),spineRight=Math.max(left+dp(5),right-dp(2));
+ float top=dp(5+variation*4),right=w-dp(1),spineRight=Math.max(left+dp(5),right-dp(2));
  float cx=(left+spineRight)/2f;
  p.setStyle(Paint.Style.FILL);
  p.setShadowLayer(dp(2),dp(1),dp(1),0x880F0906);p.setColor(0xFF271810);
  canvas.drawRoundRect(left+dp(1),top+dp(2),right,bottom,dp(2),dp(2),p);p.clearShadowLayer();
  // Cream page block and curved leather binding.
- p.setColor(0xFFEAD5AD);canvas.drawRect(spineRight-dp(1),top+dp(3),right,bottom-dp(3),p);
+ p.setColor(0xFFEAD5AD);canvas.drawRect(spineRight-dp(1),top+dp(3),right,bottom-dp(3),p);p.setColor(0xFFBAA078);for(int line=0;line<5;line++){float py=top+dp(6)+line*dp(1.2f);canvas.drawLine(spineRight,py,right-dp(1),py,p);}
  p.setShader(new LinearGradient(left,top,spineRight,top,new int[]{0xFF241B18,color,color,0xFF1D1816},new float[]{0f,.18f,.73f,1f},Shader.TileMode.CLAMP));
  canvas.drawRoundRect(left,top,spineRight,bottom,dp(2),dp(2),p);p.setShader(null);
  p.setColor(0x55FFFFFF);canvas.drawRect(left+dp(2),top+dp(2),left+dp(3),bottom-dp(2),p);
@@ -186,7 +186,7 @@ public class MainActivity extends Activity {
  canvas.drawRect(left+dp(3),top+dp(18),spineRight-dp(3),bottom-dp(18),p);
  float ornamentY=top+dp(31);
  Path diamond=new Path();diamond.moveTo(cx,ornamentY-dp(5));diamond.lineTo(cx+dp(3),ornamentY);diamond.lineTo(cx,ornamentY+dp(5));diamond.lineTo(cx-dp(3),ornamentY);diamond.close();canvas.drawPath(diamond,p);
- canvas.drawCircle(cx,bottom-dp(30),dp(3),p);
+ canvas.drawCircle(cx,bottom-dp(30),dp(3),p);canvas.drawLine(cx,ornamentY+dp(7),cx,bottom-dp(35),p);
  p.setStyle(Paint.Style.FILL);p.setColor(0xFFE6C07A);
  canvas.drawCircle(cx,ornamentY,dp(1),p);canvas.drawCircle(cx,bottom-dp(30),dp(1),p);
  canvas.save();canvas.rotate(-90,cx,(top+bottom)/2);
@@ -199,7 +199,7 @@ public class MainActivity extends Activity {
  switch(e.getActionMasked()){
  case MotionEvent.ACTION_DOWN:
  downX=e.getX();downY=e.getY();dragging=false;
- startDrag=()->{dragging=true;setAlpha(0.6f);performHapticFeedback(android.view.HapticFeedbackConstants.LONG_PRESS);android.content.ClipData data=android.content.ClipData.newPlainText("sitebox-book",String.valueOf(idx));startDragAndDrop(data,new View.DragShadowBuilder(this),Integer.valueOf(idx),0);};
+ startDrag=()->{dragging=true;setAlpha(0.6f);performHapticFeedback(android.view.HapticFeedbackConstants.LONG_PRESS);android.content.ClipData data=android.content.ClipData.newPlainText("sitebox-book",String.valueOf(idx));boolean started=startDragAndDrop(data,new View.DragShadowBuilder(this),Integer.valueOf(idx),0);if(!started){dragging=false;setAlpha(1f);}};
  handler.postDelayed(startDrag,450);return true;
  case MotionEvent.ACTION_MOVE:
  if(!dragging&&(Math.abs(e.getX()-downX)>dp(12)||Math.abs(e.getY()-downY)>dp(12)))handler.removeCallbacks(startDrag);
@@ -272,7 +272,7 @@ public class MainActivity extends Activity {
  int index=((Integer)event.getLocalState()).intValue();
  moveBookTo(index,category,position);return true;
  case android.view.DragEvent.ACTION_DRAG_ENDED:
- target.setBackgroundColor(Color.TRANSPARENT);return true;
+ target.setBackgroundColor(Color.TRANSPARENT);if(target instanceof BookView)((BookView)target).setAlpha(1f);return true;
  }
  return true;
  }
