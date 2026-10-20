@@ -20,6 +20,13 @@ public class MainActivity extends Activity {
  LinearLayout shelves;
  EditText search;
  String filter=""; int page=0;
+ // Theme palette is centralized for future theme switching.
+ static class ShelfTheme {
+  final int background,header,frame,innerDark,innerLight,trim,edge,shadow,gold,paper;
+  ShelfTheme(int a,int b,int c,int d,int e,int f,int g,int h,int i,int j){background=a;header=b;frame=c;innerDark=d;innerLight=e;trim=f;edge=g;shadow=h;gold=i;paper=j;}
+ }
+ final ShelfTheme walnut=new ShelfTheme(0xFF211610,0xFF302018,0xFF71472C,0xFF180F0B,0xFF43291B,0xFFB78A53,0xFF55321F,0xFF120B08,0xFFD9B777,0xFFF3E4C9);
+ ShelfTheme theme=walnut;
  final int[] covers={0xFF315B57,0xFF8C493E,0xFF334C70,0xFF755A84,0xFFAD783A,0xFF566B42,0xFF5F4149,0xFF476B78};
  int dp(float v){return (int)(getResources().getDisplayMetrics().density*v+0.5f);}
  GradientDrawable bg(int color,int radius){GradientDrawable d=new GradientDrawable();d.setColor(color);d.setCornerRadius(dp(radius));return d;}
@@ -28,8 +35,8 @@ public class MainActivity extends Activity {
  @Override public void onCreate(Bundle b){super.onCreate(b);getWindow().setStatusBarColor(Color.rgb(47,29,21));getWindow().setNavigationBarColor(Color.rgb(47,29,21));load();draw();}
  TextView label(String s,int size,int color){TextView t=new TextView(this);t.setText(s);t.setTextSize(size);t.setTextColor(color);return t;}
  void draw(){
- LinearLayout root=new LinearLayout(this);root.setOrientation(1);root.setBackgroundColor(0xFF281B16);
- LinearLayout header=new LinearLayout(this);header.setOrientation(1);header.setPadding(dp(20),dp(22),dp(20),dp(12));header.setBackgroundColor(0xFF34231B);
+ LinearLayout root=new LinearLayout(this);root.setOrientation(1);root.setBackgroundColor(theme.background);
+ LinearLayout header=new LinearLayout(this);header.setOrientation(1);header.setPadding(dp(20),dp(22),dp(20),dp(12));header.setBackgroundColor(theme.header);
  TextView eyebrow=label("YOUR PERSONAL LIBRARY",11,0xFFC9A978);eyebrow.setLetterSpacing(.19f);header.addView(eyebrow);
  LinearLayout headline=new LinearLayout(this);headline.setGravity(Gravity.CENTER_VERTICAL);
  TextView title=label("SiteBox  ·  서재",27,0xFFF5E8D1);title.setTypeface(Typeface.SERIF,Typeface.BOLD);headline.addView(title,new LinearLayout.LayoutParams(0,-2,1));
@@ -37,7 +44,7 @@ public class MainActivity extends Activity {
  header.addView(headline);
  search=new EditText(this);search.setSingleLine(true);search.setTextColor(0xFFF5E8D1);search.setHintTextColor(0xFFBEA994);search.setTextSize(15);search.setHint("⌕  책 제목 · 주소 · 카테고리 검색");search.setPadding(dp(14),0,dp(12),0);search.setBackground(bg(0xFF4D382B,12));search.setText(filter);
  LinearLayout.LayoutParams sp=new LinearLayout.LayoutParams(-1,dp(46));sp.topMargin=dp(12);header.addView(search,sp);root.addView(header);
- ScrollView sc=new ScrollView(this);sc.setFillViewport(true);shelves=new LinearLayout(this);shelves.setOrientation(1);shelves.setPadding(dp(12),dp(14),dp(12),dp(25));shelves.setBackgroundColor(0xFF38271E);sc.addView(shelves);root.addView(sc,new LinearLayout.LayoutParams(-1,0,1));setContentView(root);
+ ScrollView sc=new ScrollView(this);sc.setFillViewport(true);shelves=new LinearLayout(this);shelves.setOrientation(1);shelves.setPadding(dp(12),dp(14),dp(12),dp(25));shelves.setBackgroundColor(theme.background);sc.addView(shelves);root.addView(sc,new LinearLayout.LayoutParams(-1,0,1));setContentView(root);
  search.addTextChangedListener(new TextWatcher(){public void beforeTextChanged(CharSequence s,int a,int c,int f){}public void onTextChanged(CharSequence s,int a,int b,int c){filter=s.toString();page=0;populate();}public void afterTextChanged(Editable e){}});
  populate();
  }
@@ -53,11 +60,11 @@ public class MainActivity extends Activity {
  TextView next=label("▶",19,0xFFF3D7B0);next.setGravity(Gravity.CENTER);nav.addView(next,new LinearLayout.LayoutParams(dp(45),dp(42)));next.setOnClickListener(v->{if(page<pages-1){page++;populate();}});
  shelves.addView(nav);
  for(int shelfRow=0;shelfRow<3;shelfRow++){
- LinearLayout compartments=new LinearLayout(this);compartments.setOrientation(LinearLayout.HORIZONTAL);compartments.setPadding(dp(4),0,dp(4),0);compartments.setBackgroundColor(0xFF8B5937);
+ LinearLayout compartments=new LinearLayout(this);compartments.setOrientation(LinearLayout.HORIZONTAL);compartments.setPadding(dp(4),0,dp(4),0);compartments.setBackgroundColor(theme.frame);
  for(int shelfCol=0;shelfCol<3;shelfCol++){
  int cell=shelfRow*3+shelfCol;
  LinearLayout compartment=new LinearLayout(this);compartment.setOrientation(LinearLayout.VERTICAL);
- GradientDrawable back=new GradientDrawable(GradientDrawable.Orientation.LEFT_RIGHT,new int[]{0xFF24150F,0xFF543929,0xFF291911});back.setStroke(dp(2),0xFF805334);compartment.setBackground(back);
+ GradientDrawable back=new GradientDrawable(GradientDrawable.Orientation.LEFT_RIGHT,new int[]{theme.innerDark,theme.innerLight,theme.innerDark});back.setStroke(dp(3),theme.frame);compartment.setBackground(back);
  LinearLayout books=new LinearLayout(this);books.setGravity(Gravity.BOTTOM);books.setPadding(dp(2),dp(7),dp(2),0);
  for(int k=0;k<7;k++){
  int pos=page*63+cell*7+k;
@@ -69,8 +76,8 @@ public class MainActivity extends Activity {
  LinearLayout.LayoutParams cp=new LinearLayout.LayoutParams(0,-2,1);cp.setMargins(dp(2),dp(2),dp(2),0);compartments.addView(compartment,cp);
  }
  shelves.addView(compartments);
- View lip=new View(this);GradientDrawable wood=new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM,new int[]{0xFFD09A5E,0xFF986036,0xFF4D2D1D});wood.setStroke(dp(1),0xFFBD8954);lip.setBackground(wood);shelves.addView(lip,new LinearLayout.LayoutParams(-1,dp(16)));
- View shadow=new View(this);shadow.setBackgroundColor(0xFF21140F);shelves.addView(shadow,new LinearLayout.LayoutParams(-1,dp(7)));
+ View lip=new View(this);GradientDrawable wood=new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM,new int[]{theme.trim,theme.frame,theme.edge});wood.setStroke(dp(1),theme.gold);lip.setBackground(wood);shelves.addView(lip,new LinearLayout.LayoutParams(-1,dp(16)));
+ View shadow=new View(this);shadow.setBackgroundColor(theme.shadow);shelves.addView(shadow,new LinearLayout.LayoutParams(-1,dp(7)));
  }
  TextView tip=label("책을 누르면 책 펼치기  ·  길게 누르면 관리",12,0xFFCBB394);tip.setGravity(Gravity.CENTER);tip.setPadding(0,dp(18),0,dp(8));shelves.addView(tip);
  }
@@ -83,9 +90,9 @@ public class MainActivity extends Activity {
  p.setShadowLayer(dp(2),dp(1),dp(1),0xBB000000);p.setColor(0xFF100C0A);canvas.drawRoundRect(left+dp(2),top+dp(2),right,bottom,dp(2),dp(2),p);p.clearShadowLayer();
  p.setColor(color);canvas.drawRoundRect(left,top,right-dp(2),bottom-dp(1),dp(2),dp(2),p);
  p.setColor(0x66000000);canvas.drawRect(left+dp(3),top,right-dp(8),bottom-dp(1),p);
- p.setColor(0xFFE1B980);canvas.drawRect(left+dp(4),top+dp(9),right-dp(6),top+dp(11),p);canvas.drawRect(left+dp(4),bottom-dp(10),right-dp(6),bottom-dp(8),p);
+ p.setColor(theme.gold);canvas.drawRect(left+dp(4),top+dp(9),right-dp(6),top+dp(11),p);canvas.drawRect(left+dp(4),bottom-dp(10),right-dp(6),bottom-dp(8),p);p.setColor(0x44F9E6C6);canvas.drawRect(left+dp(2),top+dp(1),left+dp(3),bottom-dp(1),p);
  canvas.save();canvas.rotate(-90,(left+right)/2,(top+bottom)/2);
- p.setTypeface(Typeface.create("serif",Typeface.BOLD));p.setTextAlign(Paint.Align.CENTER);p.setTextSize(dp(10));p.setColor(0xFFF9E6C6);
+ p.setTypeface(Typeface.create("serif",Typeface.BOLD));p.setTextAlign(Paint.Align.CENTER);p.setTextSize(dp(10));p.setColor(0xFFF4E3C4);
  String name=item.optString("name","Site");if(name.length()>14)name=name.substring(0,13)+"…";
  canvas.drawText(name,(left+right)/2,(top+bottom)/2+dp(3),p);canvas.restore();
  if(item.optBoolean("fav")){p.setTextSize(dp(11));p.setTextAlign(Paint.Align.CENTER);p.setColor(0xFFFFD477);canvas.drawText("★",w/2,top+dp(24),p);}
@@ -96,7 +103,7 @@ public class MainActivity extends Activity {
  JSONObject o=sites.optJSONObject(index);if(o==null)return;
  final String url=o.optString("url");
  final String safeUrl=url.matches("(?i)^https?://.*")?url:"https://"+url;
- LinearLayout spread=new LinearLayout(this);spread.setOrientation(1);spread.setPadding(dp(12),dp(12),dp(12),dp(10));spread.setBackgroundColor(0xFFF3E4C9);
+ LinearLayout spread=new LinearLayout(this);spread.setOrientation(1);spread.setPadding(dp(12),dp(12),dp(12),dp(10));spread.setBackgroundColor(theme.paper);
  TextView title=label("📖  "+o.optString("name"),21,0xFF4A2C1C);title.setTypeface(Typeface.SERIF,Typeface.BOLD);spread.addView(title);
  TextView address=label(safeUrl,12,0xFF73513B);address.setPadding(0,dp(8),0,dp(10));address.setOnClickListener(v->edit(index));spread.addView(address);
  TextView previewTitle=label("사이트 미리보기",14,0xFF6D442A);spread.addView(previewTitle);
