@@ -30,6 +30,7 @@ jobs:
       - name: Verify library rules and bundled artwork
         run: |
           python3 -m pip install --user Pillow
+          command -v ffprobe || (sudo apt-get update && sudo apt-get install -y ffmpeg)
           sh tests/run.sh
       - name: Keep debug update signing stable across builds
         uses: actions/cache@v4
@@ -69,12 +70,16 @@ jobs:
             adb pull /sdcard/Android/data/com.sitebox.app/files/qa/ device-qa/
             adb logcat -d -s AndroidRuntime:E > device-qa/crashes.txt
             grep -q 'PASS all nine theme combinations rendered' device-tests.txt
+            grep -q 'PASS study live ambient and decoder lifecycle verified' device-tests.txt
+            for scene in day night rain snow; do test -s "device-qa/qa/ambient-$scene.png"; done
             ! grep -q 'FAIL ' device-tests.txt
             adb install -r app/build/outputs/apk/preview/app-preview.apk
             adb shell pm path com.sitebox.app.preview | grep 'package:'
             adb shell am start -n com.sitebox.app.preview/com.sitebox.app.MainActivity
             sleep 2
             adb exec-out screencap -p > device-qa/preview-installed.png
+            adb shell screenrecord --time-limit 6 /sdcard/sitebox-live.mp4
+            adb pull /sdcard/sitebox-live.mp4 device-qa/preview-live.mp4
       - uses: actions/upload-artifact@v4
         if: always()
         with:

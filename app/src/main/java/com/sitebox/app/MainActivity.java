@@ -40,6 +40,14 @@ public class MainActivity extends Activity {
  android.animation.ValueAnimator projectionAnimator;
  FurnitureShadow sceneShadow;
  Bitmap sceneBackdrop;
+ FrameLayout roomLayer;
+ StudyLiveView studyLive;
+ WeatherRepository weather;
+ boolean foreground,motionEnabled=true;
+ WeatherState ambientPreview;long ambientPreviewTime;
+ TextView ambientStatus;
+ final Handler ambientHandler=new Handler(Looper.getMainLooper());
+ final Runnable ambientTick=new Runnable(){public void run(){if(!foreground||!backgroundThemeId.equals("study"))return;updateAmbient();weather.refresh(false);ambientHandler.postDelayed(this,60000);}};
  String backgroundThemeId="study";
  SceneTheme renderedSceneTheme=SceneTheme.ALL[0];
  boolean sceneCollapsed=false,sceneAnimating=false,restoreCollapsed=false;
@@ -63,7 +71,7 @@ public class MainActivity extends Activity {
  void load(){android.content.SharedPreferences prefs=getPreferences(0);boolean introduced=prefs.getBoolean("studyThemeIntroduced",false);backgroundThemeId=SceneTheme.initialTheme(prefs.getString(SceneTheme.PREFERENCE_KEY,null),introduced);if(!introduced)prefs.edit().putBoolean("studyThemeIntroduced",true).putString(SceneTheme.PREFERENCE_KEY,backgroundThemeId).apply();shelfThemeIndex=Math.max(0,Math.min(2,getPreferences(0).getInt("shelfTheme",0)));bookThemeIndex=Math.max(0,Math.min(2,getPreferences(0).getInt("bookTheme",0)));try{sites=new JSONArray(getPreferences(0).getString("sites","[]"));}catch(Exception e){sites=new JSONArray();}try{JSONArray saved=new JSONArray(getPreferences(0).getString("categories","[]"));if(saved.length()==9)for(int i=0;i<9;i++)categories[i]=saved.optString(i,categories[i]);}catch(Exception ignored){}}
  void save(){JSONArray names=new JSONArray();for(String c:categories)names.put(c);getPreferences(0).edit().putString("sites",sites.toString()).putString("categories",names.toString()).putInt("shelfTheme",shelfThemeIndex).putInt("bookTheme",bookThemeIndex).apply();}
  @Override public void onCreate(Bundle b){
- super.onCreate(b);assets=new ThemeAssets(this);load();
+ super.onCreate(b);assets=new ThemeAssets(this);load();motionEnabled=getPreferences(0).getBoolean("studyMotion",true);weather=new WeatherRepository(this,(state,status)->updateAmbient());
  if(b!=null){filter=b.getString("filter","");page=b.getInt("page",0);restoreCollapsed=b.getBoolean("sceneCollapsed",false);searchExpanded=b.getBoolean("searchExpanded",!filter.isEmpty());}
  getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE);
  if(Build.VERSION.SDK_INT>=30)getWindow().setDecorFitsSystemWindows(false);
@@ -78,7 +86,7 @@ public class MainActivity extends Activity {
  void draw(){
  stage=new LibraryStage(this,()->collapseToScene(true));stage.setBackgroundColor(0xffd4c4a7);
  backdrop=new ImageView(this);backdrop.setScaleType(ImageView.ScaleType.MATRIX);
- stage.addView(backdrop,new FrameLayout.LayoutParams(-1,-1));
+ roomLayer=new FrameLayout(this);roomLayer.addView(backdrop,new FrameLayout.LayoutParams(-1,-1));studyLive=new StudyLiveView(this);studyLive.setVisibility(View.GONE);roomLayer.addView(studyLive,new FrameLayout.LayoutParams(-1,-1));stage.addView(roomLayer,new FrameLayout.LayoutParams(-1,-1));
  backdrop.addOnLayoutChangeListener((v,l,t,r,b,ol,ot,or,ob)->{if(r-l!=or-ol||b-t!=ob-ot)updateSceneBackdrop();});
  LinearLayout root=new LinearLayout(this);controls=root;root.setOrientation(LinearLayout.VERTICAL);root.setFocusableInTouchMode(true);root.setBackgroundColor(0x24FFF6DF);
  root.setOnApplyWindowInsetsListener((view,insets)->{
@@ -92,7 +100,7 @@ public class MainActivity extends Activity {
  TextView title=label("SiteBox",24,0xFFFFF4DD);title.setTypeface(Typeface.SERIF,Typeface.BOLD);title.setSingleLine(true);title.setEllipsize(TextUtils.TruncateAt.END);branding.addView(title);
  headline.addView(branding,new LinearLayout.LayoutParams(0,-2,1));
  TextView settings=label("설정",13,0xFFFFF1D5);settings.setGravity(Gravity.CENTER);settings.setContentDescription("카테고리와 테마 설정");headline.addView(settings,new LinearLayout.LayoutParams(dp(48),dp(48)));
- settings.setOnClickListener(v->new AlertDialog.Builder(this).setTitle("나의 서재").setItems(new String[]{"배경 테마","책장 · 책 테마","카테고리 이름 수정","앱 정보"},(d,w)->{if(w==0)showBackgroundThemes();else if(w==1)showThemes();else if(w==2)manageCategories();else new AlertDialog.Builder(this).setTitle("SiteBox "+BuildConfig.VERSION_NAME).setMessage("소스 버전: "+BuildConfig.SOURCE_REVISION+"\n책을 길게 눌러 칸 사이로 이동하세요.\n명패를 누르면 해당 칸에 책을 추가합니다.").setPositiveButton("닫기",null).show();}).show());
+ settings.setOnClickListener(v->new AlertDialog.Builder(this).setTitle("나의 서재").setItems(new String[]{"배경 테마","책장 · 책 테마","카테고리 이름 수정","시간 · 날씨 · 영상","앱 정보"},(d,w)->{if(w==0)showBackgroundThemes();else if(w==1)showThemes();else if(w==2)manageCategories();else if(w==3)showAmbientSettings();else new AlertDialog.Builder(this).setTitle("SiteBox "+BuildConfig.VERSION_NAME).setMessage("소스 버전: "+BuildConfig.SOURCE_REVISION+"\n책을 길게 눌러 칸 사이로 이동하세요.\n명패를 누르면 해당 칸에 책을 추가합니다.").setPositiveButton("닫기",null).show();}).show());
  TextView add=label("＋",28,0xFF263B30);add.setGravity(Gravity.CENTER);add.setContentDescription("북마크 추가");add.setBackground(bg(0xFFE5C28A,14));headline.addView(add,new LinearLayout.LayoutParams(dp(48),dp(48)));add.setOnClickListener(v->edit(-1));searchToggle=label("검색",13,0xFFFFF1D5);searchToggle.setGravity(Gravity.CENTER);searchToggle.setContentDescription("검색 펼치기");headline.addView(searchToggle,new LinearLayout.LayoutParams(dp(48),dp(48)));searchToggle.setOnClickListener(v->setSearchExpanded(!searchExpanded));header.addView(headline);
  search=new EditText(this);search.setSingleLine(true);search.setTextSize(13);search.setTextColor(0xFF243E32);search.setHintTextColor(0xFF667568);search.setHint("검색 · 제목, 주소, 카테고리");search.setPadding(dp(14),0,dp(12),0);search.setBackground(bg(0xF2FFF9EB,12));search.setText(filter);
  search.setImeOptions(android.view.inputmethod.EditorInfo.IME_ACTION_SEARCH);
@@ -139,6 +147,7 @@ public class MainActivity extends Activity {
    float[] transform=renderedSceneTheme.imageTransform(backdrop.getWidth(),backdrop.getHeight(),sceneBackdrop.getWidth(),sceneBackdrop.getHeight());
    Matrix matrix=new Matrix();matrix.setScale(transform[0],transform[0]);matrix.postTranslate(transform[1],transform[2]);backdrop.setImageMatrix(matrix);
   }
+  updateStudyScene(wide);
   if(!sceneCollapsed&&sceneAnimating){miniature.animate().cancel();cancelProjection();miniature.setProjectionFraction(0);miniature.setVisibility(View.GONE);miniature.setImageDrawable(null);controls.animate().cancel();controls.animate().setStartDelay(0);controls.setAlpha(1);controls.setVisibility(View.VISIBLE);sceneAnimating=false;sceneShadow.animate().cancel();sceneShadow.setVisibility(View.GONE);}
   if(sceneCollapsed&&miniature!=null&&miniature.getDrawable()!=null){
    miniature.animate().cancel();cancelProjection();controls.animate().cancel();sceneShadow.animate().cancel();
@@ -281,7 +290,43 @@ public class MainActivity extends Activity {
  @Override public void onBackPressed(){if(sceneCollapsed||sceneAnimating){expandFromScene(true);return;}super.onBackPressed();}
  void cancelProjection(){if(projectionAnimator!=null){projectionAnimator.cancel();projectionAnimator=null;}}
  void animateProjection(float target){cancelProjection();projectionAnimator=android.animation.ValueAnimator.ofFloat(miniature.getProjectionFraction(),target);projectionAnimator.addUpdateListener(value->miniature.setProjectionFraction((Float)value.getAnimatedValue()));projectionAnimator.setDuration(340);projectionAnimator.setInterpolator(new android.view.animation.DecelerateInterpolator());projectionAnimator.start();}
- @Override protected void onDestroy(){cancelProjection();if(controls!=null)controls.animate().cancel();if(sceneShadow!=null)sceneShadow.animate().cancel();if(miniature!=null){miniature.animate().cancel();miniature.setImageDrawable(null);}super.onDestroy();}
+ @Override protected void onDestroy(){ambientHandler.removeCallbacksAndMessages(null);if(studyLive!=null)studyLive.release();if(weather!=null)weather.close();cancelProjection();if(controls!=null)controls.animate().cancel();if(sceneShadow!=null)sceneShadow.animate().cancel();if(miniature!=null){miniature.animate().cancel();miniature.setImageDrawable(null);}super.onDestroy();}
+
+ @Override protected void onResume(){super.onResume();foreground=true;restartAmbient();}
+ @Override protected void onPause(){foreground=false;ambientHandler.removeCallbacks(ambientTick);if(studyLive!=null)studyLive.setActive(false);super.onPause();}
+ void restartAmbient(){ambientHandler.removeCallbacks(ambientTick);if(studyLive==null)return;studyLive.setActive(foreground&&backgroundThemeId.equals("study"));if(foreground&&backgroundThemeId.equals("study")){updateAmbient();weather.refresh(false);ambientHandler.postDelayed(ambientTick,60000);}}
+ void updateStudyScene(boolean wide){
+  boolean enabled=renderedSceneTheme.id.equals("study");studyLive.setVisibility(enabled?View.VISIBLE:View.GONE);
+  if(enabled){Bitmap night=assets.get("scenes/study_night_"+(wide?"landscape":"portrait")+".webp");studyLive.setScene(sceneBackdrop,night,wide,renderedSceneTheme.imageTransform(backdrop.getWidth(),backdrop.getHeight(),sceneBackdrop.getWidth(),sceneBackdrop.getHeight()));}
+  studyLive.setMotionEnabled(motionEnabled);restartAmbient();
+ }
+ void updateAmbient(){
+  if(studyLive==null||weather==null)return;
+  WeatherState state=ambientPreview!=null?ambientPreview:weather.state();long now=ambientPreview!=null?ambientPreviewTime:System.currentTimeMillis();
+  studyLive.setWeather(state,now);if(miniature!=null)miniature.setAmbientLight(state.daylight(now));
+  if(ambientStatus!=null){String updated=state.available?weatherClock(state.observedAt,state):"없음";ambientStatus.setText("날씨 지역: "+weather.place().name+"\n"+weather.status()+"\n"+(state.available?state.description()+" · "+String.format(java.util.Locale.getDefault(),"%.1f°C",state.temperature):"시간만 반영 중")+"\n날씨 기준 시각: "+updated+"\n"+(state.available?"지역 현재 시각: ":"기기 시각: ")+weatherClock(now,state));}
+ }
+ String weatherClock(long time,WeatherState state){java.text.DateFormat format=android.text.format.DateFormat.getTimeFormat(this);if(state.utcOffsetSeconds!=Integer.MIN_VALUE){java.util.TimeZone zone=java.util.TimeZone.getTimeZone("GMT");zone.setRawOffset(state.utcOffsetSeconds*1000);format.setTimeZone(zone);}return format.format(new java.util.Date(time));}
+ void setStudyMotion(boolean enabled){motionEnabled=enabled;getPreferences(0).edit().putBoolean("studyMotion",enabled).apply();if(studyLive!=null)studyLive.setMotionEnabled(enabled);}
+ void setAmbientPreview(WeatherState state,long now){ambientPreview=state;ambientPreviewTime=now;updateAmbient();}
+ void clearAmbientPreview(){ambientPreview=null;updateAmbient();}
+ void showAmbientSettings(){
+  LinearLayout content=new LinearLayout(this);content.setOrientation(LinearLayout.VERTICAL);content.setPadding(dp(22),dp(8),dp(22),dp(12));
+  TextView info=label("테마 1에만 적용됩니다. 선택한 도시의 낮·밤과 날씨를 반영하며 위치 권한은 사용하지 않습니다.",13,0xFF574532);content.addView(info);
+  Switch motion=new Switch(this);motion.setText("움직이는 영상 · 날씨 효과");motion.setMinHeight(dp(48));motion.setChecked(motionEnabled);content.addView(motion);motion.setOnCheckedChangeListener((v,checked)->setStudyMotion(checked));
+  ambientStatus=label("",13,0xFF574532);ambientStatus.setPadding(0,dp(12),0,dp(12));content.addView(ambientStatus);
+  Button city=new Button(this);city.setText("날씨 지역 변경");content.addView(city);city.setOnClickListener(v->searchWeatherCity());
+  Button refresh=new Button(this);refresh.setText("날씨 새로고침");content.addView(refresh);refresh.setOnClickListener(v->{weather.refresh(true);updateAmbient();});
+  TextView credit=label("날씨: Open-Meteo · 도시: GeoNames· 인터넷 연결이 필요합니다. 연결되지 않으면 저장된 정보 또는 시간 기준 조명을 사용합니다.",12,0xFF746650);credit.setPadding(0,dp(10),0,0);content.addView(credit);
+  ScrollView scrolling=new ScrollView(this);scrolling.addView(content);
+  AlertDialog dialog=new AlertDialog.Builder(this).setTitle("시간 · 날씨 · 영상").setView(scrolling).setPositiveButton("닫기",null).create();dialog.setOnDismissListener(v->ambientStatus=null);updateAmbient();dialog.show();
+ }
+ void searchWeatherCity(){
+  EditText query=new EditText(this);query.setSingleLine(true);query.setHint("도시 이름 · 예: 서울, 부산, Tokyo");query.setMaxEms(80);
+  AlertDialog dialog=new AlertDialog.Builder(this).setTitle("날씨 지역 검색").setView(query).setNegativeButton("취소",null).setPositiveButton("검색",null).create();
+  dialog.setOnShowListener(v->dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(btn->{String text=query.getText().toString().trim();if(text.length()<2||text.length()>80){query.setError("도시 이름을 2~80자로 입력해 주세요");return;}dialog.getButton(AlertDialog.BUTTON_POSITIVE).setEnabled(false);weather.search(text,(places,error)->{if(isFinishing()||isDestroyed()||!dialog.isShowing())return;dialog.getButton(AlertDialog.BUTTON_POSITIVE).setEnabled(true);if(error!=null||places.isEmpty()){query.setError(error!=null?error:"검색 결과가 없어요");return;}String[] names=new String[places.size()];for(int i=0;i<names.length;i++)names[i]=places.get(i).name;new AlertDialog.Builder(this).setTitle("날씨 지역 선택").setItems(names,(d,index)->{weather.setPlace(places.get(index));dialog.dismiss();updateAmbient();}).setNegativeButton("취소",null).show();});}));dialog.show();
+ }
+
   void showBook(int index){
  JSONObject o=sites.optJSONObject(index);if(o==null)return;
  final String url=o.optString("url");

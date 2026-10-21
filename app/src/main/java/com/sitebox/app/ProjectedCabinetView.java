@@ -13,10 +13,11 @@ final class ProjectedCabinetView extends ImageView {
  private final Paint texturePaint=new Paint(Paint.ANTI_ALIAS_FLAG|Paint.FILTER_BITMAP_FLAG),shade=new Paint(Paint.ANTI_ALIAS_FLAG);
  private final float[] source=new float[8],textureSource=new float[8],topSource=new float[8];
  private final float[] corners=new float[8],side=new float[8],roof=new float[8];
- private Bitmap wood;private float fraction,vpX=-.25f,vpY=-.5f;
+ private Bitmap wood;private float ambientLight=1;private float fraction,vpX=-.25f,vpY=-.5f;
  private final ColorMatrix lighting=new ColorMatrix();
  private SceneProjection profile=SceneProjection.ALL[0];
  ProjectedCabinetView(Context context){super(context);setScaleType(ScaleType.FIT_XY);}
+ void setAmbientLight(float value){float next=Math.max(0,Math.min(1,value));if(Math.abs(next-ambientLight)<.001f)return;ambientLight=next;rebuild();invalidate();}
  void setRoom(SceneProjection value,Bitmap cabinet){profile=value;wood=cabinet;rebuild();}
  void setCamera(float viewportWidth,float viewportHeight,float imageWidth,float imageHeight,float[] bounds){
   float[] transform=SceneTheme.find(profile.id).imageTransform(viewportWidth,viewportHeight,imageWidth,imageHeight);
@@ -40,7 +41,7 @@ final class ProjectedCabinetView extends ImageView {
   float w=getWidth()>0?getWidth():getLayoutParams()==null?0:getLayoutParams().width,h=getHeight()>0?getHeight():getLayoutParams()==null?0:getLayoutParams().height;
   if(w<=0||h<=0)return;
   rect(source,0,0,w,h);profile.front(w,h,fraction,vpX,vpY,corners);profile.body(w,h,fraction,vpX,vpY,corners,side,roof);
-  float b=1+(profile.brightness-1)*fraction,contrast=1-.045f*fraction;float warm=profile.id.equals("wizard")?-.025f:profile.id.equals("lab")?-.01f:.012f;
+  float b=1+(profile.brightness*(profile.id.equals("study")?(.60f+.40f*ambientLight):1)-1)*fraction,contrast=1-.045f*fraction;float warm=profile.id.equals("wizard")?-.025f:profile.id.equals("lab")?-.01f:profile.id.equals("study")?.012f+.04f*(1-ambientLight):.012f;
   lighting.set(new float[]{b*contrast+warm*fraction,0,0,0,3*fraction,0,b*contrast,0,0,3*fraction,0,0,b*contrast-warm*fraction,0,4*fraction,0,0,0,1,0});
   ColorMatrixColorFilter filter=fraction==0?null:new ColorMatrixColorFilter(lighting);texturePaint.setColorFilter(filter);setColorFilter(filter);
   frontMatrix.setPolyToPoly(source,0,corners,0,4);quad(sidePath,side);quad(topPath,roof);

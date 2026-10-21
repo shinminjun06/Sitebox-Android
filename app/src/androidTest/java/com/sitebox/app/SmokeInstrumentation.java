@@ -17,7 +17,7 @@ import java.io.FileOutputStream;
 public final class SmokeInstrumentation extends Instrumentation {
  volatile MainActivity activity;
  String backupSites,backupCategories,demoSites,backupBackground;
- boolean hadBackground,hadGestureTip,backupGestureTip;
+ boolean hadBackground,hadGestureTip,backupGestureTip,hadMotion,backupMotion;
  int backupShelf,backupBook;
  int recoveredPixelLauncherAnrs;
  StringBuilder checks=new StringBuilder();
@@ -29,6 +29,7 @@ public final class SmokeInstrumentation extends Instrumentation {
   try {
    activity=(MainActivity)startActivitySync(new Intent(getTargetContext(),MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));waitForIdleSync();
    SharedPreferences prefs=activity.getPreferences(0);backupSites=prefs.getString("sites","[]");backupCategories=prefs.getString("categories","[]");backupShelf=prefs.getInt("shelfTheme",0);backupBook=prefs.getInt("bookTheme",0);hadGestureTip=prefs.contains("gestureTipSeen");backupGestureTip=prefs.getBoolean("gestureTipSeen",false);hadBackground=prefs.contains("backgroundTheme");backupBackground=prefs.getString("backgroundTheme","classroom");
+   hadMotion=prefs.contains("studyMotion");backupMotion=prefs.getBoolean("studyMotion",true);main(()->activity.setStudyMotion(true));
    snapshot("study-first-launch.png");
    main(()->{
     check(activity.getPreferences(0).getBoolean("studyThemeIntroduced",false),"theme 1 introduction recorded once");
@@ -101,6 +102,7 @@ public final class SmokeInstrumentation extends Instrumentation {
    projectedCabinetThemes();
    pinchCollapseRestore();
    backgroundCollection();
+   ambientScenes();
    main(()->{
     View root=((ViewGroup)activity.stage).getChildAt(1);View header=((ViewGroup)root).getChildAt(0);
     check(header.performLongClick()&&activity.backgroundOnly,"classroom-only reveal preserved");
@@ -111,10 +113,78 @@ public final class SmokeInstrumentation extends Instrumentation {
    checks.append("PASS all nine theme combinations rendered\n");
   }catch(Throwable failure){try{snapshot("failure.png");}catch(Throwable ignored){}code=Activity.RESULT_CANCELED;result.putString("failure",failure.toString());checks.append("FAIL ").append(failure);}
   finally{
-   if(activity!=null&&backupSites!=null){main(()->{SharedPreferences.Editor restore=activity.getPreferences(0).edit().putString("sites",backupSites).putString("categories",backupCategories).putInt("shelfTheme",backupShelf).putInt("bookTheme",backupBook);if(hadBackground)restore.putString("backgroundTheme",backupBackground);else restore.remove("backgroundTheme");if(hadGestureTip)restore.putBoolean("gestureTipSeen",backupGestureTip);else restore.remove("gestureTipSeen");restore.commit();activity.finish();});}
+   if(activity!=null&&backupSites!=null){main(()->{SharedPreferences.Editor restore=activity.getPreferences(0).edit().putString("sites",backupSites).putString("categories",backupCategories).putInt("shelfTheme",backupShelf).putInt("bookTheme",backupBook);if(hadBackground)restore.putString("backgroundTheme",backupBackground);else restore.remove("backgroundTheme");if(hadGestureTip)restore.putBoolean("gestureTipSeen",backupGestureTip);else restore.remove("gestureTipSeen");if(hadMotion)restore.putBoolean("studyMotion",backupMotion);else restore.remove("studyMotion");restore.commit();activity.finish();});}
   }
   checks.append("\nENV recoveredPixelLauncherAnrs=").append(recoveredPixelLauncherAnrs).append("\n");
   result.putString("stream",checks.toString());finish(code,result);
+ }
+ // Deterministic weather previews isolate native rendering from the live provider.
+ void ambientScenes(){
+  final String data=activity.sites.toString(),categories=new JSONArray(java.util.Arrays.asList(activity.categories)).toString();
+  final String filter=activity.filter,room=activity.backgroundThemeId;
+  final int shelf=activity.shelfThemeIndex,book=activity.bookThemeIndex,page=activity.page;
+  final boolean motion=activity.motionEnabled,collapsed=activity.sceneCollapsed;
+  final long noon=1700000000000L,hour=3600000L;
+  final WeatherState clear=new WeatherState(23,3,0,0,noon,noon-6*hour,noon+6*hour,noon,true);
+  try{
+   main(()->{activity.setStudyMotion(true);activity.setAmbientPreview(clear,noon);activity.applyBackgroundTheme("study");activity.collapseToScene(false);});
+   awaitScene(true);awaitStudyVideo("study portrait video");
+   awaitDaylight(1);android.os.SystemClock.sleep(2000);awaitStudyVideo("study daylight video");
+   main(()->check(!activity.studyLive.isNightVideo()&&activity.studyLive.isVideoVisible(),"study daylight decoder uses visible day video"));snapshot("ambient-day.png");
+   assertAmbientLibrary(data,categories,filter,page,shelf,book);
+   main(()->activity.setAmbientPreview(clear,noon+10*hour));awaitDaylight(0);
+   android.os.SystemClock.sleep(2000);awaitStudyVideo("study night video");
+   main(()->check(activity.studyLive.isNightVideo()&&activity.studyLive.isVideoVisible(),"study night decoder uses visible night video"));snapshot("ambient-night.png");
+   assertAmbientLibrary(data,categories,filter,page,shelf,book);
+   main(()->activity.setAmbientPreview(new WeatherState(15,12,63,95,noon,noon-6*hour,noon+6*hour,noon,true),noon));
+   awaitDaylight(1);android.os.SystemClock.sleep(2000);snapshot("ambient-rain.png");
+   assertAmbientLibrary(data,categories,filter,page,shelf,book);
+   main(()->activity.setAmbientPreview(new WeatherState(-3,8,73,100,noon,noon-6*hour,noon+6*hour,noon,true),noon));
+   android.os.SystemClock.sleep(2000);snapshot("ambient-snow.png");
+   assertAmbientLibrary(data,categories,filter,page,shelf,book);
+   // Instrumentation invokes the actual activity callbacks, balanced even on failure.
+   try{
+    main(()->callActivityOnPause(activity));android.os.SystemClock.sleep(400);
+    final long[] paused={0};main(()->{check(!activity.studyLive.isPlaying(),"study activity pause releases decoder");paused[0]=activity.studyLive.renderedFrames();});
+    android.os.SystemClock.sleep(300);main(()->check(activity.studyLive.renderedFrames()==paused[0],"study activity pause stops video frames"));
+   }finally{main(()->callActivityOnResume(activity));}
+   awaitStudyVideo("study activity resume video");
+   main(()->activity.setStudyMotion(false));android.os.SystemClock.sleep(400);
+   final long[] stopped={0};main(()->{check(!activity.studyLive.isPlaying(),"study motion off releases decoder");stopped[0]=activity.studyLive.renderedFrames();});
+   android.os.SystemClock.sleep(350);main(()->check(activity.studyLive.renderedFrames()==stopped[0],"study motion off freezes actual video frames"));
+   main(()->activity.setStudyMotion(true));awaitStudyVideo("study motion restored video");
+   main(()->activity.studyLive.failVideoForTest());android.os.SystemClock.sleep(300);
+   main(()->check(!activity.studyLive.isPlaying()&&!activity.studyLive.hasVideoFrame()&&activity.backdrop.getDrawable()!=null,"study decoder error keeps static artwork fallback"));
+   main(()->activity.applyBackgroundTheme("classroom"));
+   main(()->check(!activity.studyLive.isPlaying()&&activity.studyLive.getVisibility()==View.GONE,"other room hides live study and releases decoder"));
+   main(()->activity.applyBackgroundTheme("study"));awaitStudyVideo("study reentry resets failed decoder");
+   java.util.Calendar fallbackNoon=java.util.Calendar.getInstance();fallbackNoon.setTimeInMillis(noon);fallbackNoon.set(java.util.Calendar.HOUR_OF_DAY,12);
+   final long fallbackTime=fallbackNoon.getTimeInMillis();
+   main(()->activity.setAmbientPreview(WeatherState.empty(),fallbackTime));awaitDaylight(1);
+   main(()->check(activity.studyLive.hasVideoFrame(),"missing weather retains offline day and video fallback"));
+   assertAmbientLibrary(data,categories,filter,page,shelf,book);
+   checks.append("PASS study live ambient and decoder lifecycle verified\n");
+  }finally{
+   main(()->{activity.clearAmbientPreview();activity.setStudyMotion(motion);activity.applyBackgroundTheme(room);activity.shelfThemeIndex=shelf;activity.bookThemeIndex=book;try{activity.sites=new JSONArray(data);}catch(JSONException error){throw new RuntimeException(error);}activity.search.setText(filter);activity.page=page;activity.save();activity.populate();if(collapsed)activity.collapseToScene(false);else if(activity.sceneCollapsed)activity.expandFromScene(false);});
+  }
+ }
+ void assertAmbientLibrary(String data,String categories,String filter,int page,int shelf,int book){
+  main(()->{
+   check(activity.sites.toString().equals(data)&&new JSONArray(java.util.Arrays.asList(activity.categories)).toString().equals(categories),"study ambient effects preserve bookmarks and categories");
+   check(activity.filter.equals(filter)&&activity.page==page&&activity.shelfThemeIndex==shelf&&activity.bookThemeIndex==book,"study ambient effects preserve filter page and independent styles");
+  });
+ }
+ void awaitDaylight(float expected){
+  final boolean[] ready={false};long deadline=android.os.SystemClock.uptimeMillis()+1300;
+  do{main(()->ready[0]=Math.abs(activity.studyLive.getDaylight()-expected)<.05f);if(ready[0]){check(true,"study daylight settles to "+expected+" within 1.3 seconds");return;}android.os.SystemClock.sleep(25);}while(android.os.SystemClock.uptimeMillis()<deadline);
+  throw new AssertionError("study daylight transition exceeded 1.3 seconds: "+expected);
+ }
+ void awaitStudyVideo(String label){
+  final boolean[] ready={false};long deadline=android.os.SystemClock.uptimeMillis()+12000;
+  do{main(()->ready[0]=activity.studyLive.isPlaying()&&activity.studyLive.hasVideoFrame());if(ready[0])break;android.os.SystemClock.sleep(50);}while(android.os.SystemClock.uptimeMillis()<deadline);
+  check(ready[0],label+" prepared and rendered first native video frame");
+  final long[] frames={0};main(()->frames[0]=activity.studyLive.renderedFrames());android.os.SystemClock.sleep(350);
+  main(()->check(activity.studyLive.isPlaying()&&activity.studyLive.renderedFrames()>=frames[0]+2,label+" decoder advances at least two actual video frames"));
  }
  void projectedCabinetThemes(){
   final int shelf=activity.shelfThemeIndex,book=activity.bookThemeIndex,page=activity.page;
@@ -193,7 +263,7 @@ public final class SmokeInstrumentation extends Instrumentation {
   check(activity.backgroundThemeId.equals(theme.id)&&activity.sceneCollapsed&&!activity.sceneAnimating,theme.id+" scene state remains selected");
   checkProjection(theme);
   check(activity.assets.get(theme.assetPath(wide))==expected,theme.id+" current room bitmap reused");
-  check(activity.assets.cachedRoomBytes()<=8*1024*1024&&activity.assets.cachedArtworkBytes()<=16*1024*1024,theme.id+" room and artwork caches bounded independently");
+  check(activity.assets.cachedRoomBytes()<=12*1024*1024&&activity.assets.cachedArtworkBytes()<=12*1024*1024,theme.id+" room and artwork caches bounded independently");
   if(theme.id.equals("classroom")){checkRoomGrounding();return;}
   float x=activity.miniature.getX(),y=activity.miniature.getY(),w=activity.miniature.getWidth()*activity.miniature.getScaleX(),h=activity.miniature.getHeight()*activity.miniature.getScaleY();
   float vw=activity.stage.getWidth(),vh=activity.stage.getHeight();
@@ -250,6 +320,10 @@ public final class SmokeInstrumentation extends Instrumentation {
     long deadline=android.os.SystemClock.uptimeMillis()+8000;
     while(activity==before&&android.os.SystemClock.uptimeMillis()<deadline)android.os.SystemClock.sleep(50);
     check(activity!=before,theme.id+" rotation recreated activity");awaitScene(true);
+    if(theme.id.equals("study")){
+     main(()->activity.setStudyMotion(true));awaitStudyVideo("study rotated video");
+     main(()->check(!before.studyLive.isPlaying(),"study destroyed activity released decoder"));
+    }
     main(()->{
      int expectedOrientation=orientation==android.content.pm.ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE?android.content.res.Configuration.ORIENTATION_LANDSCAPE:android.content.res.Configuration.ORIENTATION_PORTRAIT;
      check(activity.getResources().getConfiguration().orientation==expectedOrientation,theme.id+" requested orientation active");

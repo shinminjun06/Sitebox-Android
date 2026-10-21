@@ -6,13 +6,13 @@ import android.graphics.BitmapFactory;
 import android.util.LruCache;
 import java.io.InputStream;
 
-/** Immutable artwork (16 MiB), backgrounds (8 MiB), thumbnails (2 MiB), no decode during onDraw. */
+/** Immutable artwork (12 MiB), backgrounds (12 MiB), thumbnails (2 MiB), no decode during onDraw. */
 final class ThemeAssets {
  private final Context context;
- private final LruCache<String,Bitmap> cache=new LruCache<String,Bitmap>(16*1024*1024){
+ private final LruCache<String,Bitmap> cache=new LruCache<String,Bitmap>(12*1024*1024){
   @Override protected int sizeOf(String key,Bitmap bitmap){return bitmap.getAllocationByteCount();}
  };
- private final LruCache<String,Bitmap> rooms=new LruCache<String,Bitmap>(8*1024*1024){
+ private final LruCache<String,Bitmap> rooms=new LruCache<String,Bitmap>(12*1024*1024){
   @Override protected int sizeOf(String key,Bitmap bitmap){return bitmap.getAllocationByteCount();}
  };
  private final LruCache<String,Bitmap> previews=new LruCache<String,Bitmap>(2*1024*1024){

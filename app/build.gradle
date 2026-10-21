@@ -9,8 +9,8 @@ android {
   minSdk 24
   targetSdk 35
   testInstrumentationRunner 'com.sitebox.app.SmokeInstrumentation'
-  versionCode 9
-  versionName '2.7-school'
+  versionCode 10
+  versionName '2.8-school'
   buildConfigField 'String', 'SOURCE_REVISION', '"' + revision + '"'
  }
  signingConfigs {
@@ -32,6 +32,7 @@ android {
    matchingFallbacks = ['debug']
   }
  }
+ androidResources { noCompress += ["mp4"] }
  buildFeatures { buildConfig true }
  compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
  lint { abortOnError true }

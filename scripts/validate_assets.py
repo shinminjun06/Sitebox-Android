@@ -63,5 +63,23 @@ print('PASS: theme 1 portrait and landscape plates fit room cache and APK size b
 for shelf in ['oak','walnut','white_oak']:
  for book in ['classic','pastel','modern']:
   active=[root/'shelves'/shelf/'cabinet.webp',root/'shelves'/shelf/'surface.webp']+list((root/'books'/book).glob('*.webp'))
-  assert sum(Image.open(p).width*Image.open(p).height*4 for p in active)<16*1024*1024
-print('PASS: each active shelf/book combination fits the isolated 16 MiB artwork cache')
+  assert sum(Image.open(p).width*Image.open(p).height*4 for p in active)<12*1024*1024
+print('PASS: each active shelf/book combination fits the isolated 12 MiB artwork cache')
+
+# Theme 1 motion assets: audio-free baseline H264; bounded dimensions and bit budget.
+import subprocess
+for orientation in ['portrait','landscape','night_portrait','night_landscape']:
+ p=Path('app/src/main/assets/scenes')/('study_'+orientation+'.mp4')
+ m=json.loads(subprocess.check_output(['ffprobe','-v','error','-show_format','-show_streams','-of','json',str(p)]))
+ assert len(m['streams'])==1 and m['streams'][0]['codec_name']=='h264'
+ assert m['streams'][0]['pix_fmt']=='yuv420p' and max(m['streams'][0]['width'],m['streams'][0]['height'])<=1104
+ assert 5.8<float(m['format']['duration'])<6.2 and p.stat().st_size<1000000
+ p=p.with_suffix('.webp')
+ with Image.open(p) as im:
+  im.load();assert im.mode=='RGB' and im.width*im.height*4<8*1024*1024 and p.stat().st_size<500000
+print('PASS: theme 1 silent six-second H264 loops and bounded night plates')
+
+for orientation in ["portrait","landscape"]:
+ pair=[Image.open(Path("app/src/main/assets/scenes")/("study_"+phase+orientation+".webp")) for phase in ["","night_"]]
+ assert sum(im.width*im.height*4 for im in pair)<12*1024*1024
+print("PASS: active day/night image pairs fit the 12 MiB room cache")
