@@ -21,6 +21,8 @@ final class BackupChecks {
  void prefs(Map<String,?> state){SharedPreferences.Editor e=activity.getPreferences(0).edit().clear();for(Map.Entry<String,?> x:state.entrySet()){Object v=x.getValue();String k=x.getKey();if(v instanceof String)e.putString(k,(String)v);else if(v instanceof Integer)e.putInt(k,(Integer)v);else if(v instanceof Long)e.putLong(k,(Long)v);else if(v instanceof Boolean)e.putBoolean(k,(Boolean)v);else if(v instanceof Float)e.putFloat(k,(Float)v);}if(!e.commit())throw new AssertionError("Test cleanup prefs");}
  void reject(String json)throws Exception{try{BackupCodec.decode(json);throw new AssertionError("Invalid backup accepted");}catch(JSONException expected){}}
  void run()throws Exception{
+  // MainActivity's five-second tip dismissal writes this key asynchronously; settle it before comparing all preferences.
+  test.main(()->{if(!activity.getPreferences(0).edit().putBoolean("gestureTipSeen",true).commit())throw new AssertionError("Settle gesture tip fixture");});
   final BackupController controller=activity.backups;final String original=controller.snapshot();final BackupCodec.Snapshot base=BackupCodec.decode(original);final Map<String,?> before=activity.getPreferences(0).getAll();
   File rollback=new File(activity.getFilesDir(),"before-restore.json");byte[] oldRollback=rollback.exists()?java.nio.file.Files.readAllBytes(rollback.toPath()):null;
   final String filter=activity.filter;final int page=activity.page;final boolean expanded=activity.searchExpanded;
@@ -35,9 +37,13 @@ final class BackupChecks {
    }
    test.check(BackupCodec.decode(original).sites.toString().equals(base.sites.toString()),"codec rejects padded category labels and preserves valid fixture");
    test.check(controller.snapshot()!=null&&base.sites.length()==32,"backup codec validates native fixture and rejects malformed imports");
-   // A stalled pipe must respond to cancellation without waiting for a provider write/EOF.
-   ParcelFileDescriptor[] pipe=ParcelFileDescriptor.createPipe();CancellationSignal cancel=new CancellationSignal();AtomicReference<Throwable> failure=new AtomicReference<>();
-   Thread blocked=new Thread(()->{try{BackupController.transfer(pipe[0],null,cancel);failure.set(new AssertionError("Cancelled pipe succeeded"));}catch(OperationCanceledException expected){}catch(Throwable e){failure.set(e);}});blocked.start();SystemClock.sleep(120);cancel.cancel();blocked.join(1500);boolean stopped=!blocked.isAlive();pipe[0].close();pipe[1].close();test.check(stopped&&failure.get()==null,"stalled document provider cancels within bounded poll");
+   // Neither a stalled reader nor a stalled writer may wait for provider progress after cancellation.
+   for(boolean writing:new boolean[]{false,true}){
+    ParcelFileDescriptor[] pipe=ParcelFileDescriptor.createPipe();CancellationSignal cancel=new CancellationSignal();AtomicReference<Throwable> failure=new AtomicReference<>();
+    byte[] payload=writing?new byte[BackupCodec.MAX_BYTES]:null;
+    Thread blocked=new Thread(()->{try{BackupController.transfer(pipe[writing?1:0],payload,cancel);failure.set(new AssertionError("Cancelled pipe succeeded"));}catch(OperationCanceledException expected){}catch(Throwable e){failure.set(e);}finally{if(Thread.currentThread().isInterrupted())failure.set(new AssertionError("Transfer left worker interrupted"));}});
+    blocked.start();SystemClock.sleep(120);cancel.cancel();blocked.join(1500);boolean stopped=!blocked.isAlive();pipe[0].close();pipe[1].close();test.check(stopped&&failure.get()==null,"stalled document "+(writing?"write":"read")+" cancels through interruptible channel");
+   }
    test.main(controller::show);test.snapshot("backup-settings.png");
    // Close settings through back before using synthetic Android document results.
    test.sendKeyDownUpSync(android.view.KeyEvent.KEYCODE_BACK);test.waitForIdleSync();

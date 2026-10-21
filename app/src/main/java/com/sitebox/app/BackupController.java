@@ -5,12 +5,12 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.net.Uri;
 import android.os.*;
-import android.system.*;
 import android.util.AtomicFile;
 import android.widget.*;
 import org.json.JSONArray;
 import java.io.*;
 import java.nio.ByteBuffer;
+import java.nio.channels.FileChannel;
 import java.nio.charset.CodingErrorAction;
 import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
@@ -80,29 +80,29 @@ final class BackupController {
         }else work(()->BackupCodec.decode(decodeUtf8(document(uri,null))),value->preview((BackupCodec.Snapshot)value,"선택한 백업 파일"));
         return true;
     }
-    /** Nonblocking descriptors + bounded poll let cancellation interrupt even stalled pipe providers. */
+    /** Interruptible channels let cancellation stop even stalled pipe providers on every supported API. */
     private byte[] document(Uri uri,byte[] output)throws Exception{
         CancellationSignal signal=cancellation;
-        try(ParcelFileDescriptor descriptor=activity.getContentResolver().openFileDescriptor(uri,output==null?"r":"wt",signal)){
-            if(descriptor==null)throw new IOException("No document");
-            return transfer(descriptor,output,signal);
-        }
+        ParcelFileDescriptor descriptor=activity.getContentResolver().openFileDescriptor(uri,output==null?"r":"wt",signal);
+        if(descriptor==null)throw new IOException("No document");
+        return transfer(descriptor,output,signal);
     }
     static byte[] transfer(ParcelFileDescriptor descriptor,byte[] output,CancellationSignal signal)throws Exception{
-        FileDescriptor fd=descriptor.getFileDescriptor();int flags=Os.fcntlInt(fd,OsConstants.F_GETFL,0);Os.fcntlInt(fd,OsConstants.F_SETFL,flags|OsConstants.O_NONBLOCK);
-        ByteArrayOutputStream input=new ByteArrayOutputStream();byte[] chunk=new byte[8192];int offset=0;
+        Thread thread=Thread.currentThread();signal.setOnCancelListener(thread::interrupt);
         long deadline=SystemClock.elapsedRealtime()+45000;
-        StructPollfd poll=new StructPollfd();poll.fd=fd;poll.events=(short)(output==null?OsConstants.POLLIN:OsConstants.POLLOUT);
-        while(output==null||offset<output.length){
-            signal.throwIfCanceled();if(Thread.currentThread().isInterrupted()||SystemClock.elapsedRealtime()>=deadline)throw new InterruptedIOException("Document timeout");
-            if(Os.poll(new StructPollfd[]{poll},250)==0)continue;
-            if((poll.revents&OsConstants.POLLNVAL)!=0)throw new IOException("Closed document");
-            try{
-                if(output!=null){int n=Os.write(fd,output,offset,Math.min(8192,output.length-offset));if(n<=0)throw new IOException("Write stopped");offset+=n;}
-                else{int n=Os.read(fd,chunk,0,chunk.length);if(n==0)break;if(input.size()+n>BackupCodec.MAX_BYTES)throw new IOException("Backup too large");input.write(chunk,0,n);}
-            }catch(ErrnoException e){if(e.errno!=OsConstants.EAGAIN&&e.errno!=OsConstants.EINTR)throw e;}
-        }
-        signal.throwIfCanceled();return input.toByteArray();
+        try(FileInputStream source=output==null?new ParcelFileDescriptor.AutoCloseInputStream(descriptor):null;
+            FileOutputStream sink=output!=null?new ParcelFileDescriptor.AutoCloseOutputStream(descriptor):null){
+            FileChannel channel=source!=null?source.getChannel():sink.getChannel();
+            if(output!=null&&output.length>BackupCodec.MAX_BYTES)throw new IOException("Backup too large");
+            ByteArrayOutputStream input=new ByteArrayOutputStream();ByteBuffer buffer=output==null?ByteBuffer.allocate(8192):ByteBuffer.wrap(output);
+            while(output==null||buffer.hasRemaining()){
+                signal.throwIfCanceled();if(thread.isInterrupted()||SystemClock.elapsedRealtime()>=deadline)throw new InterruptedIOException("Document timeout");
+                if(output!=null)channel.write(buffer);
+                else{int n=channel.read(buffer);if(n<0)break;if(input.size()+n>BackupCodec.MAX_BYTES)throw new IOException("Backup too large");input.write(buffer.array(),0,n);buffer.clear();}
+            }
+            signal.throwIfCanceled();return input.toByteArray();
+        }catch(IOException e){signal.throwIfCanceled();throw e;}
+        finally{signal.setOnCancelListener(null);Thread.interrupted();}
     }
     private void readRollback(){work(()->{try(InputStream input=rollback.openRead()){return BackupCodec.decode(readBounded(input));}},value->preview((BackupCodec.Snapshot)value,"복원 전 기기 사본"));}
     void validateAndPreview(String json,String label){work(()->BackupCodec.decode(json),value->preview((BackupCodec.Snapshot)value,label));}
