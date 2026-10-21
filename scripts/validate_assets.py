@@ -50,3 +50,12 @@ for key in ['oak','walnut','white_oak']:
   assert surface.getextrema()[0][1]-surface.getextrema()[0][0]>20,path
  surfaces.append(path)
 print(f'PASS: {len(surfaces)} square RGB wood surfaces decoded; bounded file size and full-grain contrast')
+
+# Theme 1 plates are shelf-free backgrounds, bounded independently of furniture.
+for orientation,wide in [('portrait',False),('landscape',True)]:
+ p=Path('app/src/main/assets/scenes')/('study_'+orientation+'.webp')
+ with Image.open(p) as im:
+  im.load();assert im.mode=='RGB' and im.format=='WEBP'
+  assert (im.width>im.height)==wide and max(im.size)<=1920
+  assert im.width*im.height*4<=8*1024*1024 and p.stat().st_size<500000
+print('PASS: theme 1 portrait and landscape plates fit room cache and APK size budget')

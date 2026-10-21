@@ -29,7 +29,9 @@ public final class SmokeInstrumentation extends Instrumentation {
   try {
    activity=(MainActivity)startActivitySync(new Intent(getTargetContext(),MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));waitForIdleSync();
    SharedPreferences prefs=activity.getPreferences(0);backupSites=prefs.getString("sites","[]");backupCategories=prefs.getString("categories","[]");backupShelf=prefs.getInt("shelfTheme",0);backupBook=prefs.getInt("bookTheme",0);hadGestureTip=prefs.contains("gestureTipSeen");backupGestureTip=prefs.getBoolean("gestureTipSeen",false);hadBackground=prefs.contains("backgroundTheme");backupBackground=prefs.getString("backgroundTheme","classroom");
+   snapshot("study-first-launch.png");
    main(()->{
+    check(activity.getPreferences(0).getBoolean("studyThemeIntroduced",false),"theme 1 introduction recorded once");
     activity.applyBackgroundTheme("classroom");activity.sites=new JSONArray();activity.filter="";activity.page=0;
     for(int cell=0;cell<9;cell++)for(int k=0;k<(cell==0?8:3);k++){
      JSONObject item=new JSONObject();try{item.put("name",new String[]{"나의 공부","개발 노트","AI 연구","게임 자료","영상 모음","쇼핑 목록","함께 읽기","생활 기록","기타 사이트"}[cell]+" "+(k+1));item.put("url","https://example.com/"+cell+"/"+k);item.put("category",activity.categories[cell]);item.put("fav",k==0);item.put("sortOrder",k*1000L);}catch(Exception e){throw new RuntimeException(e);}activity.sites.put(item);
@@ -137,7 +139,7 @@ public final class SmokeInstrumentation extends Instrumentation {
   final String data=activity.sites.toString();final int shelf=activity.shelfThemeIndex,book=activity.bookThemeIndex;
   main(()->{activity.search.setText("example.com/");activity.page=1;activity.populate();});
   final int page=activity.page;final String filter=activity.filter;
-  check(SceneTheme.ALL.length==11,"classroom plus ten selectable background concepts");
+  check(SceneTheme.ALL.length==12,"study theme plus eleven existing background concepts");
   for(SceneTheme theme:SceneTheme.ALL){
    main(()->activity.showBackgroundThemes());
    clickBackgroundChoice(theme.name);waitForIdleSync();
@@ -188,12 +190,14 @@ public final class SmokeInstrumentation extends Instrumentation {
   check(((android.graphics.drawable.BitmapDrawable)activity.backdrop.getDrawable()).getBitmap()==expected,theme.id+" selected artwork displayed");
   check(activity.backgroundThemeId.equals(theme.id)&&activity.sceneCollapsed&&!activity.sceneAnimating,theme.id+" scene state remains selected");
   checkProjection(theme);
+  check(activity.assets.get(theme.assetPath(wide))==expected,theme.id+" current room bitmap reused");
+  check(activity.assets.cachedRoomBytes()<=8*1024*1024&&activity.assets.cachedArtworkBytes()<=18*1024*1024,theme.id+" room and artwork caches bounded independently");
   if(theme.id.equals("classroom")){checkRoomGrounding();return;}
   float x=activity.miniature.getX(),y=activity.miniature.getY(),w=activity.miniature.getWidth()*activity.miniature.getScaleX(),h=activity.miniature.getHeight()*activity.miniature.getScaleY();
   float vw=activity.stage.getWidth(),vh=activity.stage.getHeight();
   check(w>vw*.12f&&h>vh*.12f&&x>=0&&y>=0&&x+w<=vw+1&&y+h<=vh+1,theme.id+" readable compact cabinet fits viewport");
   // Read the rendered ImageView matrix, rather than calling the geometry method under test.
-  float[] sourceAnchor={expected.getWidth()*theme.centerX,expected.getHeight()*theme.feet};
+  float[] sourceAnchor={expected.getWidth()*theme.anchorX(wide),expected.getHeight()*theme.anchorFeet(wide)};
   activity.backdrop.getImageMatrix().mapPoints(sourceAnchor);
   check(Math.abs(y+h-sourceAnchor[1])<vh*.045f,theme.id+" cabinet feet contact the visible artwork floor anchor");
   check(Math.abs(x+w*.5f-sourceAnchor[0])<vw*.045f,theme.id+" cabinet aligns with reserved left or right artwork space");

@@ -40,7 +40,7 @@ public class MainActivity extends Activity {
  android.animation.ValueAnimator projectionAnimator;
  FurnitureShadow sceneShadow;
  Bitmap sceneBackdrop;
- String backgroundThemeId="classroom";
+ String backgroundThemeId="study";
  SceneTheme renderedSceneTheme=SceneTheme.ALL[0];
  boolean sceneCollapsed=false,sceneAnimating=false,restoreCollapsed=false;
 
@@ -60,7 +60,7 @@ public class MainActivity extends Activity {
  final int[] covers={0xFF152B49,0xFF74262D,0xFFE9D8B6,0xFF133D38,0xFF693525,0xFF234C4B,0xFF253858,0xFFBBA17D};
  int dp(float v){return (int)(getResources().getDisplayMetrics().density*v+0.5f);}
  GradientDrawable bg(int color,int radius){GradientDrawable d=new GradientDrawable();d.setColor(color);d.setCornerRadius(dp(radius));return d;}
- void load(){backgroundThemeId=SceneTheme.find(getPreferences(0).getString(SceneTheme.PREFERENCE_KEY,"classroom")).id;shelfThemeIndex=Math.max(0,Math.min(2,getPreferences(0).getInt("shelfTheme",0)));bookThemeIndex=Math.max(0,Math.min(2,getPreferences(0).getInt("bookTheme",0)));try{sites=new JSONArray(getPreferences(0).getString("sites","[]"));}catch(Exception e){sites=new JSONArray();}try{JSONArray saved=new JSONArray(getPreferences(0).getString("categories","[]"));if(saved.length()==9)for(int i=0;i<9;i++)categories[i]=saved.optString(i,categories[i]);}catch(Exception ignored){}}
+ void load(){android.content.SharedPreferences prefs=getPreferences(0);boolean introduced=prefs.getBoolean("studyThemeIntroduced",false);backgroundThemeId=SceneTheme.initialTheme(prefs.getString(SceneTheme.PREFERENCE_KEY,null),introduced);if(!introduced)prefs.edit().putBoolean("studyThemeIntroduced",true).putString(SceneTheme.PREFERENCE_KEY,backgroundThemeId).apply();shelfThemeIndex=Math.max(0,Math.min(2,getPreferences(0).getInt("shelfTheme",0)));bookThemeIndex=Math.max(0,Math.min(2,getPreferences(0).getInt("bookTheme",0)));try{sites=new JSONArray(getPreferences(0).getString("sites","[]"));}catch(Exception e){sites=new JSONArray();}try{JSONArray saved=new JSONArray(getPreferences(0).getString("categories","[]"));if(saved.length()==9)for(int i=0;i<9;i++)categories[i]=saved.optString(i,categories[i]);}catch(Exception ignored){}}
  void save(){JSONArray names=new JSONArray();for(String c:categories)names.put(c);getPreferences(0).edit().putString("sites",sites.toString()).putString("categories",names.toString()).putInt("shelfTheme",shelfThemeIndex).putInt("bookTheme",bookThemeIndex).apply();}
  @Override public void onCreate(Bundle b){
  super.onCreate(b);assets=new ThemeAssets(this);load();
@@ -132,7 +132,7 @@ public class MainActivity extends Activity {
   boolean wide=BookLayout.wideScene(backdrop.getWidth(),backdrop.getHeight());
   SceneTheme selected=SceneTheme.find(backgroundThemeId);
   Bitmap chosen=assets.get(selected.assetPath(wide));
-  renderedSceneTheme=chosen!=null?selected:SceneTheme.ALL[0];
+  renderedSceneTheme=chosen!=null?selected:SceneTheme.find("classroom");
   sceneBackdrop=chosen!=null?chosen:assets.scene(wide);
   backdrop.setImageBitmap(sceneBackdrop);
   if(sceneBackdrop!=null){
