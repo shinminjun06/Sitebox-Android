@@ -57,6 +57,7 @@ public final class SmokeInstrumentation extends Instrumentation {
     check(activity.pageSummary.getText().toString().contains("/ 2"),"eighth book starts second page after seven visible books");
    });
    snapshot("oak-classic.png");
+   ambientScenes();
    final String fullFixture=activity.sites.toString();
    main(()->{try{JSONObject single=new JSONObject();single.put("name","naver");single.put("url","https://naver.com");single.put("category",activity.categories[5]);activity.sites=new JSONArray().put(single);activity.populate();}catch(Exception error){throw new RuntimeException(error);}});
    main(()->{check(activity.pagingBar.getVisibility()==View.GONE,"single page hides paging bar");check(activity.pageSummary.getText().toString().contains("1권"),"hidden page summary remains current");check(activity.shelves.getChildCount()==2,"populated shelf has no persistent bottom instructions");});
@@ -102,7 +103,6 @@ public final class SmokeInstrumentation extends Instrumentation {
    projectedCabinetThemes();
    pinchCollapseRestore();
    backgroundCollection();
-   ambientScenes();
    main(()->{
     View root=((ViewGroup)activity.stage).getChildAt(1);View header=((ViewGroup)root).getChildAt(0);
     check(header.performLongClick()&&activity.backgroundOnly,"classroom-only reveal preserved");
@@ -182,7 +182,8 @@ public final class SmokeInstrumentation extends Instrumentation {
  void awaitStudyVideo(String label){
   final boolean[] ready={false};long deadline=android.os.SystemClock.uptimeMillis()+12000;
   do{main(()->ready[0]=activity.studyLive.isPlaying()&&activity.studyLive.hasVideoFrame());if(ready[0])break;android.os.SystemClock.sleep(50);}while(android.os.SystemClock.uptimeMillis()<deadline);
-  check(ready[0],label+" prepared and rendered first native video frame");
+  if(!ready[0]){final String[] detail={""};main(()->detail[0]=activity.studyLive.videoStatusForTest());throw new AssertionError(label+" no native first frame: "+detail[0]);}
+  check(true,label+" prepared and rendered first native video frame");
   final long[] frames={0};main(()->frames[0]=activity.studyLive.renderedFrames());android.os.SystemClock.sleep(350);
   main(()->check(activity.studyLive.isPlaying()&&activity.studyLive.renderedFrames()>=frames[0]+2,label+" decoder advances at least two actual video frames"));
  }

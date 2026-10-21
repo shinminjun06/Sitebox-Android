@@ -35,7 +35,7 @@ final class StudyLiveView extends FrameLayout {
     private final TextureView texture;
     private final Atmosphere atmosphere;
     private Bitmap day, night;
-    private boolean wide, active, motionEnabled = true, attached, decoderFailed, firstFrame, videoNight;
+    private boolean wide, active, motionEnabled = true, attached, decoderFailed, firstFrame, renderingStarted, videoNight;
     private float scale = 1, offsetX, offsetY, daylight = 1, targetDaylight = 1;
     private float cloudiness = .25f, targetCloudiness = .25f, rain, snow, targetRain, targetSnow;
     private long lastTick;
@@ -43,6 +43,7 @@ final class StudyLiveView extends FrameLayout {
     private WeatherState weather = WeatherState.empty();
     private MediaPlayer player;
     private Surface surface;
+    private String videoFailure = "none";
     private long frameCount, videoFrameCount, motionOrigin = SystemClock.uptimeMillis();
     private final Runnable tick = new Runnable() {
         @Override public void run() {
@@ -145,8 +146,14 @@ final class StudyLiveView extends FrameLayout {
     long renderedFrames() { return videoFrameCount; }
     long atmosphericFrames() { return frameCount; }
     void failVideoForTest() { decoderFailed = true; stopVideo(); atmosphere.invalidate(); }
+    String videoStatusForTest() { return "active="+active+",attached="+attached+",motion="+motionEnabled+",surface="+texture.isAvailable()+",size="+getWidth()+"x"+getHeight()+",playing="+isPlaying()+",frames="+videoFrameCount+",first="+firstFrame+",rendering="+renderingStarted+",failed="+decoderFailed+",error="+videoFailure; }
     private void updateVideoAlpha() {
-        texture.setAlpha(firstFrame ? (videoNight ? Math.max(0,1-2*daylight) : Math.max(0,2*daylight-1)) : 0);
+        float visible = videoNight ? Math.max(0,1-2*daylight) : Math.max(0,2*daylight-1);
+        // VIDEO_RENDERING_START confirms a queued decoder frame. Waiting for a
+        // texture callback at alpha zero can deadlock HWUI's frame consumption.
+        // A one-level opacity floor keeps consumption alive at twilight, too.
+        texture.setAlpha(player != null && canRunMotion() && (renderingStarted || firstFrame)
+                ? Math.max(1f/255f,visible) : 0);
     }
     private void settleAtmosphere() {
         daylight = targetDaylight; cloudiness = targetCloudiness; rain = targetRain; snow = targetSnow;
@@ -222,7 +229,7 @@ final class StudyLiveView extends FrameLayout {
     private void startVideoIfReady() {
         if (!canRunMotion() || decoderFailed || player != null || day == null || day.isRecycled()
                 || !texture.isAvailable() || getWidth() == 0 || getHeight() == 0) return;
-        firstFrame = false; texture.setAlpha(0);
+        firstFrame = false; renderingStarted = false; texture.setAlpha(0);
         videoNight = targetDaylight < .5f;
         MediaPlayer candidate = new MediaPlayer();
         player = candidate;
@@ -237,11 +244,11 @@ final class StudyLiveView extends FrameLayout {
             });
             candidate.setOnInfoListener((p, what, extra) -> {
                 if (p == player && canRunMotion() && what == MediaPlayer.MEDIA_INFO_VIDEO_RENDERING_START) {
-                    updateVideoAlpha();
+                    renderingStarted = true; updateVideoAlpha();
                 }
                 return false;
             });
-            candidate.setOnErrorListener((p, what, extra) -> { videoFailed(p); return true; });
+            candidate.setOnErrorListener((p, what, extra) -> { videoFailure="media:"+what+":"+extra; videoFailed(p); return true; });
             String asset = videoNight
                     ? (wide ? "scenes/study_night_landscape.mp4" : "scenes/study_night_portrait.mp4")
                     : (wide ? "scenes/study_landscape.mp4" : "scenes/study_portrait.mp4");
@@ -249,7 +256,7 @@ final class StudyLiveView extends FrameLayout {
                 candidate.setDataSource(fd.getFileDescriptor(),fd.getStartOffset(),fd.getLength());
             }
             candidate.prepareAsync();
-        } catch (Exception failure) { videoFailed(candidate); }
+        } catch (Exception failure) { videoFailure=failure.getClass().getSimpleName()+":"+failure.getMessage(); videoFailed(candidate); }
     }
     private void videoFailed(MediaPlayer failed) {
         if (failed != player) return;
@@ -258,7 +265,7 @@ final class StudyLiveView extends FrameLayout {
         atmosphere.invalidate();
     }
     private void stopVideo() {
-        firstFrame = false; texture.setAlpha(0);
+        firstFrame = false; renderingStarted = false; texture.setAlpha(0);
         MediaPlayer old = player; player = null;
         if (old != null) {
             old.setOnPreparedListener(null); old.setOnInfoListener(null); old.setOnErrorListener(null);

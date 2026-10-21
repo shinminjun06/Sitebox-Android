@@ -69,6 +69,7 @@ jobs:
             mkdir -p device-qa
             adb pull /sdcard/Android/data/com.sitebox.app/files/qa/ device-qa/
             adb logcat -d -s AndroidRuntime:E > device-qa/crashes.txt
+            adb logcat -d -s MediaPlayer:V NuPlayer:V CCodec:V ACodec:V TextureView:V > device-qa/media.txt
             grep -q 'PASS all nine theme combinations rendered' device-tests.txt
             grep -q 'PASS study live ambient and decoder lifecycle verified' device-tests.txt
             for scene in day night rain snow; do test -s "device-qa/qa/ambient-$scene.png"; done
