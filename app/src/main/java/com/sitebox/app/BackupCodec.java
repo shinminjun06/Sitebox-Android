@@ -36,7 +36,7 @@ final class BackupCodec {
   Object raw=o.get("sites"),cats=o.get("categories");if(!(raw instanceof JSONArray)||!(cats instanceof JSONArray))throw invalid();
   JSONArray sites=(JSONArray)raw,names=(JSONArray)cats;if(sites.length()>10000||names.length()!=9||integer(o,"bookCount")!=sites.length())throw invalid();
   Set<String> known=new HashSet<>(),folded=new HashSet<>();String[] categories=new String[9];
-  for(int i=0;i<9;i++){Object n=names.get(i);if(!(n instanceof String)||((String)n).trim().isEmpty()||!known.add((String)n)||!folded.add(((String)n).toLowerCase(Locale.ROOT)))throw invalid();categories[i]=(String)n;}
+  for(int i=0;i<9;i++){Object n=names.get(i);if(!(n instanceof String)||((String)n).trim().isEmpty()||!n.equals(((String)n).trim())||!known.add((String)n)||!folded.add(((String)n).toLowerCase(Locale.ROOT)))throw invalid();categories[i]=(String)n;}
   for(int i=0;i<sites.length();i++){
    Object value=sites.get(i);if(!(value instanceof JSONObject))throw invalid();JSONObject site=(JSONObject)value;
    if(string(site,"name").trim().isEmpty()||!known.contains(string(site,"category")))throw invalid();

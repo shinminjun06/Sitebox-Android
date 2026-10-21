@@ -10,6 +10,8 @@ import android.util.AtomicFile;
 import android.widget.*;
 import org.json.JSONArray;
 import java.io.*;
+import java.nio.ByteBuffer;
+import java.nio.charset.CodingErrorAction;
 import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
 import java.util.*;
@@ -75,7 +77,7 @@ final class BackupController {
         if(storageBusy||driveBusy){message("진행 중인 작업이 끝난 뒤 다시 시도해 주세요.");return true;}
         if(request==EXPORT){final String json;try{json=snapshot();}catch(Exception e){message("현재 데이터를 백업할 수 없어요.");return true;}
             work(()->{document(uri,json.getBytes(StandardCharsets.UTF_8));return "파일 저장을 마쳤어요. Drive 업로드 상태는 Drive 앱에서 확인할 수 있어요.";},value->message((String)value));
-        }else work(()->BackupCodec.decode(new String(document(uri,null),StandardCharsets.UTF_8)),value->preview((BackupCodec.Snapshot)value,"선택한 백업 파일"));
+        }else work(()->BackupCodec.decode(decodeUtf8(document(uri,null))),value->preview((BackupCodec.Snapshot)value,"선택한 백업 파일"));
         return true;
     }
     /** Nonblocking descriptors + bounded poll let cancellation interrupt even stalled pipe providers. */
@@ -115,7 +117,8 @@ final class BackupController {
         }catch(Exception e){message("복원하지 못했어요. 복원 전 기기 사본을 확인해 주세요.");}});
     }
     private boolean writePreferences(BackupCodec.Snapshot state){JSONArray names=new JSONArray();for(String name:state.categories)names.put(name);return activity.getPreferences(0).edit().putString("sites",state.sites.toString()).putString("categories",names.toString()).putInt("shelfTheme",state.shelfTheme).putInt("bookTheme",state.bookTheme).putString("backgroundTheme",state.backgroundTheme).putBoolean("studyThemeIntroduced",true).putBoolean("studyMotion",state.motion).commit();}
-    private static String readBounded(InputStream input)throws Exception{ByteArrayOutputStream bytes=new ByteArrayOutputStream();byte[] chunk=new byte[8192];int n;while((n=input.read(chunk))!=-1){if(bytes.size()+n>BackupCodec.MAX_BYTES)throw new IOException("Too large");bytes.write(chunk,0,n);}return new String(bytes.toByteArray(),StandardCharsets.UTF_8);}
+    private static String decodeUtf8(byte[] bytes)throws java.nio.charset.CharacterCodingException{return StandardCharsets.UTF_8.newDecoder().onMalformedInput(CodingErrorAction.REPORT).onUnmappableCharacter(CodingErrorAction.REPORT).decode(ByteBuffer.wrap(bytes)).toString();}
+    private static String readBounded(InputStream input)throws Exception{ByteArrayOutputStream bytes=new ByteArrayOutputStream();byte[] chunk=new byte[8192];int n;while((n=input.read(chunk))!=-1){if(bytes.size()+n>BackupCodec.MAX_BYTES)throw new IOException("Too large");bytes.write(chunk,0,n);}return decodeUtf8(bytes.toByteArray());}
     private interface Job{Object run()throws Exception;}private interface Result{void accept(Object value);}
     private void work(Job job,Result result){
         if(closed||storageBusy||driveBusy)return;storageBusy=true;update();CancellationSignal signal=new CancellationSignal();cancellation=signal;

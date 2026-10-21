@@ -28,6 +28,12 @@ final class BackupChecks {
    JSONObject invalid=new JSONObject(original);invalid.put("version",999);reject(invalid.toString());reject(original.substring(0,original.length()-1));reject(original+" garbage");reject("{unquoted:1}");
    invalid=new JSONObject(original);invalid.put("motion","true");reject(invalid.toString());
    invalid=new JSONObject(original);invalid.getJSONArray("sites").getJSONObject(0).put("url","javascript:alert(1)");reject(invalid.toString());
+   for(String padded:new String[]{" "+base.categories[0],base.categories[0]+" "}){
+    invalid=new JSONObject(original);invalid.getJSONArray("categories").put(0,padded);
+    JSONArray sites=invalid.getJSONArray("sites");for(int i=0;i<sites.length();i++)if(base.categories[0].equals(sites.getJSONObject(i).getString("category")))sites.getJSONObject(i).put("category",padded);
+    reject(invalid.toString());
+   }
+   test.check(BackupCodec.decode(original).sites.toString().equals(base.sites.toString()),"codec rejects padded category labels and preserves valid fixture");
    test.check(controller.snapshot()!=null&&base.sites.length()==32,"backup codec validates native fixture and rejects malformed imports");
    // A stalled pipe must respond to cancellation without waiting for a provider write/EOF.
    ParcelFileDescriptor[] pipe=ParcelFileDescriptor.createPipe();CancellationSignal cancel=new CancellationSignal();AtomicReference<Throwable> failure=new AtomicReference<>();
@@ -42,6 +48,13 @@ final class BackupChecks {
    test.check(BackupCodec.decode(saved).sites.toString().equals(base.sites.toString()),"native document URI export round trip");
    try(OutputStream out=activity.getContentResolver().openOutputStream(BackupTestProvider.DOCUMENT,"wt")){out.write("broken".getBytes(StandardCharsets.UTF_8));}
    test.main(()->controller.onActivityResult(BackupController.IMPORT,Activity.RESULT_OK,document));idle();test.check(before.equals(activity.getPreferences(0).getAll()),"malformed native import leaves preferences untouched");
+   JSONObject malformed=new JSONObject(original);malformed.getJSONArray("sites").getJSONObject(0).put("name","UTF8_MARKER");
+   byte[] corrupt=malformed.toString().getBytes(StandardCharsets.UTF_8);int marker=malformed.toString().indexOf("UTF8_MARKER");
+   int byteOffset=malformed.toString().substring(0,marker).getBytes(StandardCharsets.UTF_8).length;corrupt[byteOffset]=(byte)0xff;
+   try(OutputStream out=activity.getContentResolver().openOutputStream(BackupTestProvider.DOCUMENT,"wt")){out.write(corrupt);}
+   test.main(()->controller.onActivityResult(BackupController.IMPORT,Activity.RESULT_OK,document));idle();
+   android.view.accessibility.AccessibilityNodeInfo root=test.getUiAutomation().getRootInActiveWindow();
+   test.check(root!=null&&root.findAccessibilityNodeInfosByText("백업 복원 확인").isEmpty()&&before.equals(activity.getPreferences(0).getAll())&&activity.sites.toString().equals(base.sites.toString()),"invalid UTF-8 native import is rejected without preview or library changes");
    JSONArray books=new JSONArray();JSONObject book=new JSONObject().put("name","한글 메모 📚").put("url","https://example.com/saved").put("category",base.categories[0]).put("fav",true).put("notes","첫 줄\n둘째 줄").put("sortOrder",Long.MAX_VALUE).put("custom","preserved");books.put(book);
    String replacement=BackupCodec.encode(books,base.categories,2,1,"wizard",false);BackupCodec.Snapshot restored=BackupCodec.decode(replacement);
    test.check(restored.sites.getJSONObject(0).getLong("sortOrder")==Long.MAX_VALUE&&restored.sites.getJSONObject(0).getString("custom").equals("preserved"),"backup retains Korean metadata and full sort order range");
@@ -50,7 +63,7 @@ final class BackupChecks {
    test.main(()->controller.restore(restored));idle();
    BackupCodec.Snapshot actual=BackupCodec.decode(controller.snapshot());test.check(actual.sites.toString().equals(books.toString())&&actual.shelfTheme==2&&actual.bookTheme==1&&actual.backgroundTheme.equals("wizard")&&!actual.motion,"confirmed restore updates every field");
    test.main(activity::load);test.check(activity.sites.toString().equals(books.toString()),"restored library persists through preferences reload");
-   BackupCodec.Snapshot safety=BackupCodec.decode(java.nio.file.Files.readString(rollback.toPath()));test.check(safety.sites.toString().equals(base.sites.toString()),"restore saves original atomic rollback copy");
+   BackupCodec.Snapshot safety=BackupCodec.decode(new String(java.nio.file.Files.readAllBytes(rollback.toPath()),StandardCharsets.UTF_8));test.check(safety.sites.toString().equals(base.sites.toString()),"restore saves original atomic rollback copy");
    test.checks.append("PASS Google backup codec and local restore verified\nUNTESTED Google account consent and live Drive transfer: no configured cloud account in CI\n");
   }finally{
    idle();test.main(()->{prefs(before);activity.load();activity.motionEnabled=base.motion;activity.search.setText(filter);activity.setSearchExpanded(expanded);activity.page=page;activity.populate();activity.updateSceneBackdrop();prefs(before);});
