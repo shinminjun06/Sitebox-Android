@@ -9,8 +9,8 @@ android {
   minSdk 24
   targetSdk 35
   testInstrumentationRunner 'com.sitebox.app.SmokeInstrumentation'
-  versionCode 10
-  versionName '2.8-school'
+  versionCode 11
+  versionName '2.9-school'
   buildConfigField 'String', 'SOURCE_REVISION', '"' + revision + '"'
  }
  signingConfigs {
@@ -37,3 +37,5 @@ android {
  compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
  lint { abortOnError true }
 }
+
+dependencies { implementation "com.google.android.gms:play-services-auth:22.0.0" }

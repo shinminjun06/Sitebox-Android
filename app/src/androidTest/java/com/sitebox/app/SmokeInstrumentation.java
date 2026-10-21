@@ -57,6 +57,7 @@ public final class SmokeInstrumentation extends Instrumentation {
     check(activity.pageSummary.getText().toString().contains("/ 2"),"eighth book starts second page after seven visible books");
    });
    snapshot("oak-classic.png");
+   new BackupChecks(this).run();
    ambientScenes();
    final String fullFixture=activity.sites.toString();
    main(()->{try{JSONObject single=new JSONObject();single.put("name","naver");single.put("url","https://naver.com");single.put("category",activity.categories[5]);activity.sites=new JSONArray().put(single);activity.populate();}catch(Exception error){throw new RuntimeException(error);}});

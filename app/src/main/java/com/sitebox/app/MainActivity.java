@@ -68,6 +68,7 @@ public class MainActivity extends Activity {
  final int[] covers={0xFF152B49,0xFF74262D,0xFFE9D8B6,0xFF133D38,0xFF693525,0xFF234C4B,0xFF253858,0xFFBBA17D};
  int dp(float v){return (int)(getResources().getDisplayMetrics().density*v+0.5f);}
  GradientDrawable bg(int color,int radius){GradientDrawable d=new GradientDrawable();d.setColor(color);d.setCornerRadius(dp(radius));return d;}
+ BackupController backups;
  void load(){android.content.SharedPreferences prefs=getPreferences(0);boolean introduced=prefs.getBoolean("studyThemeIntroduced",false);backgroundThemeId=SceneTheme.initialTheme(prefs.getString(SceneTheme.PREFERENCE_KEY,null),introduced);if(!introduced)prefs.edit().putBoolean("studyThemeIntroduced",true).putString(SceneTheme.PREFERENCE_KEY,backgroundThemeId).apply();shelfThemeIndex=Math.max(0,Math.min(2,getPreferences(0).getInt("shelfTheme",0)));bookThemeIndex=Math.max(0,Math.min(2,getPreferences(0).getInt("bookTheme",0)));try{sites=new JSONArray(getPreferences(0).getString("sites","[]"));}catch(Exception e){sites=new JSONArray();}try{JSONArray saved=new JSONArray(getPreferences(0).getString("categories","[]"));if(saved.length()==9)for(int i=0;i<9;i++)categories[i]=saved.optString(i,categories[i]);}catch(Exception ignored){}}
  void save(){JSONArray names=new JSONArray();for(String c:categories)names.put(c);getPreferences(0).edit().putString("sites",sites.toString()).putString("categories",names.toString()).putInt("shelfTheme",shelfThemeIndex).putInt("bookTheme",bookThemeIndex).apply();}
  @Override public void onCreate(Bundle b){
@@ -77,9 +78,9 @@ public class MainActivity extends Activity {
  if(Build.VERSION.SDK_INT>=30)getWindow().setDecorFitsSystemWindows(false);
  else getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_LAYOUT_STABLE|View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN|View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION);
  getWindow().setStatusBarColor(Color.TRANSPARENT);getWindow().setNavigationBarColor(0x660F211C);
- draw();
+ draw();backups=new BackupController(this);if(b!=null)backups.restoreState(b);
  }
- @Override protected void onSaveInstanceState(Bundle out){super.onSaveInstanceState(out);out.putString("filter",filter);out.putBoolean("searchExpanded",searchExpanded);out.putInt("page",page);out.putBoolean("sceneCollapsed",sceneCollapsed);}
+ @Override protected void onSaveInstanceState(Bundle out){super.onSaveInstanceState(out);if(backups!=null)backups.saveState(out);out.putString("filter",filter);out.putBoolean("searchExpanded",searchExpanded);out.putInt("page",page);out.putBoolean("sceneCollapsed",sceneCollapsed);}
  @Override public void onTrimMemory(int level){super.onTrimMemory(level);if(level>=TRIM_MEMORY_RUNNING_LOW)assets.clear();}
 
  TextView label(String s,int size,int color){TextView t=new TextView(this);t.setText(s);t.setTextSize(size);t.setTextColor(color);return t;}
@@ -101,7 +102,7 @@ public class MainActivity extends Activity {
  TextView title=label("SiteBox",24,0xFFFFF4DD);title.setTypeface(Typeface.SERIF,Typeface.BOLD);title.setSingleLine(true);title.setEllipsize(TextUtils.TruncateAt.END);branding.addView(title);
  headline.addView(branding,new LinearLayout.LayoutParams(0,-2,1));
  TextView settings=label("설정",13,0xFFFFF1D5);settings.setGravity(Gravity.CENTER);settings.setContentDescription("카테고리와 테마 설정");headline.addView(settings,new LinearLayout.LayoutParams(dp(48),dp(48)));
- settings.setOnClickListener(v->new AlertDialog.Builder(this).setTitle("나의 서재").setItems(new String[]{"배경 테마","책장 · 책 테마","카테고리 이름 수정","시간 · 날씨 · 영상","앱 정보"},(d,w)->{if(w==0)showBackgroundThemes();else if(w==1)showThemes();else if(w==2)manageCategories();else if(w==3)showAmbientSettings();else new AlertDialog.Builder(this).setTitle("SiteBox "+BuildConfig.VERSION_NAME).setMessage("소스 버전: "+BuildConfig.SOURCE_REVISION+"\n책을 길게 눌러 칸 사이로 이동하세요.\n명패를 누르면 해당 칸에 책을 추가합니다.").setPositiveButton("닫기",null).show();}).show());
+ settings.setOnClickListener(v->new AlertDialog.Builder(this).setTitle("나의 서재").setItems(new String[]{"배경 테마","책장 · 책 테마","카테고리 이름 수정","시간 · 날씨 · 영상","Google 계정 · 백업","앱 정보"},(d,w)->{if(w==0)showBackgroundThemes();else if(w==1)showThemes();else if(w==2)manageCategories();else if(w==3)showAmbientSettings();else if(w==4)backups.show();else new AlertDialog.Builder(this).setTitle("SiteBox "+BuildConfig.VERSION_NAME).setMessage("소스 버전: "+BuildConfig.SOURCE_REVISION+"\n책을 길게 눌러 칸 사이로 이동하세요.\n명패를 누르면 해당 칸에 책을 추가합니다.").setPositiveButton("닫기",null).show();}).show());
  TextView add=label("＋",28,0xFF263B30);add.setGravity(Gravity.CENTER);add.setContentDescription("북마크 추가");add.setBackground(bg(0xFFE5C28A,14));headline.addView(add,new LinearLayout.LayoutParams(dp(48),dp(48)));add.setOnClickListener(v->edit(-1));searchToggle=label("검색",13,0xFFFFF1D5);searchToggle.setGravity(Gravity.CENTER);searchToggle.setContentDescription("검색 펼치기");headline.addView(searchToggle,new LinearLayout.LayoutParams(dp(48),dp(48)));searchToggle.setOnClickListener(v->setSearchExpanded(!searchExpanded));header.addView(headline);
  search=new EditText(this);search.setSingleLine(true);search.setTextSize(13);search.setTextColor(0xFF243E32);search.setHintTextColor(0xFF667568);search.setHint("검색 · 제목, 주소, 카테고리");search.setPadding(dp(14),0,dp(12),0);search.setBackground(bg(0xF2FFF9EB,12));search.setText(filter);
  search.setImeOptions(android.view.inputmethod.EditorInfo.IME_ACTION_SEARCH);
@@ -291,7 +292,8 @@ public class MainActivity extends Activity {
  @Override public void onBackPressed(){if(sceneCollapsed||sceneAnimating){expandFromScene(true);return;}super.onBackPressed();}
  void cancelProjection(){if(projectionAnimator!=null){projectionAnimator.cancel();projectionAnimator=null;}}
  void animateProjection(float target){cancelProjection();projectionAnimator=android.animation.ValueAnimator.ofFloat(miniature.getProjectionFraction(),target);projectionAnimator.addUpdateListener(value->miniature.setProjectionFraction((Float)value.getAnimatedValue()));projectionAnimator.setDuration(340);projectionAnimator.setInterpolator(new android.view.animation.DecelerateInterpolator());projectionAnimator.start();}
- @Override protected void onDestroy(){ambientHandler.removeCallbacksAndMessages(null);if(studyLive!=null)studyLive.release();if(weather!=null)weather.close();cancelProjection();if(controls!=null)controls.animate().cancel();if(sceneShadow!=null)sceneShadow.animate().cancel();if(miniature!=null){miniature.animate().cancel();miniature.setImageDrawable(null);}super.onDestroy();}
+ @Override protected void onActivityResult(int request,int result,Intent data){super.onActivityResult(request,result,data);if(backups!=null)backups.onActivityResult(request,result,data);}
+ @Override protected void onDestroy(){if(backups!=null)backups.close();ambientHandler.removeCallbacksAndMessages(null);if(studyLive!=null)studyLive.release();if(weather!=null)weather.close();cancelProjection();if(controls!=null)controls.animate().cancel();if(sceneShadow!=null)sceneShadow.animate().cancel();if(miniature!=null){miniature.animate().cancel();miniature.setImageDrawable(null);}super.onDestroy();}
 
  @Override protected void onResume(){super.onResume();foreground=true;restartAmbient();}
  @Override protected void onPause(){foreground=false;ambientHandler.removeCallbacks(ambientTick);if(studyLive!=null)studyLive.setActive(false);super.onPause();}

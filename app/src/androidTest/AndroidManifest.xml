@@ -1,0 +1,1 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"><application><provider android:name="com.sitebox.app.BackupTestProvider" android:authorities="com.sitebox.app.test.backup" android:exported="true" /></application></manifest>
