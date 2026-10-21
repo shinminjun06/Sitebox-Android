@@ -1,21 +1,13 @@
 package com.sitebox.app;
-
 import android.content.Context;
-import android.graphics.Canvas;
-import android.graphics.Paint;
-import android.graphics.RadialGradient;
-import android.graphics.Shader;
+import android.graphics.*;
 import android.view.View;
-
-/** Small, non-interactive contact shadow: no full-screen blur or bitmap allocation. */
+/** Cached cast gradient and two narrow foot contacts; no large blur. */
 final class FurnitureShadow extends View {
+ private float leftFoot=.23f,rightFoot=.77f,direction=.06f;
+ void setFootprint(float left,float right,float direction){leftFoot=left;rightFoot=right;this.direction=direction;invalidate();}
  private final Paint paint=new Paint(Paint.ANTI_ALIAS_FLAG);
- FurnitureShadow(Context context){
-  super(context);setImportantForAccessibility(IMPORTANT_FOR_ACCESSIBILITY_NO);
-  paint.setShader(new RadialGradient(0,0,1,new int[]{0x70432c15,0x35432c15,0x00432c15},new float[]{0,.45f,1},Shader.TileMode.CLAMP));
- }
- @Override protected void onDraw(Canvas canvas){
-  super.onDraw(canvas);canvas.save();canvas.translate(getWidth()*.5f,getHeight()*.5f);
-  canvas.scale(getWidth()*.5f,getHeight()*.5f);canvas.drawCircle(0,0,1,paint);canvas.restore();
- }
+ FurnitureShadow(Context context){super(context);setImportantForAccessibility(IMPORTANT_FOR_ACCESSIBILITY_NO);setClickable(false);paint.setShader(new RadialGradient(0,0,1,new int[]{0x60403932,0x25403932,0x00403932},new float[]{0,.35f,1},Shader.TileMode.CLAMP));}
+ private void ellipse(Canvas c,float x,float y,float rx,float ry){int save=c.save();c.translate(x,y);c.scale(rx,ry);c.drawCircle(0,0,1,paint);c.restoreToCount(save);}
+ @Override protected void onDraw(Canvas c){super.onDraw(c);ellipse(c,getWidth()*(.5f+direction),getHeight()*.60f,getWidth()*.44f,getHeight()*.40f);ellipse(c,getWidth()*leftFoot,getHeight()*.25f,getWidth()*.15f,getHeight()*.12f);ellipse(c,getWidth()*rightFoot,getHeight()*.25f,getWidth()*.15f,getHeight()*.12f);}
 }

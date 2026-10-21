@@ -1,42 +1,47 @@
 package com.sitebox.app;
 
-/** Image-space cabinet poses. Coordinates stay inside the original grounded envelope.
- * Positive depth exposes the left side; negative exposes the right. Small rising
- * receding edges follow the room's horizontal architecture, never its sloping roof. */
+/** Perspective cuboid parallel to the room wall. Rear corners converge on the camera horizon. */
 final class SceneProjection {
  static final SceneProjection[] ALL={
-  new SceneProjection("classroom",.075f,.025f,.012f),
-  new SceneProjection("library",-.09f,.027f,.016f),
-  new SceneProjection("bedroom",.085f,.031f,.015f),
-  new SceneProjection("greenhouse",.045f,.023f,.008f),
-  new SceneProjection("cafe",.10f,.032f,.018f),
-  new SceneProjection("tatami",-.035f,.028f,.006f),
-  new SceneProjection("attic",.08f,.035f,.014f),
-  new SceneProjection("lab",-.065f,.024f,.010f),
-  new SceneProjection("wizard",-.08f,.030f,.014f),
-  new SceneProjection("seaside",.065f,.030f,.012f),
-  new SceneProjection("train",.11f,.026f,.020f)
+  new SceneProjection("classroom",.50f,.41f,.10f,.96f),
+  new SceneProjection("library",.51f,.46f,.09f,.82f),
+  new SceneProjection("bedroom",.46f,.40f,.10f,.94f),
+  new SceneProjection("greenhouse",.48f,.49f,.11f,.96f),
+  new SceneProjection("cafe",.46f,.45f,.10f,.92f),
+  new SceneProjection("tatami",.50f,.45f,.09f,.94f),
+  new SceneProjection("attic",.49f,.35f,.10f,.91f),
+  new SceneProjection("lab",.54f,.43f,.08f,.93f),
+  new SceneProjection("wizard",.54f,.43f,.09f,.73f),
+  new SceneProjection("seaside",.50f,.40f,.10f,.97f),
+  new SceneProjection("train",.46f,.43f,.10f,.88f)
  };
- final String id;final float depth,top,rise;
- private SceneProjection(String id,float depth,float top,float rise){this.id=id;this.depth=depth;this.top=top;this.rise=rise;}
+ final String id; final float cameraX,cameraY,depth,brightness;
+ private SceneProjection(String id,float x,float y,float depth,float brightness){this.id=id;cameraX=x;cameraY=y;this.depth=depth;this.brightness=brightness;}
  static SceneProjection find(String id){for(SceneProjection p:ALL)if(p.id.equals(id))return p;return ALL[0];}
- /** Clockwise TL, TR, BR, BL, in local view pixels; caller owns the output. */
- void front(float w,float h,float fraction,float[] out){
-  float f=Math.max(0,Math.min(1,fraction)),d=Math.abs(depth)*f*w,t=top*f*h,r=rise*f*h;
-  boolean left=depth>=0;
-  out[0]=left?d:0;out[1]=t+(left?r:0);
-  out[2]=left?w:w-d;out[3]=t+(left?0:r);
-  out[4]=out[2];out[5]=left?h-2*r:h;
-  out[6]=out[0];out[7]=left?h:h-2*r;
+ boolean leftVisible(float vx){return vx<0;}
+ boolean rightVisible(float vx){return vx>1;}
+ boolean topVisible(float vy){return vy<0;}
+ // Default only for pure geometry callers; the renderer passes the actual cropped camera.
+ void front(float w,float h,float f,float[] out){front(w,h,f,-.25f,-.5f,out);}
+ void front(float w,float h,float f,float vx,float vy,float[] out){
+  f=Math.max(0,Math.min(1,f));float k=1/(1+depth*f);
+  float bx=vx*(1-k),br=k+vx*(1-k),by=vy*(1-k);
+  float minX=Math.min(0,bx),maxX=Math.max(1,br),minY=Math.min(0,by);
+  float scale=Math.min(1/(maxX-minX),1/(1-minY)),sx=w*scale,sy=h*scale;
+  float padding=(w-(maxX-minX)*sx)*.5f;
+  out[0]=padding-minX*sx;out[1]=h-sy;out[2]=padding+(1-minX)*sx;out[3]=out[1];out[4]=out[2];out[5]=h;out[6]=out[0];out[7]=h;
  }
- /** Back top corners and bottom corner of the exposed physical side. */
- void body(float w,float h,float fraction,float[] front,float[] side,float[] roof){
-  float f=Math.max(0,Math.min(1,fraction)),r=rise*f*h;
-  boolean left=depth>=0;int edge=left?0:2,bottom=left?6:4;
-  float backX=left?0:w,backY=Math.max(0,front[edge+1]-top*f*h);
-  side[0]=backX;side[1]=backY;side[2]=front[edge];side[3]=front[edge+1];side[4]=front[bottom];side[5]=front[bottom+1];side[6]=backX;side[7]=h-top*f*h-r;
-  roof[0]=left?backX:front[0];roof[1]=left?backY:Math.max(0,front[1]-top*f*h);
-  roof[2]=left?front[2]:backX;roof[3]=left?Math.max(0,front[3]-top*f*h):backY;
-  roof[4]=front[2];roof[5]=front[3];roof[6]=front[0];roof[7]=front[1];
+ void body(float w,float h,float f,float[] front,float[] side,float[] roof){body(w,h,f,-.25f,-.5f,front,side,roof);}
+ void body(float w,float h,float f,float vx,float vy,float[] a,float[] side,float[] roof){
+  f=Math.max(0,Math.min(1,f));float k=1/(1+depth*f),bx=vx*(1-k),br=k+vx*(1-k),by=vy*(1-k);
+  float minX=Math.min(0,bx),maxX=Math.max(1,br),minY=Math.min(0,by);
+  float scale=Math.min(1/(maxX-minX),1/(1-minY)),sx=w*scale,sy=h*scale;
+  float padding=(w-(maxX-minX)*sx)*.5f,originY=h-sy;
+  boolean left=leftVisible(vx);float x=left?0:1;
+  // Body ends above the transparent sprite feet, never as a full-height side plank.
+  float bottom=.94f,fx=padding+(x-minX)*sx,fy=originY+bottom*sy;
+  float rx=padding+(k*x+vx*(1-k)-minX)*sx,rt=originY+by*sy,rb=originY+(k*bottom+vy*(1-k))*sy;
+  side[0]=rx;side[1]=rt;side[2]=fx;side[3]=a[1];side[4]=fx;side[5]=fy;side[6]=rx;side[7]=rb;
+  roof[0]=padding+(bx-minX)*sx;roof[1]=originY+by*sy;roof[2]=padding+(br-minX)*sx;roof[3]=roof[1];roof[4]=a[2];roof[5]=a[3];roof[6]=a[0];roof[7]=a[1];
  }
 }

@@ -203,16 +203,18 @@ public final class SmokeInstrumentation extends Instrumentation {
  void checkProjection(SceneTheme theme){
   ProjectedCabinetView view=activity.miniature;
   check(view.room()==SceneProjection.find(theme.id),theme.id+" room projection profile applied");
-  check(view.sideTexture()==activity.assets.shelf(activity.shelfThemeIndex),theme.id+" physical side uses current theme cabinet bitmap");
+  check(view.sideTexture()!=activity.assets.shelf(activity.shelfThemeIndex),theme.id+" dedicated full-grain surface loaded without fallback");
+  check(view.sideTexture()==activity.assets.surface(activity.shelfThemeIndex),theme.id+" physical side uses current theme cabinet bitmap");
   check(Math.abs(view.getProjectionFraction()-1)<.0001f,theme.id+" projection animation settled");
-  float[] actual=new float[8],expected=new float[8];view.copyRenderedCorners(actual);view.room().front(view.getWidth(),view.getHeight(),1,expected);
+  float[] actual=new float[8],expected=new float[8];view.copyRenderedCorners(actual);view.expectedCorners(expected);
   for(int i=0;i<8;i++)check(Math.abs(actual[i]-expected[i])<.1f,theme.id+" rendered homography corner "+i);
   check(Math.max(actual[5],actual[7])>=view.getHeight()-.1f,theme.id+" projected feet retain floor contact");
-  check(view.room().depth>0?actual[0]>0:actual[2]<view.getWidth(),theme.id+" cabinet exposes selected physical side");
+  check(Math.abs((actual[5]-actual[1])/(actual[2]-actual[0])-(float)view.getHeight()/view.getWidth())<.001f,theme.id+" physical front preserves snapshot aspect ratio");
+  check(Math.abs(actual[1]-actual[3])<.1f,theme.id+" frontal cabinet crown stays level");
   try{
    JSONObject pose=new JSONObject();JSONArray corners=new JSONArray();int[] stageLocation=new int[2];activity.stage.getLocationOnScreen(stageLocation);
    for(int i=0;i<8;i++)corners.put((i%2==0?stageLocation[0]+view.getX():stageLocation[1]+view.getY())+actual[i]*(i%2==0?view.getScaleX():view.getScaleY()));
-   pose.put("front",corners);pose.put("depth",view.room().depth);pose.put("topDepth",view.room().top);
+   pose.put("front",corners);pose.put("depth",view.room().depth);pose.put("sideVisible",view.sideVisible());pose.put("topVisible",view.topVisible());
    float[] side=new float[8],roof=new float[8];view.copyRenderedBodyCorners(side,roof);
    for(int face=0;face<2;face++){float[] points=face==0?side:roof;JSONArray coordinates=new JSONArray();for(int i=0;i<8;i++)coordinates.put((i%2==0?stageLocation[0]+view.getX():stageLocation[1]+view.getY())+points[i]*(i%2==0?view.getScaleX():view.getScaleY()));pose.put(face==0?"side":"top",coordinates);}
    File directory=new File(getTargetContext().getExternalFilesDir(null),"qa");directory.mkdirs();
@@ -497,6 +499,10 @@ public final class SmokeInstrumentation extends Instrumentation {
  void touch(long down,int action,float x,float y){android.view.MotionEvent event=android.view.MotionEvent.obtain(down,android.os.SystemClock.uptimeMillis(),action,x,y,0);event.setSource(android.view.InputDevice.SOURCE_TOUCHSCREEN);if(!getUiAutomation().injectInputEvent(event,true))throw new AssertionError("native touch injection");event.recycle();}
  void snapshot(String name){
   android.os.SystemClock.sleep(450);waitForIdleSync();
+  java.util.concurrent.CountDownLatch drawn=new java.util.concurrent.CountDownLatch(1);
+  main(()->{activity.stage.getViewTreeObserver().addOnPreDrawListener(new android.view.ViewTreeObserver.OnPreDrawListener(){public boolean onPreDraw(){activity.stage.getViewTreeObserver().removeOnPreDrawListener(this);activity.stage.postOnAnimation(()->drawn.countDown());return true;}});activity.stage.invalidate();});
+  try{if(!drawn.await(3,java.util.concurrent.TimeUnit.SECONDS))throw new AssertionError("screenshot requires a fresh on-screen frame");}catch(InterruptedException interrupted){throw new RuntimeException(interrupted);}
+  main(()->{check(!activity.sceneAnimating,"screenshot animation settled");if(activity.sceneCollapsed)check(activity.controls.getVisibility()==View.INVISIBLE&&activity.miniature.isShown()&&activity.miniature.getProjectionFraction()==1,"collapsed screenshot is real visible miniature with controls hidden");});
   try{
    Bitmap image=getUiAutomation().takeScreenshot();if(image==null)throw new IllegalStateException("screenshot unavailable");
    File directory=new File(getTargetContext().getExternalFilesDir(null),"qa");directory.mkdirs();

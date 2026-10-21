@@ -38,3 +38,15 @@ for key in ['library','bedroom','greenhouse','cafe','tatami','attic','lab','wiza
  scene_hashes.add(hashlib.sha256(path.read_bytes()).hexdigest())
 assert len(scene_hashes)==10,'Each concept needs distinct artwork'
 print('PASS: ten unique portrait background concepts; bounded WebP assets')
+
+# Independent full-grain timber surfaces: decode every shipped finish, no alpha or sprite strip.
+surfaces=[]
+for key in ['oak','walnut','white_oak']:
+ path=root/'shelves'/key/'surface.webp'
+ with Image.open(path) as surface:
+  surface.load()
+  assert surface.format=='WEBP' and surface.mode=='RGB' and surface.size==(1024,1024),(path,surface.mode,surface.size)
+  assert path.stat().st_size<500000,path
+  assert surface.getextrema()[0][1]-surface.getextrema()[0][0]>20,path
+ surfaces.append(path)
+print(f'PASS: {len(surfaces)} square RGB wood surfaces decoded; bounded file size and full-grain contrast')

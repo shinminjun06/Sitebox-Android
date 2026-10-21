@@ -28,6 +28,7 @@ final class ThemeAssets {
   }catch(Exception unavailable){return null;}
  }
  Bitmap shelf(int index){return get("themes/shelves/"+SHELVES[index]+"/cabinet.webp");}
+ Bitmap surface(int index){Bitmap surface=get("themes/shelves/"+SHELVES[index]+"/surface.webp");return surface!=null?surface:shelf(index);}
  Bitmap book(int index,int variant){return get("themes/books/"+BOOKS[index]+"/"+(variant%4)+".webp");}
  Bitmap scene(boolean landscape){
   Bitmap room=get("scenes/classroom_"+(landscape?"landscape":"portrait")+".webp");
