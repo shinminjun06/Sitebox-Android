@@ -176,9 +176,16 @@ public final class SmokeInstrumentation extends Instrumentation {
   });
  }
  void awaitDaylight(float expected){
-  final boolean[] ready={false};long deadline=android.os.SystemClock.uptimeMillis()+1300;
-  do{main(()->ready[0]=Math.abs(activity.studyLive.getDaylight()-expected)<.05f);if(ready[0]){check(true,"study daylight settles to "+expected+" within 1.3 seconds");return;}android.os.SystemClock.sleep(25);}while(android.os.SystemClock.uptimeMillis()<deadline);
-  throw new AssertionError("study daylight transition exceeded 1.3 seconds: "+expected);
+  final float[] daylight={Float.NaN};final long[] times={0,0};final String[] status={""};final Throwable[] failure={null};long startedAt=android.os.SystemClock.uptimeMillis(),deadline=startedAt+1300;
+  do{
+   times[0]=android.os.SystemClock.uptimeMillis();
+   // Read live animation state without waiting for global UI idle after the observation.
+   runOnMainSync(()->{try{times[1]=android.os.SystemClock.uptimeMillis();daylight[0]=activity.studyLive.getDaylight();status[0]=activity.studyLive.videoStatusForTest();}catch(Throwable error){failure[0]=error;}});
+   if(failure[0] instanceof Error)throw (Error)failure[0];if(failure[0] instanceof RuntimeException)throw (RuntimeException)failure[0];if(failure[0]!=null)throw new RuntimeException(failure[0]);
+   if(times[1]<=deadline&&Math.abs(daylight[0]-expected)<.05f){check(true,"study daylight settles to "+expected+" within 1.3 seconds");return;}
+   android.os.SystemClock.sleep(25);
+  }while(android.os.SystemClock.uptimeMillis()<deadline);
+  throw new AssertionError("study daylight transition exceeded 1.3 seconds: expected="+expected+",lastValue="+daylight[0]+",startedAt="+startedAt+",requestedAt="+times[0]+",observedAt="+times[1]+",deadline="+deadline+",reportedAt="+android.os.SystemClock.uptimeMillis()+",status={"+status[0]+"}");
  }
  static final class VideoObservation {
   long requestedAt,observedAt,frames;boolean playing,hasFrame;String status;
