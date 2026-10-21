@@ -180,18 +180,26 @@ public final class SmokeInstrumentation extends Instrumentation {
   do{main(()->ready[0]=Math.abs(activity.studyLive.getDaylight()-expected)<.05f);if(ready[0]){check(true,"study daylight settles to "+expected+" within 1.3 seconds");return;}android.os.SystemClock.sleep(25);}while(android.os.SystemClock.uptimeMillis()<deadline);
   throw new AssertionError("study daylight transition exceeded 1.3 seconds: "+expected);
  }
+ static final class VideoObservation {
+  long requestedAt,observedAt,frames;boolean playing,hasFrame;String status;
+  @Override public String toString(){return "requestedAt="+requestedAt+",observedAt="+observedAt+",frames="+frames+",playing="+playing+",hasFrame="+hasFrame+",status={"+status+"}";}
+ }
+ VideoObservation observeStudyVideo(){
+  VideoObservation sample=new VideoObservation();sample.requestedAt=android.os.SystemClock.uptimeMillis();final Throwable[] failure={null};
+  // Do not wait for global UI idle after sampling: animation work can make an observation stale.
+  runOnMainSync(()->{try{sample.observedAt=android.os.SystemClock.uptimeMillis();sample.frames=activity.studyLive.renderedFrames();sample.playing=activity.studyLive.isPlaying();sample.hasFrame=activity.studyLive.hasVideoFrame();sample.status=activity.studyLive.videoStatusForTest();}catch(Throwable error){failure[0]=error;}});
+  if(failure[0] instanceof Error)throw (Error)failure[0];if(failure[0] instanceof RuntimeException)throw (RuntimeException)failure[0];if(failure[0]!=null)throw new RuntimeException(failure[0]);return sample;
+ }
  void awaitStudyVideo(String label){
-  final long[] initial={0};main(()->initial[0]=activity.studyLive.renderedFrames());
-  final boolean[] ready={false};long deadline=android.os.SystemClock.uptimeMillis()+12000;
+  VideoObservation initial=observeStudyVideo(),observed=initial;long deadline=initial.observedAt+12000;boolean ready=false;
   // Preparing/first display can briefly stall under emulator decoder startup load.
   // Require sustained current-decoder texture updates before testing steady progress.
-  do{main(()->ready[0]=activity.studyLive.isPlaying()&&activity.studyLive.hasVideoFrame()&&activity.studyLive.renderedFrames()>=initial[0]+3);if(ready[0])break;android.os.SystemClock.sleep(50);}while(android.os.SystemClock.uptimeMillis()<deadline);
-  if(!ready[0]){final String[] detail={""};main(()->detail[0]=activity.studyLive.videoStatusForTest());throw new AssertionError(label+" no sustained native frames: "+detail[0]);}
+  do{observed=observeStudyVideo();ready=observed.observedAt<=deadline&&observed.playing&&observed.hasFrame&&observed.frames>=initial.frames+3;if(ready)break;android.os.SystemClock.sleep(50);}while(android.os.SystemClock.uptimeMillis()<deadline);
+  if(!ready)throw new AssertionError(label+" no sustained native frames: baseline={"+initial+"},last={"+observed+"},deadline="+deadline+",reportedAt="+android.os.SystemClock.uptimeMillis());
   check(true,label+" prepared and rendered first native video frame");
-  final long[] frames={0};main(()->frames[0]=activity.studyLive.renderedFrames());
-  final boolean[] advancing={false};long progressDeadline=android.os.SystemClock.uptimeMillis()+1000;
-  do{android.os.SystemClock.sleep(50);main(()->advancing[0]=activity.studyLive.isPlaying()&&activity.studyLive.renderedFrames()>=frames[0]+2);if(advancing[0])break;}while(android.os.SystemClock.uptimeMillis()<progressDeadline);
-  if(!advancing[0]){final String[] detail={""};main(()->detail[0]=activity.studyLive.videoStatusForTest());throw new AssertionError(label+" steady progress stalled from "+frames[0]+": "+detail[0]);}
+  VideoObservation baseline=observeStudyVideo();long progressDeadline=baseline.observedAt+1000;boolean advancing=false;
+  do{android.os.SystemClock.sleep(50);observed=observeStudyVideo();advancing=observed.observedAt<=progressDeadline&&observed.playing&&observed.frames>=baseline.frames+2;if(advancing)break;}while(android.os.SystemClock.uptimeMillis()<progressDeadline);
+  if(!advancing)throw new AssertionError(label+" steady progress stalled: baseline={"+baseline+"},last={"+observed+"},deadline="+progressDeadline+",reportedAt="+android.os.SystemClock.uptimeMillis());
   check(true,label+" decoder advances at least two actual video frames within one second");
  }
  void projectedCabinetThemes(){

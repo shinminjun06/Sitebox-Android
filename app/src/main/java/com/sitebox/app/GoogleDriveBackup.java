@@ -61,7 +61,7 @@ final class GoogleDriveBackup {
    awaiting=true;cancelTimeout();try{activity.startIntentSenderForResult(result.getPendingIntent().getIntentSender(),REQUEST,null,0,0,0);}catch(Exception e){awaiting=false;finish("Google 연결 화면을 열지 못했어요.");}return;
   }
   awaiting=false;if(!result.getGrantedScopes().contains(SCOPE)||result.getAccessToken()==null||result.getAccessToken().isEmpty()){finish("앱 데이터 백업 권한이 필요해요.");return;}
-  token=result.getAccessToken();runIo(gen);
+  token=result.getAccessToken();account="";email="";changed("Google 계정을 확인하고 있어요.");runIo(gen);
  }
  boolean onActivityResult(int req,int result,Intent data){
   if(req!=REQUEST)return false;if(closed||!awaiting)return true;awaiting=false;
@@ -104,7 +104,7 @@ final class GoogleDriveBackup {
   });}catch(java.util.concurrent.RejectedExecutionException e){finish("이전 작업이 끝난 뒤 다시 시도해 주세요.");}
  }
  private void expired(String expired){
-  token=null;if(retried){account="";email="";finish("Google 계정을 다시 연결해 주세요.");return;}retried=true;final int gen=generation;
+  token=null;account="";if(retried){email="";finish("Google 계정을 다시 연결해 주세요.");return;}retried=true;changed("Google 계정 인증을 갱신하고 있어요.");final int gen=generation;
   auth.clearToken(ClearTokenRequest.builder().setToken(expired).build()).addOnSuccessListener(unused->{if(valid(gen))authorize(false);}).addOnFailureListener(error->{if(valid(gen))finish("Google 계정을 다시 연결해 주세요.");});
  }
  void disconnect(){

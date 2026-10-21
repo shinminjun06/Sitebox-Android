@@ -20,6 +20,21 @@ final class BackupChecks {
  View find(View v,String text){if(v instanceof TextView&&text.contentEquals(((TextView)v).getText()))return v;if(v instanceof ViewGroup)for(int i=0;i<((ViewGroup)v).getChildCount();i++){View hit=find(((ViewGroup)v).getChildAt(i),text);if(hit!=null)return hit;}return null;}
  void prefs(Map<String,?> state){SharedPreferences.Editor e=activity.getPreferences(0).edit().clear();for(Map.Entry<String,?> x:state.entrySet()){Object v=x.getValue();String k=x.getKey();if(v instanceof String)e.putString(k,(String)v);else if(v instanceof Integer)e.putInt(k,(Integer)v);else if(v instanceof Long)e.putLong(k,(Long)v);else if(v instanceof Boolean)e.putBoolean(k,(Boolean)v);else if(v instanceof Float)e.putFloat(k,(Float)v);}if(!e.commit())throw new AssertionError("Test cleanup prefs");}
  void reject(String json)throws Exception{try{BackupCodec.decode(json);throw new AssertionError("Invalid backup accepted");}catch(JSONException expected){}}
+ boolean activeWindowHasText(String text){
+  android.view.accessibility.AccessibilityNodeInfo root=test.activeAppWindow();
+  if(root==null||!activity.getPackageName().contentEquals(root.getPackageName()))throw new AssertionError("Expected SiteBox window while checking "+text);
+  for(android.view.accessibility.AccessibilityNodeInfo node:root.findAccessibilityNodeInfosByText(text))if(text.contentEquals(node.getText()==null?"":node.getText()))return true;
+  return false;
+ }
+ void snapshotDialog(String title,String file){
+  // Recovery preserves the external launcher ANR separately; never accept it in the dialog artifact.
+  for(int attempt=0;attempt<3;attempt++){
+   test.check(activeWindowHasText(title),"active backup dialog before screenshot: "+title);int recovered=test.recoveredPixelLauncherAnrs;
+   test.snapshot(file);test.check(activeWindowHasText(title),"active backup dialog after screenshot: "+title);
+   if(recovered==test.recoveredPixelLauncherAnrs)return;
+  }
+  throw new AssertionError("External launcher repeatedly obscured "+file);
+ }
  void run()throws Exception{
   // MainActivity's five-second tip dismissal writes this key asynchronously; settle it before comparing all preferences.
   test.main(()->{if(!activity.getPreferences(0).edit().putBoolean("gestureTipSeen",true).commit())throw new AssertionError("Settle gesture tip fixture");});
@@ -44,29 +59,29 @@ final class BackupChecks {
     Thread blocked=new Thread(()->{try{BackupController.transfer(pipe[writing?1:0],payload,cancel);failure.set(new AssertionError("Cancelled pipe succeeded"));}catch(OperationCanceledException expected){}catch(Throwable e){failure.set(e);}finally{if(Thread.currentThread().isInterrupted())failure.set(new AssertionError("Transfer left worker interrupted"));}});
     blocked.start();SystemClock.sleep(120);cancel.cancel();blocked.join(1500);boolean stopped=!blocked.isAlive();pipe[0].close();pipe[1].close();test.check(stopped&&failure.get()==null,"stalled document "+(writing?"write":"read")+" cancels through interruptible channel");
    }
-   test.main(controller::show);test.snapshot("backup-settings.png");
-   // Close settings through back before using synthetic Android document results.
-   test.sendKeyDownUpSync(android.view.KeyEvent.KEYCODE_BACK);test.waitForIdleSync();
+   test.activeAppWindow();test.main(controller::show);snapshotDialog("Google 계정 · 백업","backup-settings.png");
+   test.clickText("닫기");test.waitForIdleSync();test.check(!activeWindowHasText("Google 계정 · 백업"),"backup settings closes through its visible button");
+   test.activeAppWindow();
    test.main(()->controller.onActivityResult(BackupController.EXPORT,Activity.RESULT_CANCELED,null));test.check(before.equals(activity.getPreferences(0).getAll()),"cancelled picker preserves preferences");
    Intent document=new Intent().setData(BackupTestProvider.DOCUMENT);
-   test.main(()->controller.onActivityResult(BackupController.EXPORT,Activity.RESULT_OK,document));idle();
+   test.activeAppWindow();test.main(()->controller.onActivityResult(BackupController.EXPORT,Activity.RESULT_OK,document));idle();
    String saved;try(InputStream in=activity.getContentResolver().openInputStream(BackupTestProvider.DOCUMENT)){saved=new String(in.readAllBytes(),StandardCharsets.UTF_8);}
    test.check(BackupCodec.decode(saved).sites.toString().equals(base.sites.toString()),"native document URI export round trip");
    try(OutputStream out=activity.getContentResolver().openOutputStream(BackupTestProvider.DOCUMENT,"wt")){out.write("broken".getBytes(StandardCharsets.UTF_8));}
-   test.main(()->controller.onActivityResult(BackupController.IMPORT,Activity.RESULT_OK,document));idle();test.check(before.equals(activity.getPreferences(0).getAll()),"malformed native import leaves preferences untouched");
+   test.activeAppWindow();test.main(()->controller.onActivityResult(BackupController.IMPORT,Activity.RESULT_OK,document));idle();test.check(before.equals(activity.getPreferences(0).getAll()),"malformed native import leaves preferences untouched");
    JSONObject malformed=new JSONObject(original);malformed.getJSONArray("sites").getJSONObject(0).put("name","UTF8_MARKER");
    byte[] corrupt=malformed.toString().getBytes(StandardCharsets.UTF_8);int marker=malformed.toString().indexOf("UTF8_MARKER");
    int byteOffset=malformed.toString().substring(0,marker).getBytes(StandardCharsets.UTF_8).length;corrupt[byteOffset]=(byte)0xff;
    try(OutputStream out=activity.getContentResolver().openOutputStream(BackupTestProvider.DOCUMENT,"wt")){out.write(corrupt);}
-   test.main(()->controller.onActivityResult(BackupController.IMPORT,Activity.RESULT_OK,document));idle();
-   android.view.accessibility.AccessibilityNodeInfo root=test.getUiAutomation().getRootInActiveWindow();
-   test.check(root!=null&&root.findAccessibilityNodeInfosByText("백업 복원 확인").isEmpty()&&before.equals(activity.getPreferences(0).getAll())&&activity.sites.toString().equals(base.sites.toString()),"invalid UTF-8 native import is rejected without preview or library changes");
+   test.activeAppWindow();test.main(()->controller.onActivityResult(BackupController.IMPORT,Activity.RESULT_OK,document));idle();
+   test.check(!activeWindowHasText("백업 복원 확인")&&before.equals(activity.getPreferences(0).getAll())&&activity.sites.toString().equals(base.sites.toString()),"invalid UTF-8 native import is rejected without preview or library changes");
    JSONArray books=new JSONArray();JSONObject book=new JSONObject().put("name","한글 메모 📚").put("url","https://example.com/saved").put("category",base.categories[0]).put("fav",true).put("notes","첫 줄\n둘째 줄").put("sortOrder",Long.MAX_VALUE).put("custom","preserved");books.put(book);
    String replacement=BackupCodec.encode(books,base.categories,2,1,"wizard",false);BackupCodec.Snapshot restored=BackupCodec.decode(replacement);
    test.check(restored.sites.getJSONObject(0).getLong("sortOrder")==Long.MAX_VALUE&&restored.sites.getJSONObject(0).getString("custom").equals("preserved"),"backup retains Korean metadata and full sort order range");
-   // Validate/read remains separate from explicit confirmation. Cancel via back, then restore explicitly.
-   test.main(()->controller.validateAndPreview(replacement,"기기 문서 테스트"));idle();test.snapshot("backup-preview.png");test.sendKeyDownUpSync(android.view.KeyEvent.KEYCODE_BACK);test.waitForIdleSync();test.check(before.equals(activity.getPreferences(0).getAll()),"cancelled restore preview leaves data unchanged");
-   test.main(()->controller.restore(restored));idle();
+   // Validate/read remains separate from explicit confirmation. Cancel the visible preview, then restore explicitly.
+   test.activeAppWindow();test.main(()->controller.validateAndPreview(replacement,"기기 문서 테스트"));idle();snapshotDialog("백업 복원 확인","backup-preview.png");test.clickText("취소");test.waitForIdleSync();
+   test.check(!activeWindowHasText("백업 복원 확인")&&before.equals(activity.getPreferences(0).getAll()),"cancelled restore preview closes and leaves data unchanged");
+   test.activeAppWindow();test.main(()->controller.restore(restored));idle();
    BackupCodec.Snapshot actual=BackupCodec.decode(controller.snapshot());test.check(actual.sites.toString().equals(books.toString())&&actual.shelfTheme==2&&actual.bookTheme==1&&actual.backgroundTheme.equals("wizard")&&!actual.motion,"confirmed restore updates every field");
    test.main(activity::load);test.check(activity.sites.toString().equals(books.toString()),"restored library persists through preferences reload");
    BackupCodec.Snapshot safety=BackupCodec.decode(new String(java.nio.file.Files.readAllBytes(rollback.toPath()),StandardCharsets.UTF_8));test.check(safety.sites.toString().equals(base.sites.toString()),"restore saves original atomic rollback copy");
