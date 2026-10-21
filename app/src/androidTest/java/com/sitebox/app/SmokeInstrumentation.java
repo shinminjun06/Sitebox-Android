@@ -96,8 +96,8 @@ public final class SmokeInstrumentation extends Instrumentation {
    collapsedSearchRotation();
    renameCategory();
    rotateScreens();
-   pinchCollapseRestore();
    projectedCabinetThemes();
+   pinchCollapseRestore();
    backgroundCollection();
    main(()->{
     View root=((ViewGroup)activity.stage).getChildAt(1);View header=((ViewGroup)root).getChildAt(0);
@@ -111,7 +111,7 @@ public final class SmokeInstrumentation extends Instrumentation {
   finally{
    if(activity!=null&&backupSites!=null){main(()->{SharedPreferences.Editor restore=activity.getPreferences(0).edit().putString("sites",backupSites).putString("categories",backupCategories).putInt("shelfTheme",backupShelf).putInt("bookTheme",backupBook);if(hadBackground)restore.putString("backgroundTheme",backupBackground);else restore.remove("backgroundTheme");if(hadGestureTip)restore.putBoolean("gestureTipSeen",backupGestureTip);else restore.remove("gestureTipSeen");restore.commit();activity.finish();});}
   }
-  checks.append("ENV recoveredPixelLauncherAnrs=").append(recoveredPixelLauncherAnrs).append("\n");
+  checks.append("\nENV recoveredPixelLauncherAnrs=").append(recoveredPixelLauncherAnrs).append("\n");
   result.putString("stream",checks.toString());finish(code,result);
  }
  void projectedCabinetThemes(){
@@ -441,23 +441,35 @@ public final class SmokeInstrumentation extends Instrumentation {
   if(!measure){pinchMotion(inward);return;}
   String previous=shell("settings get global animator_duration_scale");
   if(!previous.equals("null")&&!previous.matches("[0-9]+(\\.[0-9]+)?"))throw new AssertionError("Unexpected animator duration scale: "+previous);
+  final boolean[] intermediate={false};final float[] last={0};final int[] renderedIntermediateFrames={0};
+  android.view.ViewTreeObserver.OnPreDrawListener observer=()->{
+   float fraction=activity.miniature.getProjectionFraction();
+   if(activity.sceneCollapsed&&activity.sceneAnimating&&fraction>0&&fraction<1){renderedIntermediateFrames[0]++;if(fraction>last[0])intermediate[0]=true;}
+   last[0]=fraction;return true;
+  };
   try{
    shell("settings put global animator_duration_scale 1");awaitAnimatorScaleOne();
    check(shell("settings get global animator_duration_scale").equals("1"),"temporarily enable measured native projection animation");
+   main(()->activity.stage.getViewTreeObserver().addOnPreDrawListener(observer));
    pinchMotion(inward);awaitScene(true);
+   main(()->{
+    checks.append("ENV forward projection intermediate draw frames=").append(renderedIntermediateFrames[0]).append("\n");
+    check(intermediate[0],"native pinch animates continuous intermediate projection");
+    check(activity.miniature.getProjectionFraction()==1,"native pinch settles projection at room pose");
+   });
   }finally{
+   main(()->{if(activity.stage.getViewTreeObserver().isAlive())activity.stage.getViewTreeObserver().removeOnPreDrawListener(observer);});
    shell(previous.equals("null")?"settings delete global animator_duration_scale":"settings put global animator_duration_scale "+previous);
   }
  }
  void pinchMotion(boolean inward){
-  final boolean observeProjection=inward&&!activity.sceneCollapsed;final boolean[] sawProjection={false};
   float width=activity.stage.getWidth(),y=activity.stage.getHeight()*.54f;
   float start=inward?.06f:.38f,end=inward?.38f:.06f;
   long down=android.os.SystemClock.uptimeMillis();touch(down,android.view.MotionEvent.ACTION_DOWN,width*start,y);
   twoFinger(down,android.view.MotionEvent.ACTION_POINTER_DOWN|(1<<android.view.MotionEvent.ACTION_POINTER_INDEX_SHIFT),width*start,width*(1-start),y);
-  for(int i=1;i<=24;i++){float f=start+(end-start)*i/24f;twoFinger(down,android.view.MotionEvent.ACTION_MOVE,width*f,width*(1-f),y);if(observeProjection)runOnMainSync(()->{float fraction=activity.miniature.getProjectionFraction();if(fraction>0&&fraction<1)sawProjection[0]=true;});android.os.SystemClock.sleep(18);}
+  for(int i=1;i<=24;i++){float f=start+(end-start)*i/24f;twoFinger(down,android.view.MotionEvent.ACTION_MOVE,width*f,width*(1-f),y);android.os.SystemClock.sleep(18);}
   twoFinger(down,android.view.MotionEvent.ACTION_POINTER_UP|(1<<android.view.MotionEvent.ACTION_POINTER_INDEX_SHIFT),width*end,width*(1-end),y);
-  touch(down,android.view.MotionEvent.ACTION_UP,width*end,y);waitForIdleSync();if(observeProjection)check(sawProjection[0],"native pinch animates continuous intermediate projection");
+  touch(down,android.view.MotionEvent.ACTION_UP,width*end,y);waitForIdleSync();
  }
  void twoFinger(long down,int action,float left,float right,float y){
   android.view.MotionEvent.PointerProperties[] properties={new android.view.MotionEvent.PointerProperties(),new android.view.MotionEvent.PointerProperties()};
