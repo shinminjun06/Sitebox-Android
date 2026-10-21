@@ -24,17 +24,17 @@ final class SceneProjection {
  void front(float w,float h,float fraction,float[] out){
   float f=Math.max(0,Math.min(1,fraction)),d=Math.abs(depth)*f*w,t=top*f*h,r=rise*f*h;
   boolean left=depth>=0;
-  out[0]=left?d:0;out[1]=t+(left?0:r);
-  out[2]=left?w:w-d;out[3]=t+(left?r:0);
-  out[4]=out[2];out[5]=left?h-r:h;
-  out[6]=out[0];out[7]=left?h:h-r;
+  out[0]=left?d:0;out[1]=t+(left?r:0);
+  out[2]=left?w:w-d;out[3]=t+(left?0:r);
+  out[4]=out[2];out[5]=left?h-2*r:h;
+  out[6]=out[0];out[7]=left?h:h-2*r;
  }
  /** Back top corners and bottom corner of the exposed physical side. */
  void body(float w,float h,float fraction,float[] front,float[] side,float[] roof){
   float f=Math.max(0,Math.min(1,fraction)),r=rise*f*h;
   boolean left=depth>=0;int edge=left?0:2,bottom=left?6:4;
   float backX=left?0:w,backY=Math.max(0,front[edge+1]-top*f*h);
-  side[0]=backX;side[1]=backY;side[2]=front[edge];side[3]=front[edge+1];side[4]=front[bottom];side[5]=front[bottom+1];side[6]=backX;side[7]=h-r;
+  side[0]=backX;side[1]=backY;side[2]=front[edge];side[3]=front[edge+1];side[4]=front[bottom];side[5]=front[bottom+1];side[6]=backX;side[7]=h-top*f*h-r;
   roof[0]=left?backX:front[0];roof[1]=left?backY:Math.max(0,front[1]-top*f*h);
   roof[2]=left?front[2]:backX;roof[3]=left?Math.max(0,front[3]-top*f*h):backY;
   roof[4]=front[2];roof[5]=front[3];roof[6]=front[0];roof[7]=front[1];

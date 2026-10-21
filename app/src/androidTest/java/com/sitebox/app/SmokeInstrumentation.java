@@ -96,6 +96,7 @@ public final class SmokeInstrumentation extends Instrumentation {
    renameCategory();
    rotateScreens();
    pinchCollapseRestore();
+   projectedCabinetThemes();
    backgroundCollection();
    main(()->{
     View root=((ViewGroup)activity.stage).getChildAt(1);View header=((ViewGroup)root).getChildAt(0);
@@ -110,6 +111,25 @@ public final class SmokeInstrumentation extends Instrumentation {
    if(activity!=null&&backupSites!=null){main(()->{SharedPreferences.Editor restore=activity.getPreferences(0).edit().putString("sites",backupSites).putString("categories",backupCategories).putInt("shelfTheme",backupShelf).putInt("bookTheme",backupBook);if(hadBackground)restore.putString("backgroundTheme",backupBackground);else restore.remove("backgroundTheme");if(hadGestureTip)restore.putBoolean("gestureTipSeen",backupGestureTip);else restore.remove("gestureTipSeen");restore.commit();activity.finish();});}
   }
   result.putString("stream",checks.toString());finish(code,result);
+ }
+ void projectedCabinetThemes(){
+  final int shelf=activity.shelfThemeIndex,book=activity.bookThemeIndex,page=activity.page;
+  final String data=activity.sites.toString(),filter=activity.filter,room=activity.backgroundThemeId;
+  try{
+   for(int index=0;index<ThemeAssets.SHELVES.length;index++){
+    final int selected=index;
+    main(()->{if(activity.sceneCollapsed)activity.expandFromScene(false);activity.shelfThemeIndex=selected;activity.save();activity.populate();});
+    main(()->activity.collapseToScene(false));awaitScene(true);
+    main(()->{
+     checkProjection(SceneTheme.find(room));
+     check(activity.getPreferences(0).getInt("shelfTheme",-1)==selected,"projected cabinet finish persists "+selected);
+     check(activity.bookThemeIndex==book&&activity.backgroundThemeId.equals(room),"projected cabinet finish independent of book and room "+selected);
+     check(activity.sites.toString().equals(data)&&activity.filter.equals(filter)&&activity.page==page,"projected cabinet finish preserves live library "+selected);
+    });
+    snapshot("projected-cabinet-"+ThemeAssets.SHELVES[index]+".png");
+    main(()->{activity.expandFromScene(false);float[] identity=new float[8];activity.miniature.copyRenderedCorners(identity);check(activity.miniature.getProjectionFraction()==0&&Math.abs(identity[0])<.1f&&Math.abs(identity[2]-activity.miniature.getWidth())<.1f,"projected finish restores identity "+selected);check(activity.currentCabinet.getScaleX()==1&&activity.currentCabinet.getScaleY()==1&&activity.currentCabinet.getRotation()==0,"expanded cabinet remains frontal "+selected);});
+   }
+  }finally{main(()->{if(activity.sceneCollapsed)activity.expandFromScene(false);activity.shelfThemeIndex=shelf;activity.bookThemeIndex=book;activity.save();activity.populate();});}
  }
  void backgroundCollection(){
   final String data=activity.sites.toString();final int shelf=activity.shelfThemeIndex,book=activity.bookThemeIndex;
@@ -138,9 +158,7 @@ public final class SmokeInstrumentation extends Instrumentation {
     check(activity.controls.getVisibility()==View.VISIBLE&&activity.miniature.getVisibility()==View.GONE,theme.id+" miniature tap restores library");
     check(activity.sites.toString().equals(data)&&activity.page==page&&activity.filter.equals(filter),theme.id+" collapse and tap preserve library state");
    });
-   if(theme.id.equals("library")||theme.id.equals("bedroom")){
-    snapshot("scene-"+theme.id+"-expanded.png");rotateBackground(theme);
-   }
+   snapshot("scene-"+theme.id+"-expanded.png");rotateBackground(theme);
   }
   main(()->{activity.applyBackgroundTheme("classroom");activity.search.setText("");activity.page=0;activity.populate();});
  }
@@ -341,7 +359,7 @@ public final class SmokeInstrumentation extends Instrumentation {
    check(x>=0&&y>=0&&x+activity.miniature.getWidth()*activity.miniature.getScaleX()<=activity.stage.getWidth()+1&&y+activity.miniature.getHeight()*activity.miniature.getScaleY()<=activity.stage.getHeight()+1,"miniature remains inside screen");
    check(activity.sites.length()==count&&activity.page==oldPage&&activity.filter.equals(oldFilter),"pinch preserves bookmarks page and search");
   });
-  snapshot("pinch-collapsed.png");clickDescription("작아진 책장 열기");awaitScene(false);
+  snapshot("pinch-collapsed.png");measuredExpand();
   main(()->{check(!activity.sceneCollapsed&&!activity.sceneAnimating,"tap miniature restores full-size cabinet");float[] restored=new float[8];activity.miniature.copyRenderedCorners(restored);check(activity.miniature.getProjectionFraction()==0&&Math.abs(restored[0])<.1f&&Math.abs(restored[2]-activity.miniature.getWidth())<.1f,"expansion restores identity projection");check(activity.sceneShadow.getVisibility()==View.GONE,"contact shadow removed on expansion");check(activity.controls.getVisibility()==View.VISIBLE&&activity.miniature.getVisibility()==View.GONE,"full controls restored without overlay");});
   snapshot("pinch-restored.png");pinch(true);awaitScene(true);rotateScreens();
  }
@@ -355,13 +373,35 @@ public final class SmokeInstrumentation extends Instrumentation {
    return output.toString("UTF-8").trim();
   }catch(Exception error){throw new RuntimeException(error);}
  }
+ void awaitAnimatorScaleOne(){
+  if(android.os.Build.VERSION.SDK_INT<26)return;
+  final boolean[] ready={false};long deadline=android.os.SystemClock.uptimeMillis()+2000;
+  do{runOnMainSync(()->ready[0]=Math.abs(android.animation.ValueAnimator.getDurationScale()-1)<.001f);if(ready[0])return;android.os.SystemClock.sleep(20);}while(android.os.SystemClock.uptimeMillis()<deadline);
+  throw new AssertionError("Animator scale setting did not reach app process");
+ }
+ void measuredExpand(){
+  String previous=shell("settings get global animator_duration_scale");
+  if(!previous.equals("null")&&!previous.matches("[0-9]+(\\.[0-9]+)?"))throw new AssertionError("Unexpected animator duration scale: "+previous);
+  final boolean[] intermediate={false};final float[] last={1};
+  android.view.ViewTreeObserver.OnPreDrawListener observer=()->{float fraction=activity.miniature.getProjectionFraction();if(activity.sceneAnimating&&fraction>0&&fraction<1&&fraction<last[0])intermediate[0]=true;last[0]=fraction;return true;};
+  try{
+   shell("settings put global animator_duration_scale 1");awaitAnimatorScaleOne();
+   check(shell("settings get global animator_duration_scale").equals("1"),"temporarily enable measured reverse projection animation");
+   main(()->activity.stage.getViewTreeObserver().addOnPreDrawListener(observer));
+   clickDescription("작아진 책장 열기");awaitScene(false);
+   main(()->{check(intermediate[0],"native accessible tap animates decreasing intermediate projection");check(activity.miniature.getProjectionFraction()==0,"native accessible tap settles projection at identity");});
+  }finally{
+   main(()->{if(activity.stage.getViewTreeObserver().isAlive())activity.stage.getViewTreeObserver().removeOnPreDrawListener(observer);});
+   shell(previous.equals("null")?"settings delete global animator_duration_scale":"settings put global animator_duration_scale "+previous);
+  }
+ }
  void pinch(boolean inward){
   boolean measure=inward&&!activity.sceneCollapsed;
   if(!measure){pinchMotion(inward);return;}
   String previous=shell("settings get global animator_duration_scale");
   if(!previous.equals("null")&&!previous.matches("[0-9]+(\\.[0-9]+)?"))throw new AssertionError("Unexpected animator duration scale: "+previous);
   try{
-   shell("settings put global animator_duration_scale 1");
+   shell("settings put global animator_duration_scale 1");awaitAnimatorScaleOne();
    check(shell("settings get global animator_duration_scale").equals("1"),"temporarily enable measured native projection animation");
    pinchMotion(inward);awaitScene(true);
   }finally{
