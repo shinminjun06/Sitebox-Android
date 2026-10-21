@@ -24,6 +24,8 @@ public class SceneThemeTest {
    }
   }
   if(!SceneTheme.initialTheme("classroom",false).equals("study")||!SceneTheme.initialTheme(null,false).equals("study")||!SceneTheme.initialTheme("classroom",true).equals("classroom")||!SceneTheme.initialTheme("wizard",false).equals("wizard"))throw new AssertionError("Study introduction preserves explicit nondefault selection and allows returning to classroom");
+  SceneTheme study=SceneTheme.find("study");SceneProjection studyCamera=SceneProjection.find("study");
+  for(boolean wide:new boolean[]{false,true}){float frontFeet=study.anchorFeet(wide),rear=studyCamera.cameraY+(frontFeet-studyCamera.cameraY)/(1+studyCamera.depth);float floor=wide?.675f:.595f;if(Math.abs(rear-floor)>.002f||!wide&&frontFeet>.608f)throw new AssertionError("Study rear meets wall-floor seam and front feet stay behind foreground books");}
   SceneTheme train=SceneTheme.find("train");
   float rearFloor=SceneProjection.find("train").cameraY+(train.feet-SceneProjection.find("train").cameraY)/(1+SceneProjection.find("train").depth);
   if(train.feet!=.74f||train.height!=.23f||rearFloor<.71f||rearFloor>.72f)throw new AssertionError("Train feet must stand on parquet below baseboard, with rear floor near source .713");

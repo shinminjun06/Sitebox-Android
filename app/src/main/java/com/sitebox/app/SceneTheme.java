@@ -4,7 +4,7 @@ package com.sitebox.app;
 final class SceneTheme {
  static final String PREFERENCE_KEY="backgroundTheme";
  static final SceneTheme[] ALL={
-  new SceneTheme("study","테마 1 · 햇살 공부방",.36f,.615f,.28f),
+  new SceneTheme("study","테마 1 · 햇살 공부방",.36f,.605f,.28f),
   new SceneTheme("classroom","햇살 교실",.62f,.69f,.23f),
   new SceneTheme("library","고전 도서관",0.34f,0.69f,0.18f),
   new SceneTheme("bedroom","나만의 방",0.65f,0.62f,0.20f),
@@ -23,7 +23,7 @@ final class SceneTheme {
  static SceneTheme find(String id){for(SceneTheme scene:ALL)if(scene.id.equals(id))return scene;return ALL[0];}
  String assetPath(boolean wide){return "scenes/"+id+((id.equals("classroom")||id.equals("study"))?(wide?"_landscape":"_portrait"):"")+".webp";}
  float anchorX(boolean wide){return id.equals("study")&&wide?.35f:centerX;}
- float anchorFeet(boolean wide){return id.equals("study")&&wide?.70f:feet;}
+ float anchorFeet(boolean wide){return id.equals("study")&&wide?.69f:feet;}
  float anchorHeight(boolean wide){return id.equals("study")&&wide?.43f:height;}
  static String initialTheme(String saved,boolean introduced){return !introduced&&(saved==null||saved.equals("classroom"))?"study":find(saved).id;}
  private static float clamp(float value,float min,float max){return Math.max(min,Math.min(max,value));}

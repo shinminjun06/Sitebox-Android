@@ -3,7 +3,7 @@ package com.sitebox.app;
 /** Perspective cuboid parallel to the room wall. Rear corners converge on the camera horizon. */
 final class SceneProjection {
  static final SceneProjection[] ALL={
-  new SceneProjection("study",.52f,.43f,.10f,.86f),
+  new SceneProjection("study",.52f,.43f,.06f,.86f),
   new SceneProjection("classroom",.50f,.41f,.10f,.96f),
   new SceneProjection("library",.51f,.46f,.09f,.82f),
   new SceneProjection("bedroom",.46f,.40f,.10f,.94f),
