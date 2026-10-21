@@ -180,14 +180,18 @@ public final class SmokeInstrumentation extends Instrumentation {
   throw new AssertionError("study daylight transition exceeded 1.3 seconds: "+expected);
  }
  void awaitStudyVideo(String label){
+  final long[] initial={0};main(()->initial[0]=activity.studyLive.renderedFrames());
   final boolean[] ready={false};long deadline=android.os.SystemClock.uptimeMillis()+12000;
-  do{main(()->ready[0]=activity.studyLive.isPlaying()&&activity.studyLive.hasVideoFrame());if(ready[0])break;android.os.SystemClock.sleep(50);}while(android.os.SystemClock.uptimeMillis()<deadline);
-  if(!ready[0]){final String[] detail={""};main(()->detail[0]=activity.studyLive.videoStatusForTest());throw new AssertionError(label+" no native first frame: "+detail[0]);}
+  // Preparing/first display can briefly stall under emulator decoder startup load.
+  // Require sustained current-decoder texture updates before testing steady progress.
+  do{main(()->ready[0]=activity.studyLive.isPlaying()&&activity.studyLive.hasVideoFrame()&&activity.studyLive.renderedFrames()>=initial[0]+3);if(ready[0])break;android.os.SystemClock.sleep(50);}while(android.os.SystemClock.uptimeMillis()<deadline);
+  if(!ready[0]){final String[] detail={""};main(()->detail[0]=activity.studyLive.videoStatusForTest());throw new AssertionError(label+" no sustained native frames: "+detail[0]);}
   check(true,label+" prepared and rendered first native video frame");
   final long[] frames={0};main(()->frames[0]=activity.studyLive.renderedFrames());
   final boolean[] advancing={false};long progressDeadline=android.os.SystemClock.uptimeMillis()+1000;
   do{android.os.SystemClock.sleep(50);main(()->advancing[0]=activity.studyLive.isPlaying()&&activity.studyLive.renderedFrames()>=frames[0]+2);if(advancing[0])break;}while(android.os.SystemClock.uptimeMillis()<progressDeadline);
-  check(advancing[0],label+" decoder advances at least two actual video frames within one second");
+  if(!advancing[0]){final String[] detail={""};main(()->detail[0]=activity.studyLive.videoStatusForTest());throw new AssertionError(label+" steady progress stalled from "+frames[0]+": "+detail[0]);}
+  check(true,label+" decoder advances at least two actual video frames within one second");
  }
  void projectedCabinetThemes(){
   final int shelf=activity.shelfThemeIndex,book=activity.bookThemeIndex,page=activity.page;

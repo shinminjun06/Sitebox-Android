@@ -146,7 +146,8 @@ final class StudyLiveView extends FrameLayout {
     long renderedFrames() { return videoFrameCount; }
     long atmosphericFrames() { return frameCount; }
     void failVideoForTest() { decoderFailed = true; stopVideo(); atmosphere.invalidate(); }
-    String videoStatusForTest() { return "active="+active+",attached="+attached+",motion="+motionEnabled+",surface="+texture.isAvailable()+",size="+getWidth()+"x"+getHeight()+",playing="+isPlaying()+",frames="+videoFrameCount+",first="+firstFrame+",rendering="+renderingStarted+",failed="+decoderFailed+",error="+videoFailure; }
+    long videoPositionForTest() { try { return player == null ? -1 : player.getCurrentPosition(); } catch (IllegalStateException failure) { return -2; } }
+    String videoStatusForTest() { return "active="+active+",attached="+attached+",motion="+motionEnabled+",surface="+texture.isAvailable()+",size="+getWidth()+"x"+getHeight()+",playing="+isPlaying()+",frames="+videoFrameCount+",first="+firstFrame+",rendering="+renderingStarted+",alpha="+texture.getAlpha()+",visible="+getVisibility()+",position="+videoPositionForTest()+",failed="+decoderFailed+",error="+videoFailure; }
     private void updateVideoAlpha() {
         float visible = (renderingStarted || firstFrame)
                 ? (videoNight ? Math.max(0,1-2*daylight) : Math.max(0,2*daylight-1)) : 0;
