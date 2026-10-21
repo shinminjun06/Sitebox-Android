@@ -87,7 +87,7 @@ final class StudyLiveView extends FrameLayout {
                 return true;
             }
             @Override public void onSurfaceTextureUpdated(SurfaceTexture value) {
-                if (player != null && canRunMotion()) {
+                if (player != null && renderingStarted && canRunMotion()) {
                     videoFrameCount++;
                     firstFrame = true;
                     updateVideoAlpha();
@@ -148,11 +148,13 @@ final class StudyLiveView extends FrameLayout {
     void failVideoForTest() { decoderFailed = true; stopVideo(); atmosphere.invalidate(); }
     String videoStatusForTest() { return "active="+active+",attached="+attached+",motion="+motionEnabled+",surface="+texture.isAvailable()+",size="+getWidth()+"x"+getHeight()+",playing="+isPlaying()+",frames="+videoFrameCount+",first="+firstFrame+",rendering="+renderingStarted+",failed="+decoderFailed+",error="+videoFailure; }
     private void updateVideoAlpha() {
-        float visible = videoNight ? Math.max(0,1-2*daylight) : Math.max(0,2*daylight-1);
-        // VIDEO_RENDERING_START confirms a queued decoder frame. Waiting for a
-        // texture callback at alpha zero can deadlock HWUI's frame consumption.
-        // A one-level opacity floor keeps consumption alive at twilight, too.
-        texture.setAlpha(player != null && canRunMotion() && (renderingStarted || firstFrame)
+        float visible = (renderingStarted || firstFrame)
+                ? (videoNight ? Math.max(0,1-2*daylight) : Math.max(0,2*daylight-1)) : 0;
+        // A zero-alpha TextureView may be culled before its surface is created.
+        // Prime the texture with one opacity level even before player creation;
+        // release/failure/inactivity still hide it completely. The opaque still
+        // underneath remains the visible fallback until a decoder frame arrives.
+        texture.setAlpha(canRunMotion() && day != null && !decoderFailed
                 ? Math.max(1f/255f,visible) : 0);
     }
     private void settleAtmosphere() {
@@ -292,6 +294,11 @@ final class StudyLiveView extends FrameLayout {
                 roomPaint.setColor(0xff101b37); roomPaint.setAlpha(Math.round(160*(1-daylight)));
                 canvas.drawRect(0,0,getWidth(),getHeight(),roomPaint);
             }
+            if (cloudiness > .01f && daylight > .01f) {
+                roomPaint.setColor(0xff233345);
+                roomPaint.setAlpha(Math.round(70*cloudiness*daylight));
+                canvas.drawRect(0,0,getWidth(),getHeight(),roomPaint);
+            }
             roomPaint.setAlpha(255);
         }
     }
@@ -305,8 +312,8 @@ final class StudyLiveView extends FrameLayout {
             float t = motionEnabled ? (SystemClock.uptimeMillis()-motionOrigin)/1000f : 0;
             float w = glassBounds.width(), h = glassBounds.height();
             float cloud = cloudiness;
-            paint.setColor(daylight > .3f ? 0xffc6d3dc : 0xff15243f);
-            paint.setAlpha(Math.round(cloud*(daylight > .3f ? 74 : 115)));
+            paint.setColor(daylight > .3f ? 0xff84969e : 0xff15243f);
+            paint.setAlpha(Math.round(cloud*(daylight > .3f ? 110 : 115)));
             canvas.drawRect(glassBounds,paint);
             // Broad translucent cloud banks drift slowly across only the glass.
             paint.setColor(daylight > .3f ? 0xffedf1ee : 0xff77859d);
@@ -316,15 +323,7 @@ final class StudyLiveView extends FrameLayout {
                 float y=glassBounds.top+h*(.08f+i*.13f);
                 canvas.drawOval(x-w*.24f,y,x+w*.30f,y+h*.12f,paint);
             }
-            if (daylight < .5f && cloud < .8f) {
-                paint.setColor(Color.WHITE); paint.setAlpha(Math.round((1-daylight)*(1-cloud)*170));
-                for (int i=0;i<22;i++) {
-                    float x=glassBounds.left+fraction(i*.618034f+.12f)*w;
-                    float y=glassBounds.top+fraction(i*.381966f+.07f)*h*.64f;
-                    float r=(.7f+(i%3)*.35f)*getResources().getDisplayMetrics().density;
-                    canvas.drawCircle(x,y,r,paint);
-                }
-            }
+            // Stars are part of the night artwork; do not paint them over tree silhouettes.
             for (int precipitation=1;precipitation<=2;precipitation++) {
                 float amount = precipitation == 1 ? rain : snow;
                 if (amount < .001f) continue;
@@ -339,8 +338,9 @@ final class StudyLiveView extends FrameLayout {
                 }
             }
             canvas.restoreToCount(save);
-            if (daylight < .8f && lampRadius > 0) {
-                glowPaint.setAlpha(Math.round((1-daylight)*150));
+            float lampStrength = Math.max(1-daylight,Math.max(0,cloudiness-.6f)*.8f*daylight);
+            if (lampStrength > .01f && lampRadius > 0) {
+                glowPaint.setAlpha(Math.round(lampStrength*150));
                 canvas.drawCircle(lampX,lampY,lampRadius,glowPaint);
             }
             paint.setAlpha(255);

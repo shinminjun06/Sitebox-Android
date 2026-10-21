@@ -303,7 +303,7 @@ public class MainActivity extends Activity {
  void updateAmbient(){
   if(studyLive==null||weather==null)return;
   WeatherState state=ambientPreview!=null?ambientPreview:weather.state();long now=ambientPreview!=null?ambientPreviewTime:System.currentTimeMillis();
-  studyLive.setWeather(state,now);if(miniature!=null)miniature.setAmbientLight(state.daylight(now));
+  studyLive.setWeather(state,now);if(miniature!=null)miniature.setAmbientLight(state.daylight(now)*(1-.35f*state.cloudiness()));
   if(ambientStatus!=null){String updated=state.available?weatherClock(state.observedAt,state):"없음";ambientStatus.setText("날씨 지역: "+weather.place().name+"\n"+weather.status()+"\n"+(state.available?state.description()+" · "+String.format(java.util.Locale.getDefault(),"%.1f°C",state.temperature):"시간만 반영 중")+"\n날씨 기준 시각: "+updated+"\n"+(state.available?"지역 현재 시각: ":"기기 시각: ")+weatherClock(now,state));}
  }
  String weatherClock(long time,WeatherState state){java.text.DateFormat format=android.text.format.DateFormat.getTimeFormat(this);if(state.utcOffsetSeconds!=Integer.MIN_VALUE){java.util.TimeZone zone=java.util.TimeZone.getTimeZone("GMT");zone.setRawOffset(state.utcOffsetSeconds*1000);format.setTimeZone(zone);}return format.format(new java.util.Date(time));}

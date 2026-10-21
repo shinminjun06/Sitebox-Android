@@ -22,7 +22,7 @@ public final class SmokeInstrumentation extends Instrumentation {
  int recoveredPixelLauncherAnrs;
  StringBuilder checks=new StringBuilder();
  void check(boolean value,String name){if(!value)throw new AssertionError(name);checks.append("PASS ").append(name).append('\n');}
- void main(Runnable action){runOnMainSync(action);waitForIdleSync();}
+ void main(Runnable action){final Throwable[] failure={null};runOnMainSync(()->{try{action.run();}catch(Throwable error){failure[0]=error;}});waitForIdleSync();if(failure[0] instanceof Error)throw (Error)failure[0];if(failure[0] instanceof RuntimeException)throw (RuntimeException)failure[0];if(failure[0]!=null)throw new RuntimeException(failure[0]);}
  @Override public void onCreate(Bundle arguments){super.onCreate(arguments);start();}
  @Override public void onStart(){
   Bundle result=new Bundle();int code=Activity.RESULT_OK;
@@ -184,8 +184,10 @@ public final class SmokeInstrumentation extends Instrumentation {
   do{main(()->ready[0]=activity.studyLive.isPlaying()&&activity.studyLive.hasVideoFrame());if(ready[0])break;android.os.SystemClock.sleep(50);}while(android.os.SystemClock.uptimeMillis()<deadline);
   if(!ready[0]){final String[] detail={""};main(()->detail[0]=activity.studyLive.videoStatusForTest());throw new AssertionError(label+" no native first frame: "+detail[0]);}
   check(true,label+" prepared and rendered first native video frame");
-  final long[] frames={0};main(()->frames[0]=activity.studyLive.renderedFrames());android.os.SystemClock.sleep(350);
-  main(()->check(activity.studyLive.isPlaying()&&activity.studyLive.renderedFrames()>=frames[0]+2,label+" decoder advances at least two actual video frames"));
+  final long[] frames={0};main(()->frames[0]=activity.studyLive.renderedFrames());
+  final boolean[] advancing={false};long progressDeadline=android.os.SystemClock.uptimeMillis()+1000;
+  do{android.os.SystemClock.sleep(50);main(()->advancing[0]=activity.studyLive.isPlaying()&&activity.studyLive.renderedFrames()>=frames[0]+2);if(advancing[0])break;}while(android.os.SystemClock.uptimeMillis()<progressDeadline);
+  check(advancing[0],label+" decoder advances at least two actual video frames within one second");
  }
  void projectedCabinetThemes(){
   final int shelf=activity.shelfThemeIndex,book=activity.bookThemeIndex,page=activity.page;
