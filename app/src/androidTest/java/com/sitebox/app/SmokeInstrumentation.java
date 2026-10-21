@@ -167,6 +167,7 @@ public final class SmokeInstrumentation extends Instrumentation {
   check(expected!=null&&activity.sceneBackdrop==expected,theme.id+" correct selected artwork decoded without fallback");
   check(((android.graphics.drawable.BitmapDrawable)activity.backdrop.getDrawable()).getBitmap()==expected,theme.id+" selected artwork displayed");
   check(activity.backgroundThemeId.equals(theme.id)&&activity.sceneCollapsed&&!activity.sceneAnimating,theme.id+" scene state remains selected");
+  checkProjection(theme);
   if(theme.id.equals("classroom")){checkRoomGrounding();return;}
   float x=activity.miniature.getX(),y=activity.miniature.getY(),w=activity.miniature.getWidth()*activity.miniature.getScaleX(),h=activity.miniature.getHeight()*activity.miniature.getScaleY();
   float vw=activity.stage.getWidth(),vh=activity.stage.getHeight();
@@ -178,6 +179,26 @@ public final class SmokeInstrumentation extends Instrumentation {
   check(Math.abs(x+w*.5f-sourceAnchor[0])<vw*.045f,theme.id+" cabinet aligns with reserved left or right artwork space");
   check(y>=0&&y+h>vh*.45f&&y+h<vh*.98f,theme.id+" cabinet floor pose remains visible for room camera angle");
   check(activity.sceneShadow.getVisibility()==View.VISIBLE&&activity.sceneShadow.getAlpha()>.99f,theme.id+" visible contact shadow");
+ }
+ void checkProjection(SceneTheme theme){
+  ProjectedCabinetView view=activity.miniature;
+  check(view.room()==SceneProjection.find(theme.id),theme.id+" room projection profile applied");
+  check(view.sideTexture()==activity.assets.shelf(activity.shelfThemeIndex),theme.id+" physical side uses current theme cabinet bitmap");
+  check(Math.abs(view.getProjectionFraction()-1)<.0001f,theme.id+" projection animation settled");
+  float[] actual=new float[8],expected=new float[8];view.copyRenderedCorners(actual);view.room().front(view.getWidth(),view.getHeight(),1,expected);
+  for(int i=0;i<8;i++)check(Math.abs(actual[i]-expected[i])<.1f,theme.id+" rendered homography corner "+i);
+  check(Math.max(actual[5],actual[7])>=view.getHeight()-.1f,theme.id+" projected feet retain floor contact");
+  check(view.room().depth>0?actual[0]>0:actual[2]<view.getWidth(),theme.id+" cabinet exposes selected physical side");
+  try{
+   JSONObject pose=new JSONObject();JSONArray corners=new JSONArray();int[] stageLocation=new int[2];activity.stage.getLocationOnScreen(stageLocation);
+   for(int i=0;i<8;i++)corners.put((i%2==0?stageLocation[0]+view.getX():stageLocation[1]+view.getY())+actual[i]*(i%2==0?view.getScaleX():view.getScaleY()));
+   pose.put("front",corners);pose.put("depth",view.room().depth);pose.put("topDepth",view.room().top);
+   float[] side=new float[8],roof=new float[8];view.copyRenderedBodyCorners(side,roof);
+   for(int face=0;face<2;face++){float[] points=face==0?side:roof;JSONArray coordinates=new JSONArray();for(int i=0;i<8;i++)coordinates.put((i%2==0?stageLocation[0]+view.getX():stageLocation[1]+view.getY())+points[i]*(i%2==0?view.getScaleX():view.getScaleY()));pose.put(face==0?"side":"top",coordinates);}
+   File directory=new File(getTargetContext().getExternalFilesDir(null),"qa");directory.mkdirs();
+   String orientation=activity.getResources().getConfiguration().orientation==2?"landscape":"portrait";
+   try(FileOutputStream out=new FileOutputStream(new File(directory,"projection-"+theme.id+"-"+orientation+".json"))){out.write(pose.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8));}
+  }catch(Exception e){throw new RuntimeException(e);}
  }
  void rotateBackground(SceneTheme theme){
   final String data=activity.sites.toString(),filter=activity.filter;final int page=activity.page;
@@ -312,6 +333,7 @@ public final class SmokeInstrumentation extends Instrumentation {
   pinch(true);awaitScene(true);
   main(()->{
    check(activity.sceneCollapsed&&!activity.sceneAnimating,"inward two-finger gesture collapses cabinet");
+   checkProjection(SceneTheme.find(activity.backgroundThemeId));
    checkRoomGrounding();
    check(activity.controls.getVisibility()==View.INVISIBLE,"header and full-size library hidden in scene");
    check(activity.miniature.getVisibility()==View.VISIBLE&&activity.miniature.getScaleX()<.75f,"live cabinet snapshot shrinks into background");
@@ -320,19 +342,41 @@ public final class SmokeInstrumentation extends Instrumentation {
    check(activity.sites.length()==count&&activity.page==oldPage&&activity.filter.equals(oldFilter),"pinch preserves bookmarks page and search");
   });
   snapshot("pinch-collapsed.png");clickDescription("작아진 책장 열기");awaitScene(false);
-  main(()->{check(!activity.sceneCollapsed&&!activity.sceneAnimating,"tap miniature restores full-size cabinet");check(activity.sceneShadow.getVisibility()==View.GONE,"contact shadow removed on expansion");check(activity.controls.getVisibility()==View.VISIBLE&&activity.miniature.getVisibility()==View.GONE,"full controls restored without overlay");});
+  main(()->{check(!activity.sceneCollapsed&&!activity.sceneAnimating,"tap miniature restores full-size cabinet");float[] restored=new float[8];activity.miniature.copyRenderedCorners(restored);check(activity.miniature.getProjectionFraction()==0&&Math.abs(restored[0])<.1f&&Math.abs(restored[2]-activity.miniature.getWidth())<.1f,"expansion restores identity projection");check(activity.sceneShadow.getVisibility()==View.GONE,"contact shadow removed on expansion");check(activity.controls.getVisibility()==View.VISIBLE&&activity.miniature.getVisibility()==View.GONE,"full controls restored without overlay");});
   snapshot("pinch-restored.png");pinch(true);awaitScene(true);rotateScreens();
  }
  void clickDescription(String description){android.view.accessibility.AccessibilityNodeInfo root=getUiAutomation().getRootInActiveWindow();android.view.accessibility.AccessibilityNodeInfo node=findDescription(root,description);if(node==null||!node.performAction(android.view.accessibility.AccessibilityNodeInfo.ACTION_CLICK))throw new AssertionError("click description "+description);waitForIdleSync();}
  android.view.accessibility.AccessibilityNodeInfo findDescription(android.view.accessibility.AccessibilityNodeInfo root,String description){if(root==null)return null;if(root.getContentDescription()!=null&&description.contentEquals(root.getContentDescription()))return root;for(int i=0;i<root.getChildCount();i++){android.view.accessibility.AccessibilityNodeInfo found=findDescription(root.getChild(i),description);if(found!=null)return found;}return null;}
+ String shell(String command){
+  try(android.os.ParcelFileDescriptor descriptor=getUiAutomation().executeShellCommand(command);
+      java.io.InputStream input=new android.os.ParcelFileDescriptor.AutoCloseInputStream(descriptor);
+      java.io.ByteArrayOutputStream output=new java.io.ByteArrayOutputStream()){
+   byte[] buffer=new byte[256];int count;while((count=input.read(buffer))!=-1)output.write(buffer,0,count);
+   return output.toString("UTF-8").trim();
+  }catch(Exception error){throw new RuntimeException(error);}
+ }
  void pinch(boolean inward){
+  boolean measure=inward&&!activity.sceneCollapsed;
+  if(!measure){pinchMotion(inward);return;}
+  String previous=shell("settings get global animator_duration_scale");
+  if(!previous.equals("null")&&!previous.matches("[0-9]+(\\.[0-9]+)?"))throw new AssertionError("Unexpected animator duration scale: "+previous);
+  try{
+   shell("settings put global animator_duration_scale 1");
+   check(shell("settings get global animator_duration_scale").equals("1"),"temporarily enable measured native projection animation");
+   pinchMotion(inward);awaitScene(true);
+  }finally{
+   shell(previous.equals("null")?"settings delete global animator_duration_scale":"settings put global animator_duration_scale "+previous);
+  }
+ }
+ void pinchMotion(boolean inward){
+  final boolean observeProjection=inward&&!activity.sceneCollapsed;final boolean[] sawProjection={false};
   float width=activity.stage.getWidth(),y=activity.stage.getHeight()*.54f;
   float start=inward?.06f:.38f,end=inward?.38f:.06f;
   long down=android.os.SystemClock.uptimeMillis();touch(down,android.view.MotionEvent.ACTION_DOWN,width*start,y);
   twoFinger(down,android.view.MotionEvent.ACTION_POINTER_DOWN|(1<<android.view.MotionEvent.ACTION_POINTER_INDEX_SHIFT),width*start,width*(1-start),y);
-  for(int i=1;i<=24;i++){float f=start+(end-start)*i/24f;twoFinger(down,android.view.MotionEvent.ACTION_MOVE,width*f,width*(1-f),y);android.os.SystemClock.sleep(18);}
+  for(int i=1;i<=24;i++){float f=start+(end-start)*i/24f;twoFinger(down,android.view.MotionEvent.ACTION_MOVE,width*f,width*(1-f),y);if(observeProjection)runOnMainSync(()->{float fraction=activity.miniature.getProjectionFraction();if(fraction>0&&fraction<1)sawProjection[0]=true;});android.os.SystemClock.sleep(18);}
   twoFinger(down,android.view.MotionEvent.ACTION_POINTER_UP|(1<<android.view.MotionEvent.ACTION_POINTER_INDEX_SHIFT),width*end,width*(1-end),y);
-  touch(down,android.view.MotionEvent.ACTION_UP,width*end,y);waitForIdleSync();
+  touch(down,android.view.MotionEvent.ACTION_UP,width*end,y);waitForIdleSync();if(observeProjection)check(sawProjection[0],"native pinch animates continuous intermediate projection");
  }
  void twoFinger(long down,int action,float left,float right,float y){
   android.view.MotionEvent.PointerProperties[] properties={new android.view.MotionEvent.PointerProperties(),new android.view.MotionEvent.PointerProperties()};

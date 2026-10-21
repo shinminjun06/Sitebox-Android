@@ -36,7 +36,8 @@ public class MainActivity extends Activity {
  LinearLayout controls;
  View revealOverlay;
  BookshelfView currentCabinet;
- ImageView miniature;
+ ProjectedCabinetView miniature;
+ android.animation.ValueAnimator projectionAnimator;
  FurnitureShadow sceneShadow;
  Bitmap sceneBackdrop;
  String backgroundThemeId="classroom";
@@ -105,7 +106,7 @@ public class MainActivity extends Activity {
  View.OnLongClickListener reveal=v->{backgroundOnly=true;root.setVisibility(View.INVISIBLE);revealOverlay.setVisibility(View.VISIBLE);return true;};
  header.setOnLongClickListener(reveal);shelves.setOnLongClickListener(reveal);shelfScroll.setOnLongClickListener(reveal);
  sceneShadow=new FurnitureShadow(this);sceneShadow.setVisibility(View.GONE);stage.addView(sceneShadow,new FrameLayout.LayoutParams(1,1));
- miniature=new ImageView(this);miniature.setScaleType(ImageView.ScaleType.FIT_XY);miniature.setContentDescription("작아진 책장 열기");miniature.setVisibility(View.GONE);miniature.setPivotX(0);miniature.setPivotY(0);stage.addView(miniature,new FrameLayout.LayoutParams(1,1));miniature.setOnClickListener(v->expandFromScene(true));
+ miniature=new ProjectedCabinetView(this);miniature.setScaleType(ImageView.ScaleType.FIT_XY);miniature.setContentDescription("작아진 책장 열기");miniature.setVisibility(View.GONE);miniature.setPivotX(0);miniature.setPivotY(0);stage.addView(miniature,new FrameLayout.LayoutParams(1,1));miniature.setOnClickListener(v->expandFromScene(true));
  setContentView(stage);root.requestApplyInsets();
  search.addTextChangedListener(new TextWatcher(){public void beforeTextChanged(CharSequence s,int a,int c,int f){}public void onTextChanged(CharSequence s,int a,int b,int c){filter=s.toString();updateSearchIndicator();page=0;populate();}public void afterTextChanged(Editable e){}});
  populate();root.requestFocus();
@@ -138,11 +139,12 @@ public class MainActivity extends Activity {
    float[] transform=renderedSceneTheme.imageTransform(backdrop.getWidth(),backdrop.getHeight(),sceneBackdrop.getWidth(),sceneBackdrop.getHeight());
    Matrix matrix=new Matrix();matrix.setScale(transform[0],transform[0]);matrix.postTranslate(transform[1],transform[2]);backdrop.setImageMatrix(matrix);
   }
+  if(!sceneCollapsed&&sceneAnimating){miniature.animate().cancel();cancelProjection();miniature.setProjectionFraction(0);miniature.setVisibility(View.GONE);miniature.setImageDrawable(null);controls.animate().cancel();controls.animate().setStartDelay(0);controls.setAlpha(1);controls.setVisibility(View.VISIBLE);sceneAnimating=false;sceneShadow.animate().cancel();sceneShadow.setVisibility(View.GONE);}
   if(sceneCollapsed&&miniature!=null&&miniature.getDrawable()!=null){
-   miniature.animate().cancel();controls.animate().cancel();sceneShadow.animate().cancel();
+   miniature.animate().cancel();cancelProjection();controls.animate().cancel();sceneShadow.animate().cancel();
    sceneAnimating=false;controls.setVisibility(View.INVISIBLE);controls.setAlpha(1);
    float[] target=sceneBounds();float scale=(target[2]-target[0])/miniature.getLayoutParams().width;
-   miniature.setX(target[0]);miniature.setY(target[1]);miniature.setScaleX(scale);miniature.setScaleY(scale);miniature.setEnabled(true);
+   miniature.setRoom(SceneProjection.find(renderedSceneTheme.id),assets.shelf(shelfThemeIndex));miniature.setProjectionFraction(1);miniature.setX(target[0]);miniature.setY(target[1]);miniature.setScaleX(scale);miniature.setScaleY(scale);miniature.setEnabled(true);
    positionSceneShadow(target,false);
   }
  }
@@ -256,23 +258,25 @@ public class MainActivity extends Activity {
   RectF from=cabinetBounds();int width=currentCabinet.getWidth(),height=currentCabinet.getHeight();
   float sampling=Math.min(1f,1024f/width);Bitmap snapshot=Bitmap.createBitmap(Math.max(1,Math.round(width*sampling)),Math.max(1,Math.round(height*sampling)),Bitmap.Config.ARGB_8888);
   Canvas canvas=new Canvas(snapshot);canvas.scale(sampling,sampling);currentCabinet.draw(canvas);
-  miniature.animate().cancel();miniature.setImageBitmap(snapshot);miniature.setLayoutParams(new FrameLayout.LayoutParams(width,height));miniature.setX(from.left);miniature.setY(from.top);miniature.setScaleX(1);miniature.setScaleY(1);miniature.setVisibility(View.VISIBLE);miniature.setEnabled(false);
+  miniature.animate().cancel();cancelProjection();miniature.setRoom(SceneProjection.find(renderedSceneTheme.id),assets.shelf(shelfThemeIndex));miniature.setProjectionFraction(0);miniature.setImageBitmap(snapshot);miniature.setLayoutParams(new FrameLayout.LayoutParams(width,height));miniature.setX(from.left);miniature.setY(from.top);miniature.setScaleX(1);miniature.setScaleY(1);miniature.setVisibility(View.VISIBLE);miniature.setEnabled(false);
   float[] target=sceneBounds();float scale=(target[2]-target[0])/width;
   positionSceneShadow(target,animate);
-  Runnable finish=()->{controls.setVisibility(View.INVISIBLE);controls.setAlpha(1);sceneAnimating=false;miniature.setEnabled(true);};
-  if(animate){controls.animate().setStartDelay(0).withEndAction(null).alpha(0).setDuration(180).start();miniature.animate().x(target[0]).y(target[1]).scaleX(scale).scaleY(scale).setDuration(340).setInterpolator(new android.view.animation.DecelerateInterpolator()).withEndAction(finish).start();}
-  else {miniature.setX(target[0]);miniature.setY(target[1]);miniature.setScaleX(scale);miniature.setScaleY(scale);finish.run();}
+  Runnable finish=()->{miniature.setProjectionFraction(1);controls.setVisibility(View.INVISIBLE);controls.setAlpha(1);sceneAnimating=false;miniature.setEnabled(true);};
+  if(animate){animateProjection(1);controls.animate().setStartDelay(0).withEndAction(null).alpha(0).setDuration(180).start();miniature.animate().x(target[0]).y(target[1]).scaleX(scale).scaleY(scale).setDuration(340).setInterpolator(new android.view.animation.DecelerateInterpolator()).withEndAction(finish).start();}
+  else {miniature.setProjectionFraction(1);miniature.setX(target[0]);miniature.setY(target[1]);miniature.setScaleX(scale);miniature.setScaleY(scale);finish.run();}
  }
  void expandFromScene(boolean animate){
   if(!sceneCollapsed||sceneAnimating)return;
   sceneCollapsed=false;sceneAnimating=animate;RectF target=cabinetBounds();miniature.setEnabled(false);controls.setAlpha(animate?0:1);controls.setVisibility(View.VISIBLE);
   sceneShadow.animate().cancel();if(animate)sceneShadow.animate().alpha(0).setStartDelay(0).setDuration(170).withEndAction(()->sceneShadow.setVisibility(View.GONE)).start();else sceneShadow.setVisibility(View.GONE);
-  Runnable finish=()->{miniature.setVisibility(View.GONE);miniature.setImageDrawable(null);controls.setAlpha(1);sceneAnimating=false;};
-  if(animate){controls.animate().alpha(1).setStartDelay(170).setDuration(170).withEndAction(()->controls.animate().setStartDelay(0)).start();miniature.animate().x(target.left).y(target.top).scaleX(1).scaleY(1).setDuration(340).setInterpolator(new android.view.animation.DecelerateInterpolator()).withEndAction(finish).start();}
+  Runnable finish=()->{cancelProjection();miniature.setProjectionFraction(0);miniature.setX(target.left);miniature.setY(target.top);miniature.setScaleX(1);miniature.setScaleY(1);miniature.setVisibility(View.GONE);miniature.setImageDrawable(null);controls.setAlpha(1);sceneAnimating=false;};
+  if(animate){animateProjection(0);controls.animate().alpha(1).setStartDelay(170).setDuration(170).withEndAction(()->controls.animate().setStartDelay(0)).start();miniature.animate().x(target.left).y(target.top).scaleX(1).scaleY(1).setDuration(340).setInterpolator(new android.view.animation.DecelerateInterpolator()).withEndAction(finish).start();}
   else finish.run();
  }
  @Override public void onBackPressed(){if(sceneCollapsed||sceneAnimating){expandFromScene(true);return;}super.onBackPressed();}
- @Override protected void onDestroy(){if(controls!=null)controls.animate().cancel();if(sceneShadow!=null)sceneShadow.animate().cancel();if(miniature!=null){miniature.animate().cancel();miniature.setImageDrawable(null);}super.onDestroy();}
+ void cancelProjection(){if(projectionAnimator!=null){projectionAnimator.cancel();projectionAnimator=null;}}
+ void animateProjection(float target){cancelProjection();projectionAnimator=android.animation.ValueAnimator.ofFloat(miniature.getProjectionFraction(),target);projectionAnimator.addUpdateListener(value->miniature.setProjectionFraction((Float)value.getAnimatedValue()));projectionAnimator.setDuration(340);projectionAnimator.setInterpolator(new android.view.animation.DecelerateInterpolator());projectionAnimator.start();}
+ @Override protected void onDestroy(){cancelProjection();if(controls!=null)controls.animate().cancel();if(sceneShadow!=null)sceneShadow.animate().cancel();if(miniature!=null){miniature.animate().cancel();miniature.setImageDrawable(null);}super.onDestroy();}
   void showBook(int index){
  JSONObject o=sites.optJSONObject(index);if(o==null)return;
  final String url=o.optString("url");
