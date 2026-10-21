@@ -86,7 +86,8 @@ public class MainActivity extends Activity {
  void draw(){
  stage=new LibraryStage(this,()->collapseToScene(true));stage.setBackgroundColor(0xffd4c4a7);
  backdrop=new ImageView(this);backdrop.setScaleType(ImageView.ScaleType.MATRIX);
- roomLayer=new FrameLayout(this);roomLayer.addView(backdrop,new FrameLayout.LayoutParams(-1,-1));studyLive=new StudyLiveView(this);studyLive.setVisibility(View.GONE);roomLayer.addView(studyLive,new FrameLayout.LayoutParams(-1,-1));stage.addView(roomLayer,new FrameLayout.LayoutParams(-1,-1));
+ // Measure the live layer on the first pass; backdrop layout may enable it mid-layout.
+ roomLayer=new FrameLayout(this);roomLayer.addView(backdrop,new FrameLayout.LayoutParams(-1,-1));studyLive=new StudyLiveView(this);studyLive.setVisibility(View.INVISIBLE);roomLayer.addView(studyLive,new FrameLayout.LayoutParams(-1,-1));stage.addView(roomLayer,new FrameLayout.LayoutParams(-1,-1));
  backdrop.addOnLayoutChangeListener((v,l,t,r,b,ol,ot,or,ob)->{if(r-l!=or-ol||b-t!=ob-ot)updateSceneBackdrop();});
  LinearLayout root=new LinearLayout(this);controls=root;root.setOrientation(LinearLayout.VERTICAL);root.setFocusableInTouchMode(true);root.setBackgroundColor(0x24FFF6DF);
  root.setOnApplyWindowInsetsListener((view,insets)->{
