@@ -59,3 +59,9 @@ for orientation,wide in [('portrait',False),('landscape',True)]:
   assert (im.width>im.height)==wide and max(im.size)<=1920
   assert im.width*im.height*4<=8*1024*1024 and p.stat().st_size<500000
 print('PASS: theme 1 portrait and landscape plates fit room cache and APK size budget')
+
+for shelf in ['oak','walnut','white_oak']:
+ for book in ['classic','pastel','modern']:
+  active=[root/'shelves'/shelf/'cabinet.webp',root/'shelves'/shelf/'surface.webp']+list((root/'books'/book).glob('*.webp'))
+  assert sum(Image.open(p).width*Image.open(p).height*4 for p in active)<16*1024*1024
+print('PASS: each active shelf/book combination fits the isolated 16 MiB artwork cache')

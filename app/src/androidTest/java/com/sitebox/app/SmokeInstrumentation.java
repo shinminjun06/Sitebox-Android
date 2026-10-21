@@ -167,20 +167,22 @@ public final class SmokeInstrumentation extends Instrumentation {
   main(()->{activity.applyBackgroundTheme("classroom");activity.search.setText("");activity.page=0;activity.populate();});
  }
  void clickBackgroundChoice(String name){
+  int targetIndex=0,currentIndex=0;for(int i=0;i<SceneTheme.ALL.length;i++){if(SceneTheme.ALL[i].name.equals(name))targetIndex=i;if(SceneTheme.ALL[i].id.equals(activity.backgroundThemeId))currentIndex=i;}
+  final int scrollAction=targetIndex<currentIndex?android.view.accessibility.AccessibilityNodeInfo.ACTION_SCROLL_BACKWARD:android.view.accessibility.AccessibilityNodeInfo.ACTION_SCROLL_FORWARD;
   long deadline=android.os.SystemClock.uptimeMillis()+5000;
   do {
    waitForIdleSync();android.view.accessibility.AccessibilityNodeInfo root=activeAppWindow();
    if(root!=null)for(android.view.accessibility.AccessibilityNodeInfo node:root.findAccessibilityNodeInfosByText(name)){
     if(name.contentEquals(node.getText()==null?"":node.getText())){android.view.accessibility.AccessibilityNodeInfo target=node;while(target!=null){if(target.isClickable()&&target.performAction(android.view.accessibility.AccessibilityNodeInfo.ACTION_CLICK))return;target=target.getParent();}}
    }
-   scrollDialogForward(root);android.os.SystemClock.sleep(50);
+   scrollDialog(root,scrollAction);android.os.SystemClock.sleep(50);
   }while(android.os.SystemClock.uptimeMillis()<deadline);
   throw new AssertionError("background dialog choice: "+name);
  }
- boolean scrollDialogForward(android.view.accessibility.AccessibilityNodeInfo node){
+ boolean scrollDialog(android.view.accessibility.AccessibilityNodeInfo node,int action){
   if(node==null)return false;
-  if(node.isScrollable()&&node.performAction(android.view.accessibility.AccessibilityNodeInfo.ACTION_SCROLL_FORWARD))return true;
-  for(int i=0;i<node.getChildCount();i++)if(scrollDialogForward(node.getChild(i)))return true;
+  if(node.isScrollable()&&node.performAction(action))return true;
+  for(int i=0;i<node.getChildCount();i++)if(scrollDialog(node.getChild(i),action))return true;
   return false;
  }
  void checkSelectedScene(SceneTheme theme){
@@ -191,7 +193,7 @@ public final class SmokeInstrumentation extends Instrumentation {
   check(activity.backgroundThemeId.equals(theme.id)&&activity.sceneCollapsed&&!activity.sceneAnimating,theme.id+" scene state remains selected");
   checkProjection(theme);
   check(activity.assets.get(theme.assetPath(wide))==expected,theme.id+" current room bitmap reused");
-  check(activity.assets.cachedRoomBytes()<=8*1024*1024&&activity.assets.cachedArtworkBytes()<=18*1024*1024,theme.id+" room and artwork caches bounded independently");
+  check(activity.assets.cachedRoomBytes()<=8*1024*1024&&activity.assets.cachedArtworkBytes()<=16*1024*1024,theme.id+" room and artwork caches bounded independently");
   if(theme.id.equals("classroom")){checkRoomGrounding();return;}
   float x=activity.miniature.getX(),y=activity.miniature.getY(),w=activity.miniature.getWidth()*activity.miniature.getScaleX(),h=activity.miniature.getHeight()*activity.miniature.getScaleY();
   float vw=activity.stage.getWidth(),vh=activity.stage.getHeight();
