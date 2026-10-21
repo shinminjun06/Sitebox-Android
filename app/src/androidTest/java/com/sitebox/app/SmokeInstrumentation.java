@@ -19,6 +19,7 @@ public final class SmokeInstrumentation extends Instrumentation {
  String backupSites,backupCategories,demoSites,backupBackground;
  boolean hadBackground,hadGestureTip,backupGestureTip;
  int backupShelf,backupBook;
+ int recoveredPixelLauncherAnrs;
  StringBuilder checks=new StringBuilder();
  void check(boolean value,String name){if(!value)throw new AssertionError(name);checks.append("PASS ").append(name).append('\n');}
  void main(Runnable action){runOnMainSync(action);waitForIdleSync();}
@@ -110,6 +111,7 @@ public final class SmokeInstrumentation extends Instrumentation {
   finally{
    if(activity!=null&&backupSites!=null){main(()->{SharedPreferences.Editor restore=activity.getPreferences(0).edit().putString("sites",backupSites).putString("categories",backupCategories).putInt("shelfTheme",backupShelf).putInt("bookTheme",backupBook);if(hadBackground)restore.putString("backgroundTheme",backupBackground);else restore.remove("backgroundTheme");if(hadGestureTip)restore.putBoolean("gestureTipSeen",backupGestureTip);else restore.remove("gestureTipSeen");restore.commit();activity.finish();});}
   }
+  checks.append("ENV recoveredPixelLauncherAnrs=").append(recoveredPixelLauncherAnrs).append("\n");
   result.putString("stream",checks.toString());finish(code,result);
  }
  void projectedCabinetThemes(){
@@ -165,7 +167,7 @@ public final class SmokeInstrumentation extends Instrumentation {
  void clickBackgroundChoice(String name){
   long deadline=android.os.SystemClock.uptimeMillis()+5000;
   do {
-   waitForIdleSync();android.view.accessibility.AccessibilityNodeInfo root=getUiAutomation().getRootInActiveWindow();
+   waitForIdleSync();android.view.accessibility.AccessibilityNodeInfo root=activeAppWindow();
    if(root!=null)for(android.view.accessibility.AccessibilityNodeInfo node:root.findAccessibilityNodeInfosByText(name)){
     if(name.contentEquals(node.getText()==null?"":node.getText())){android.view.accessibility.AccessibilityNodeInfo target=node;while(target!=null){if(target.isClickable()&&target.performAction(android.view.accessibility.AccessibilityNodeInfo.ACTION_CLICK))return;target=target.getParent();}}
    }
@@ -248,7 +250,7 @@ public final class SmokeInstrumentation extends Instrumentation {
  }
  void renameCategory(){
   String original=activity.categories[0];main(()->activity.manageCategories());android.os.SystemClock.sleep(300);
-  java.util.ArrayList<android.view.accessibility.AccessibilityNodeInfo> fields=new java.util.ArrayList<>();collectEdits(getUiAutomation().getRootInActiveWindow(),fields);
+  java.util.ArrayList<android.view.accessibility.AccessibilityNodeInfo> fields=new java.util.ArrayList<>();collectEdits(activeAppWindow(),fields);
   check(fields.size()==9,"nine editable category fields");setText(fields.get(0),"학습");clickText("저장");waitForIdleSync();
   main(()->{check(activity.categories[0].equals("학습"),"category name edited");for(int i=0;i<activity.sites.length();i++)check(!activity.sites.optJSONObject(i).optString("category").equals(original),"book category references renamed");});
  }
@@ -308,23 +310,62 @@ public final class SmokeInstrumentation extends Instrumentation {
  void crudDialogs(){
   final int original=activity.sites.length();
   main(()->activity.edit(-1));android.os.SystemClock.sleep(300);
-  java.util.ArrayList<android.view.accessibility.AccessibilityNodeInfo> fields=new java.util.ArrayList<>();
-  collectEdits(getUiAutomation().getRootInActiveWindow(),fields);
+  java.util.ArrayList<android.view.accessibility.AccessibilityNodeInfo> fields=awaitEditFields(2);
   check(fields.size()==2,"add dialog title and URL fields");
   setText(fields.get(0),"검증 추가 책");setText(fields.get(1),"https://example.com/qa");clickText("저장");waitForIdleSync();
   main(()->check(activity.sites.length()==original+1,"bookmark add through real dialog"));
-  main(()->activity.edit(original));android.os.SystemClock.sleep(300);fields.clear();collectEdits(getUiAutomation().getRootInActiveWindow(),fields);setText(fields.get(0),"검증 수정 책");clickText("저장");waitForIdleSync();
+  main(()->activity.edit(original));android.os.SystemClock.sleep(300);fields=awaitEditFields(2);check(fields.size()==2,"edit dialog title and URL fields");setText(fields.get(0),"검증 수정 책");clickText("저장");waitForIdleSync();
   main(()->{check(activity.sites.optJSONObject(original).optString("name").equals("검증 수정 책"),"bookmark edit through real dialog");activity.showBook(original);});
   android.os.SystemClock.sleep(500);clickText("☆ 즐겨찾기");waitForIdleSync();
   main(()->check(activity.sites.optJSONObject(original).optBoolean("fav"),"favorite toggle through book info"));
   snapshot("book-preview.png");clickText("삭제");android.os.SystemClock.sleep(250);clickText("삭제");waitForIdleSync();
   main(()->check(activity.sites.length()==original,"bookmark delete through confirmation"));
  }
+ // This is an emulator-only recovery for the observed external launcher ANR.
+ // Unknown system dialogs and all SiteBox ANRs remain visible and fail normally.
+ boolean systemDialogPackage(CharSequence name){return "android".contentEquals(name==null?"":name)||"com.android.systemui".contentEquals(name==null?"":name);}
+ boolean dismissPixelLauncherAnr(android.view.accessibility.AccessibilityNodeInfo root){
+  if(root==null||!systemDialogPackage(root.getPackageName()))return false;
+  boolean exactTitle=false;
+  for(android.view.accessibility.AccessibilityNodeInfo node:root.findAccessibilityNodeInfosByText("Pixel Launcher isn't responding")){
+   if("Pixel Launcher isn't responding".contentEquals(node.getText()==null?"":node.getText())&&systemDialogPackage(node.getPackageName())){exactTitle=true;break;}
+  }
+  if(!exactTitle)return false;
+  android.view.accessibility.AccessibilityNodeInfo close=null;
+  for(android.view.accessibility.AccessibilityNodeInfo node:root.findAccessibilityNodeInfosByText("Close app")){
+   if("Close app".contentEquals(node.getText()==null?"":node.getText())&&systemDialogPackage(node.getPackageName())){close=node;break;}
+  }
+  if(close==null)return false;
+  checks.append("ENV observed exact system Pixel Launcher ANR; preserving screenshot before Close app\n");
+  snapshot("external-launcher-anr-"+(recoveredPixelLauncherAnrs+1)+".png");
+  for(android.view.accessibility.AccessibilityNodeInfo target=close;target!=null;target=target.getParent()){
+   if(!systemDialogPackage(target.getPackageName()))break;
+   if(target.isClickable()&&target.performAction(android.view.accessibility.AccessibilityNodeInfo.ACTION_CLICK)){
+    recoveredPixelLauncherAnrs++;checks.append("ENV recovered external Pixel Launcher ANR #").append(recoveredPixelLauncherAnrs).append(" via exact Close app action\n");return true;
+   }
+  }
+  throw new AssertionError("Observed external Pixel Launcher ANR Close app action failed");
+ }
+ android.view.accessibility.AccessibilityNodeInfo activeAppWindow(){
+  long deadline=android.os.SystemClock.uptimeMillis()+5000;
+  do{
+   android.view.accessibility.AccessibilityNodeInfo root=getUiAutomation().getRootInActiveWindow();
+   if(!dismissPixelLauncherAnr(root))return root;
+   waitForIdleSync();android.os.SystemClock.sleep(50);
+  }while(android.os.SystemClock.uptimeMillis()<deadline);
+  throw new AssertionError("Repeated external Pixel Launcher ANRs exceeded 5 second recovery window");
+ }
+ java.util.ArrayList<android.view.accessibility.AccessibilityNodeInfo> awaitEditFields(int expected){
+  long deadline=android.os.SystemClock.uptimeMillis()+5000;
+  java.util.ArrayList<android.view.accessibility.AccessibilityNodeInfo> fields=new java.util.ArrayList<>();
+  do{waitForIdleSync();fields.clear();collectEdits(activeAppWindow(),fields);if(fields.size()==expected)return fields;android.os.SystemClock.sleep(50);}while(android.os.SystemClock.uptimeMillis()<deadline);
+  return fields;
+ }
  void collectEdits(android.view.accessibility.AccessibilityNodeInfo node,java.util.List<android.view.accessibility.AccessibilityNodeInfo> found){if(node==null)return;if("android.widget.EditText".contentEquals(node.getClassName()))found.add(node);for(int i=0;i<node.getChildCount();i++)collectEdits(node.getChild(i),found);}
  void setText(android.view.accessibility.AccessibilityNodeInfo node,String text){Bundle args=new Bundle();args.putCharSequence(android.view.accessibility.AccessibilityNodeInfo.ACTION_ARGUMENT_SET_TEXT_CHARSEQUENCE,text);check(node.performAction(android.view.accessibility.AccessibilityNodeInfo.ACTION_SET_TEXT,args),"text field accepts edit");}
  void clickText(String text){
   long deadline=android.os.SystemClock.uptimeMillis()+5000;
-  do {waitForIdleSync();android.view.accessibility.AccessibilityNodeInfo root=getUiAutomation().getRootInActiveWindow();if(root!=null)for(android.view.accessibility.AccessibilityNodeInfo node:root.findAccessibilityNodeInfosByText(text)){
+  do {waitForIdleSync();android.view.accessibility.AccessibilityNodeInfo root=activeAppWindow();if(root!=null)for(android.view.accessibility.AccessibilityNodeInfo node:root.findAccessibilityNodeInfosByText(text)){
    if(text.contentEquals(node.getText()==null?"":node.getText())){android.view.accessibility.AccessibilityNodeInfo target=node;while(target!=null){if(target.isClickable()&&target.performAction(android.view.accessibility.AccessibilityNodeInfo.ACTION_CLICK))return;target=target.getParent();}}
   }android.os.SystemClock.sleep(50);}while(android.os.SystemClock.uptimeMillis()<deadline);
   throw new AssertionError("click target: "+text);
@@ -363,7 +404,7 @@ public final class SmokeInstrumentation extends Instrumentation {
   main(()->{check(!activity.sceneCollapsed&&!activity.sceneAnimating,"tap miniature restores full-size cabinet");float[] restored=new float[8];activity.miniature.copyRenderedCorners(restored);check(activity.miniature.getProjectionFraction()==0&&Math.abs(restored[0])<.1f&&Math.abs(restored[2]-activity.miniature.getWidth())<.1f,"expansion restores identity projection");check(activity.sceneShadow.getVisibility()==View.GONE,"contact shadow removed on expansion");check(activity.controls.getVisibility()==View.VISIBLE&&activity.miniature.getVisibility()==View.GONE,"full controls restored without overlay");});
   snapshot("pinch-restored.png");pinch(true);awaitScene(true);rotateScreens();
  }
- void clickDescription(String description){android.view.accessibility.AccessibilityNodeInfo root=getUiAutomation().getRootInActiveWindow();android.view.accessibility.AccessibilityNodeInfo node=findDescription(root,description);if(node==null||!node.performAction(android.view.accessibility.AccessibilityNodeInfo.ACTION_CLICK))throw new AssertionError("click description "+description);waitForIdleSync();}
+ void clickDescription(String description){android.view.accessibility.AccessibilityNodeInfo root=activeAppWindow();android.view.accessibility.AccessibilityNodeInfo node=findDescription(root,description);if(node==null||!node.performAction(android.view.accessibility.AccessibilityNodeInfo.ACTION_CLICK))throw new AssertionError("click description "+description);waitForIdleSync();}
  android.view.accessibility.AccessibilityNodeInfo findDescription(android.view.accessibility.AccessibilityNodeInfo root,String description){if(root==null)return null;if(root.getContentDescription()!=null&&description.contentEquals(root.getContentDescription()))return root;for(int i=0;i<root.getChildCount();i++){android.view.accessibility.AccessibilityNodeInfo found=findDescription(root.getChild(i),description);if(found!=null)return found;}return null;}
  String shell(String command){
   try(android.os.ParcelFileDescriptor descriptor=getUiAutomation().executeShellCommand(command);
