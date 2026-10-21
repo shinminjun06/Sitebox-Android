@@ -14,7 +14,7 @@ final class SceneTheme {
   new SceneTheme("lab","미래 연구실",0.36f,0.67f,0.21f),
   new SceneTheme("wizard","마법사의 서재",0.36f,0.68f,0.20f),
   new SceneTheme("seaside","바닷가 별장",0.66f,0.66f,0.15f),
-  new SceneTheme("train","기차 객실",0.68f,0.70f,0.23f)
+  new SceneTheme("train","기차 객실",0.68f,0.74f,0.23f)
  };
  final String id,name;
  final float centerX,feet,height;

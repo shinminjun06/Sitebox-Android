@@ -23,6 +23,9 @@ public class SceneThemeTest {
     if(Math.abs(b[3]-feet)>.01f)throw new AssertionError("Furniture and image must share floor transform");
    }
   }
+  SceneTheme train=SceneTheme.find("train");
+  float rearFloor=SceneProjection.find("train").cameraY+(train.feet-SceneProjection.find("train").cameraY)/(1+SceneProjection.find("train").depth);
+  if(train.feet!=.74f||train.height!=.23f||rearFloor<.71f||rearFloor>.72f)throw new AssertionError("Train feet must stand on parquet below baseboard, with rear floor near source .713");
   if(SceneTheme.find(null)!=SceneTheme.ALL[0]||SceneTheme.find("removed-room")!=SceneTheme.ALL[0])throw new AssertionError("Missing and unknown saved IDs must use classroom");
   System.out.println("PASS: stable room IDs, fallback, shared crop/pose geometry and safe areas");
  }

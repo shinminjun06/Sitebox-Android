@@ -23,8 +23,9 @@ final class ProjectedCabinetView extends ImageView {
   vpX=(transform[1]+imageWidth*transform[0]*profile.cameraX-bounds[0])/(bounds[2]-bounds[0]);
   vpY=(transform[2]+imageHeight*transform[0]*profile.cameraY-bounds[1])/(bounds[3]-bounds[1]);rebuild();
  }
- boolean sideVisible(){return profile.leftVisible(vpX)||profile.rightVisible(vpX);}
- boolean topVisible(){return profile.topVisible(vpY);}
+ boolean sideVisible(){return profile.leftVisible(vpX,vpY,fraction)||profile.rightVisible(vpX,vpY,fraction);}
+ boolean topVisible(){return profile.topVisible(vpX,vpY,fraction);}
+ void roomCamera(float[] out){out[0]=vpX*getWidth();out[1]=vpY*getHeight();}
  void groundedCorners(float[] out){profile.front(Math.max(1,getLayoutParams().width),Math.max(1,getLayoutParams().height),1,vpX,vpY,out);}
  void expectedCorners(float[] out){profile.front(getWidth(),getHeight(),fraction,vpX,vpY,out);}
  SceneProjection room(){return profile;}

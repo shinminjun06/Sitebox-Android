@@ -250,7 +250,7 @@ public class MainActivity extends Activity {
   float shadowWidth=(target[2]-target[0])*1.04f,shadowHeight=Math.max(dp(10),(target[3]-target[1])*.10f);
   float[] grounded=new float[8];miniature.groundedCorners(grounded);
   float originalWidth=Math.max(1,miniature.getLayoutParams().width);
-  sceneShadow.setFootprint((grounded[6]/originalWidth*.8f+.1f)/1.04f,(grounded[4]/originalWidth*.8f+.1f)/1.04f,SceneProjection.find(renderedSceneTheme.id).cameraX>.5f?-.06f:.06f);
+  sceneShadow.setFootprint(SceneProjection.contact(grounded[6],grounded[4],.05f,originalWidth),SceneProjection.contact(grounded[6],grounded[4],.95f,originalWidth),SceneProjection.find(renderedSceneTheme.id).lightDirection());
   sceneShadow.animate().cancel();sceneShadow.setLayoutParams(new FrameLayout.LayoutParams(Math.round(shadowWidth),Math.round(shadowHeight)));
   sceneShadow.setX((target[0]+target[2]-shadowWidth)*.5f);sceneShadow.setY(target[3]-shadowHeight*.25f);sceneShadow.setVisibility(View.VISIBLE);sceneShadow.setAlpha(animate?0:1);
   if(animate)sceneShadow.animate().alpha(1).setStartDelay(170).setDuration(170).start();
