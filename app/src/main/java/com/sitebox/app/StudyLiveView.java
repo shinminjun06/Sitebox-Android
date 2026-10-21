@@ -46,7 +46,7 @@ final class StudyLiveView extends FrameLayout {
     private long frameCount, videoFrameCount, motionOrigin = SystemClock.uptimeMillis();
     private final Runnable tick = new Runnable() {
         @Override public void run() {
-            if (!canAnimate()) return;
+            if (!canRunMotion()) return;
             long now = SystemClock.uptimeMillis();
             float blend = Math.min(1, Math.max(0, now-lastTick)/1200f);
             lastTick = now;
@@ -86,7 +86,7 @@ final class StudyLiveView extends FrameLayout {
                 return true;
             }
             @Override public void onSurfaceTextureUpdated(SurfaceTexture value) {
-                if (player != null && canAnimate()) {
+                if (player != null && canRunMotion()) {
                     videoFrameCount++;
                     firstFrame = true;
                     updateVideoAlpha();
@@ -126,7 +126,7 @@ final class StudyLiveView extends FrameLayout {
         if (weather.code == 45 || weather.code == 48) targetCloudiness = Math.max(targetCloudiness,.85f);
         targetRain = weather.precipitation() == 1 ? 1 : 0;
         targetSnow = weather.precipitation() == 2 ? 1 : 0;
-        if (!canAnimate()) settleAtmosphere();
+        if (!canRunMotion()) settleAtmosphere();
         startVideoIfReady();
         roomLight.invalidate();
         atmosphere.invalidate();
@@ -140,7 +140,7 @@ final class StudyLiveView extends FrameLayout {
     }
     boolean hasVideoFrame() { return firstFrame; }
     boolean isNightVideo() { return videoNight; }
-    boolean isVideoVisible() { return firstFrame && texture.getAlpha() > .9f && isPlaying() && canAnimate(); }
+    boolean isVideoVisible() { return firstFrame && texture.getAlpha() > .9f && isPlaying() && canRunMotion(); }
     float getDaylight() { return daylight; }
     long renderedFrames() { return videoFrameCount; }
     long atmosphericFrames() { return frameCount; }
@@ -156,10 +156,10 @@ final class StudyLiveView extends FrameLayout {
         return value+Math.signum(distance)*Math.min(Math.abs(distance),Math.max(0,blend));
     }
     private static boolean finite(float value) { return !Float.isNaN(value) && !Float.isInfinite(value); }
-    private boolean canAnimate() { return active && attached && motionEnabled; }
+    private boolean canRunMotion() { return active && attached && motionEnabled; }
     private void reconcile() {
         handler.removeCallbacks(tick);
-        if (canAnimate()) {
+        if (canRunMotion()) {
             startVideoIfReady();
             lastTick = SystemClock.uptimeMillis();
             handler.post(tick);
@@ -220,7 +220,7 @@ final class StudyLiveView extends FrameLayout {
     }
 
     private void startVideoIfReady() {
-        if (!canAnimate() || decoderFailed || player != null || day == null || day.isRecycled()
+        if (!canRunMotion() || decoderFailed || player != null || day == null || day.isRecycled()
                 || !texture.isAvailable() || getWidth() == 0 || getHeight() == 0) return;
         firstFrame = false; texture.setAlpha(0);
         videoNight = targetDaylight < .5f;
@@ -232,11 +232,11 @@ final class StudyLiveView extends FrameLayout {
             candidate.setVolume(0,0);
             candidate.setLooping(true);
             candidate.setOnPreparedListener(p -> {
-                if (p != player || !canAnimate()) return;
+                if (p != player || !canRunMotion()) return;
                 try { p.start(); } catch (IllegalStateException failure) { videoFailed(p); }
             });
             candidate.setOnInfoListener((p, what, extra) -> {
-                if (p == player && canAnimate() && what == MediaPlayer.MEDIA_INFO_VIDEO_RENDERING_START) {
+                if (p == player && canRunMotion() && what == MediaPlayer.MEDIA_INFO_VIDEO_RENDERING_START) {
                     updateVideoAlpha();
                 }
                 return false;
