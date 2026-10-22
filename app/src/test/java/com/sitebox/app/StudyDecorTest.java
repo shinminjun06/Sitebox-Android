@@ -18,6 +18,27 @@ import static org.junit.Assert.*;
 @Config(sdk=28)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 public class StudyDecorTest {
+    @Test public void compactFurnitureOmitsCategoryControlsButKeepsLiveBooks()throws Exception{
+        ActivityController<MainActivity> lifecycle=Robolectric.buildActivity(MainActivity.class).create();MainActivity a=lifecycle.get();
+        try{
+            a.setStudyMotion(false);a.sites=new JSONArray();a.populate();layout(a,428,926);
+            Bitmap art=a.assets.get("themes/study/room_cabinet.webp");assertNotNull(art);
+            Bitmap empty=roomSnapshot(a,art);
+            for(int i=0;i<a.currentCabinet.getChildCount();i++){
+                View child=a.currentCabinet.getChildAt(i);
+                if(child instanceof android.widget.TextView){((android.widget.TextView)child).setText("CONTROL");child.setBackgroundColor(Color.MAGENTA);}
+            }
+            Bitmap changedLabels=roomSnapshot(a,art);assertTrue("Category controls must not leak into room furniture",empty.sameAs(changedLabels));
+            for(boolean night:new boolean[]{false,true}){
+                long now=1700000000000L;a.setAmbientPreview(new WeatherState(20,0,0,0,now,0,0,now,true,0,night?0:1),now);
+                a.collapseToScene(false);layout(a,428,926);save(render(a,428,926),night?"empty-night":"empty-day");a.expandFromScene(false);
+            }
+            a.sites.put(new JSONObject().put("name","실제 저장한 책").put("url","https://example.com/").put("category",a.categories[0]));a.populate();layout(a,428,926);
+            Bitmap populated=roomSnapshot(a,art);assertFalse("A saved book must appear in its compact shelf",empty.sameAs(populated));assertEquals(1,a.sites.length());
+            empty.recycle();changedLabels.recycle();populated.recycle();
+        }finally{lifecycle.destroy();}
+    }
+    Bitmap roomSnapshot(MainActivity a,Bitmap art){Bitmap b=Bitmap.createBitmap(a.currentCabinet.getWidth(),a.currentCabinet.getHeight(),Bitmap.Config.ARGB_8888);a.currentCabinet.drawRoom(new Canvas(b),art,true);return b;}
     @Test public void decorRendersAboveCompactCabinetWithoutChangingBooks()throws Exception{
         ActivityController<MainActivity> lifecycle=Robolectric.buildActivity(MainActivity.class).create();MainActivity a=lifecycle.get();
         try{

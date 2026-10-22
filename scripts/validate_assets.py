@@ -49,10 +49,15 @@ with Image.open(decor) as im:
  im.load();assert im.mode=='RGBA' and im.size==(768,384)
  assert im.getchannel('A').getextrema()==(0,255) and decor.stat().st_size<500000
 print('PASS: cabinet-top decor has real transparent alpha and bounded decoded memory')
+room_cabinet=root/'study/room_cabinet.webp'
+with Image.open(room_cabinet) as im:
+ im.load();assert im.mode=='RGBA' and im.size==(512,666)
+ assert im.getchannel('A').getextrema()==(0,255) and room_cabinet.stat().st_size<200000
+print('PASS: separate compact furniture sprite has alpha and bounded memory')
 
 for shelf in ['oak','walnut','white_oak']:
  for book in ['classic','pastel','modern']:
-  active=[decor,root/'shelves'/shelf/'cabinet.webp',root/'shelves'/shelf/'surface.webp']+list((root/'books'/book).glob('*.webp'))
+  active=[decor,room_cabinet,root/'shelves'/shelf/'cabinet.webp',root/'shelves'/shelf/'surface.webp']+list((root/'books'/book).glob('*.webp'))
   assert sum(Image.open(p).width*Image.open(p).height*4 for p in active)<12*1024*1024
 print('PASS: each active shelf/book combination fits the isolated 12 MiB artwork cache')
 

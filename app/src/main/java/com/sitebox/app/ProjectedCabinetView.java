@@ -17,6 +17,11 @@ final class ProjectedCabinetView extends ImageView {
  private boolean lampEnabled=true;
  void setLampEnabled(boolean enabled){if(lampEnabled==enabled)return;lampEnabled=enabled;rebuild();invalidateRoom();}
  private Bitmap roomDecor;
+ private Bitmap roomSnapshot;
+ private final Paint roomPaint=new Paint(Paint.ANTI_ALIAS_FLAG|Paint.FILTER_BITMAP_FLAG);
+ private final RectF roomBounds=new RectF();
+ private boolean naturalWood;
+ void setRoomSnapshot(Bitmap bitmap,boolean natural){roomSnapshot=bitmap;naturalWood=natural;rebuild();invalidate();}
  private final RectF decorBounds=new RectF();
  private final Paint decorPaint=new Paint(Paint.ANTI_ALIAS_FLAG|Paint.FILTER_BITMAP_FLAG);
  void setRoomDecor(Bitmap bitmap){roomDecor=bitmap;rebuild();invalidateRoom();}
@@ -51,13 +56,15 @@ final class ProjectedCabinetView extends ImageView {
   float w=getWidth()>0?getWidth():getLayoutParams()==null?0:getLayoutParams().width,h=getHeight()>0?getHeight():getLayoutParams()==null?0:getLayoutParams().height;
   if(w<=0||h<=0)return;
   rect(source,0,0,w,h);profile.front(w,h,fraction,vpX,vpY,widthVP,corners);profile.body(w,h,fraction,vpX,vpY,widthVP,corners,side,roof);
-  float roomBrightness=profile.brightness*(.62f+.38f*ambientLight);
-  float b=1+(roomBrightness-1)*fraction,contrast=1-.085f*fraction;
+  float roomBrightness=.96f*(.48f+.52f*ambientLight);
+  float b=1+(roomBrightness-1)*fraction,contrast=1-.04f*fraction;
   float warm=.008f+.020f*(1-ambientLight);
   if(!lampEnabled){b*=1-.20f*fraction;warm=-.035f*(1-ambientLight);}
   lighting.set(new float[]{b*contrast+warm*fraction,0,0,0,4*fraction,0,b*contrast,0,0,3*fraction,0,0,b*contrast-warm*fraction,0,3*fraction,0,0,0,1,0});
-  ColorMatrix saturation=new ColorMatrix();saturation.setSaturation(1-.22f*fraction);lighting.postConcat(saturation);
-  ColorMatrixColorFilter filter=fraction==0?null:new ColorMatrixColorFilter(lighting);texturePaint.setColorFilter(filter);decorPaint.setColorFilter(filter);setColorFilter(filter);
+  ColorMatrix saturation=new ColorMatrix();saturation.setSaturation(1-.02f*fraction);lighting.postConcat(saturation);
+  ColorMatrixColorFilter filter=fraction==0?null:new ColorMatrixColorFilter(lighting);texturePaint.setColorFilter(filter);decorPaint.setColorFilter(filter);roomPaint.setColorFilter(filter);setColorFilter(filter);
+  if(naturalWood){ColorMatrix timber=new ColorMatrix(new float[]{.72f,0,0,0,0,0,.60f,0,0,0,0,0,.48f,0,0,0,0,0,1,0});timber.postConcat(lighting);texturePaint.setColorFilter(new ColorMatrixColorFilter(timber));}
+  roomBounds.set(0,0,w,h);
   if(roomDecor!=null){float dw=w*.90f;decorBounds.set(w*.05f,2-dw*roomDecor.getHeight()/roomDecor.getWidth(),w*.95f,2);}
   frontMatrix.setPolyToPoly(source,0,corners,0,4);quad(sidePath,side);quad(topPath,roof);
   if(wood!=null){
@@ -74,7 +81,12 @@ final class ProjectedCabinetView extends ImageView {
  @Override protected void onDraw(Canvas canvas){
   Drawable drawable=getDrawable();if(drawable==null)return;
   if(fraction>0&&wood!=null){if(sideVisible())face(canvas,sidePath,sideMatrix,34);if(topVisible())face(canvas,topPath,topMatrix,14);}
-  int save=canvas.save();canvas.concat(frontMatrix);super.onDraw(canvas);
+  int save=canvas.save();canvas.concat(frontMatrix);
+  if(roomSnapshot==null||fraction==0)super.onDraw(canvas);
+  else {
+   if(fraction<1){drawable.setAlpha(Math.round(255*(1-fraction)));super.onDraw(canvas);drawable.setAlpha(255);}
+   roomPaint.setAlpha(Math.round(255*fraction));canvas.drawBitmap(roomSnapshot,null,roomBounds,roomPaint);
+  }
   // The same live furniture transform and lighting keep props attached during collapse/rotation.
   // The parent allows this small decoration region above the cabinet, without adding a hit target.
   if(roomDecor!=null&&fraction>0){decorPaint.setAlpha(Math.round(255*fraction*fraction*fraction));canvas.drawBitmap(roomDecor,null,decorBounds,decorPaint);}

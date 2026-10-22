@@ -18,6 +18,25 @@ final class BookshelfView extends FrameLayout {
   else {setBackgroundColor(0xffad8056);}
   addView(cabinet,new LayoutParams(-1,-1));
  }
+ /** Render actual book children onto room furniture; category controls belong to the expanded UI. */
+ void drawRoom(Canvas canvas,Bitmap roomCabinet,boolean simpleFrame){
+  if(roomCabinet==null){cabinet.draw(canvas);}else{
+   Paint paint=new Paint(Paint.ANTI_ALIAS_FLAG|Paint.FILTER_BITMAP_FLAG);
+   canvas.drawBitmap(roomCabinet,null,new Rect(0,0,getWidth(),getHeight()),paint);
+  }
+  for(int i=1;i<getChildCount();i++){
+   View child=getChildAt(i);if(!(child.getTag() instanceof Integer)||(Integer)child.getTag()>=9)continue;
+   int save=canvas.save();
+   if(simpleFrame&&roomCabinet!=null){
+    // Measured opening bounds in the separate room sprite; keep each live book on its shelf.
+    int cell=(Integer)child.getTag(),row=cell/3;
+    float[] tops={.028f,.317f,.596f},bottoms={.297f,.575f,.869f};
+    canvas.translate(getWidth()*(.068f+(cell%3)*.302f),getHeight()*tops[row]);
+    canvas.scale(getWidth()*.262f/child.getWidth(),getHeight()*(bottoms[row]-tops[row])/child.getHeight());
+   }else canvas.translate(child.getLeft(),child.getTop());
+   child.draw(canvas);canvas.restoreToCount(save);
+  }
+ }
  @Override protected void onMeasure(int widthSpec,int heightSpec){
   int width=MeasureSpec.getSize(widthSpec);
   // The cabinet is wide enough for seven proportionate books in every cubby.

@@ -154,7 +154,7 @@ public class MainActivity extends Activity {
    Matrix matrix=new Matrix();matrix.setScale(transform[0],transform[0]);matrix.postTranslate(transform[1],transform[2]);backdrop.setImageMatrix(matrix);
   }
   updateStudyScene(wide);
-  if(!sceneCollapsed&&sceneAnimating){miniature.animate().cancel();cancelProjection();miniature.setProjectionFraction(0);miniature.setVisibility(View.GONE);miniature.setImageDrawable(null);controls.animate().cancel();controls.animate().setStartDelay(0);controls.setAlpha(1);controls.setVisibility(View.VISIBLE);sceneAnimating=false;sceneShadow.animate().cancel();sceneShadow.setVisibility(View.GONE);}
+  if(!sceneCollapsed&&sceneAnimating){miniature.animate().cancel();cancelProjection();miniature.setProjectionFraction(0);miniature.setVisibility(View.GONE);miniature.setImageDrawable(null);miniature.setRoomSnapshot(null,false);controls.animate().cancel();controls.animate().setStartDelay(0);controls.setAlpha(1);controls.setVisibility(View.VISIBLE);sceneAnimating=false;sceneShadow.animate().cancel();sceneShadow.setVisibility(View.GONE);}
   if(sceneCollapsed&&miniature!=null&&miniature.getDrawable()!=null){
    miniature.animate().cancel();cancelProjection();controls.animate().cancel();sceneShadow.animate().cancel();
    sceneAnimating=false;controls.setVisibility(View.INVISIBLE);controls.setAlpha(1);
@@ -281,6 +281,10 @@ public class MainActivity extends Activity {
   RectF from=cabinetBounds();int width=currentCabinet.getWidth(),height=currentCabinet.getHeight();
   float sampling=Math.min(1f,1024f/width);Bitmap snapshot=Bitmap.createBitmap(Math.max(1,Math.round(width*sampling)),Math.max(1,Math.round(height*sampling)),Bitmap.Config.ARGB_8888);
   Canvas canvas=new Canvas(snapshot);canvas.scale(sampling,sampling);currentCabinet.draw(canvas);
+  Bitmap roomSnapshot=Bitmap.createBitmap(snapshot.getWidth(),snapshot.getHeight(),Bitmap.Config.ARGB_8888);
+  Canvas roomCanvas=new Canvas(roomSnapshot);roomCanvas.scale(sampling,sampling);
+  currentCabinet.drawRoom(roomCanvas,shelfThemeIndex==0?assets.get("themes/study/room_cabinet.webp"):assets.shelf(shelfThemeIndex),shelfThemeIndex==0);
+  miniature.setRoomSnapshot(roomSnapshot,shelfThemeIndex==0);
   miniature.animate().cancel();cancelProjection();miniature.setRoom(SceneProjection.find(renderedSceneTheme.id),assets.surface(shelfThemeIndex));miniature.setProjectionFraction(0);miniature.setImageBitmap(snapshot);miniature.setLayoutParams(new FrameLayout.LayoutParams(width,height));miniature.setX(from.left);miniature.setY(from.top);miniature.setScaleX(1);miniature.setScaleY(1);miniature.setVisibility(View.VISIBLE);miniature.setEnabled(false);
   float[] target=sceneBounds();float scale=(target[2]-target[0])/width;
   miniature.setCamera(stage.getWidth(),stage.getHeight(),sceneBackdrop.getWidth(),sceneBackdrop.getHeight(),target);
@@ -293,7 +297,7 @@ public class MainActivity extends Activity {
   if(!sceneCollapsed||sceneAnimating)return;
   sceneCollapsed=false;sceneAnimating=animate;updateLampSwitch();RectF target=cabinetBounds();miniature.setEnabled(false);controls.setAlpha(animate?0:1);controls.setVisibility(View.VISIBLE);
   sceneShadow.animate().cancel();if(animate)sceneShadow.animate().alpha(0).setStartDelay(0).setDuration(170).withEndAction(()->sceneShadow.setVisibility(View.GONE)).start();else sceneShadow.setVisibility(View.GONE);
-  Runnable finish=()->{cancelProjection();miniature.setProjectionFraction(0);miniature.setX(target.left);miniature.setY(target.top);miniature.setScaleX(1);miniature.setScaleY(1);miniature.setVisibility(View.GONE);miniature.setImageDrawable(null);controls.setAlpha(1);sceneAnimating=false;};
+  Runnable finish=()->{cancelProjection();miniature.setProjectionFraction(0);miniature.setX(target.left);miniature.setY(target.top);miniature.setScaleX(1);miniature.setScaleY(1);miniature.setVisibility(View.GONE);miniature.setImageDrawable(null);miniature.setRoomSnapshot(null,false);controls.setAlpha(1);sceneAnimating=false;};
   if(animate){animateProjection(0);controls.animate().alpha(1).setStartDelay(170).setDuration(170).withEndAction(()->controls.animate().setStartDelay(0)).start();miniature.animate().x(target.left).y(target.top).scaleX(1).scaleY(1).setDuration(340).setInterpolator(new android.view.animation.DecelerateInterpolator()).withEndAction(finish).start();}
   else finish.run();
  }
@@ -301,7 +305,7 @@ public class MainActivity extends Activity {
  void cancelProjection(){if(projectionAnimator!=null){projectionAnimator.cancel();projectionAnimator=null;}}
  void animateProjection(float target){cancelProjection();projectionAnimator=android.animation.ValueAnimator.ofFloat(miniature.getProjectionFraction(),target);projectionAnimator.addUpdateListener(value->miniature.setProjectionFraction((Float)value.getAnimatedValue()));projectionAnimator.setDuration(340);projectionAnimator.setInterpolator(new android.view.animation.DecelerateInterpolator());projectionAnimator.start();}
  @Override protected void onActivityResult(int request,int result,Intent data){super.onActivityResult(request,result,data);if(backups!=null)backups.onActivityResult(request,result,data);}
- @Override protected void onDestroy(){if(backups!=null)backups.close();ambientHandler.removeCallbacksAndMessages(null);if(studyLive!=null)studyLive.release();if(weather!=null)weather.close();cancelProjection();if(controls!=null)controls.animate().cancel();if(sceneShadow!=null)sceneShadow.animate().cancel();if(miniature!=null){miniature.animate().cancel();miniature.setImageDrawable(null);}super.onDestroy();}
+ @Override protected void onDestroy(){if(backups!=null)backups.close();ambientHandler.removeCallbacksAndMessages(null);if(studyLive!=null)studyLive.release();if(weather!=null)weather.close();cancelProjection();if(controls!=null)controls.animate().cancel();if(sceneShadow!=null)sceneShadow.animate().cancel();if(miniature!=null){miniature.animate().cancel();miniature.setImageDrawable(null);miniature.setRoomSnapshot(null,false);}super.onDestroy();}
 
  @Override protected void onResume(){super.onResume();foreground=true;restartAmbient();if(backups!=null)backups.resume();}
  @Override protected void onPause(){foreground=false;if(backups!=null)backups.pause();ambientHandler.removeCallbacks(ambientTick);if(studyLive!=null)studyLive.setActive(false);super.onPause();}
