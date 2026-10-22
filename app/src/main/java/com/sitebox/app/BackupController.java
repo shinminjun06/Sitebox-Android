@@ -91,7 +91,7 @@ final class BackupController {
     private void receiveRemote(String remote,String email){
         if(closed)return;
         main.removeCallbacks(applyPending);
-        if(!activity.hasWindowFocus()&&statusView==null){waitingRemote=true;pendingRemote=remote;pendingEmail=email;syncing=true;driveStatus="서재를 확인했어요. 편집을 마치면 자동으로 반영합니다.";update();if(foreground)main.postDelayed(applyPending,1000);return;}
+        if(activity.dragSource!=null||activity.sceneAnimating||(!activity.hasWindowFocus()&&statusView==null)){waitingRemote=true;pendingRemote=remote;pendingEmail=email;syncing=true;driveStatus="서재를 확인했어요. 편집을 마치면 자동으로 반영합니다.";update();if(foreground)main.postDelayed(applyPending,1000);return;}
         waitingRemote=false;pendingRemote=null;pendingEmail=null;
         syncing=true;final String[] currentCategories=activity.categories.clone();final String owner=activity.getPreferences(0).getString("syncOwner","");final String local,expected=revision();try{local=snapshot();}catch(Exception e){syncFailed();return;}
         work(()->{
