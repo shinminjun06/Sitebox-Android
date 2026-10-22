@@ -17,7 +17,7 @@ import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.concurrent.*;
 
-/** Manual backups. Importing and cancelling never change the library. */
+/** Automatic account sync, with local atomic recovery and legacy document import compatibility. */
 final class BackupController {
     static final int EXPORT=9131, IMPORT=9132;
     private final MainActivity activity;
@@ -29,16 +29,27 @@ final class BackupController {
     private final AtomicFile rollback;
     private TextView statusView;
     private volatile boolean closed;
-    private boolean storageBusy,driveBusy;
+    private boolean storageBusy,driveBusy,syncing,foreground,changedDuringSync;
+    private final SharedPreferences syncPrefs;
+    private final Runnable syncTick=()->startSync(false);
+    private String syncedAccount="";
+    private Button connectButton,disconnectButton;
     private volatile CancellationSignal cancellation;
-    private String driveStatus="Google 계정을 연결하거나 파일로 백업할 수 있어요.",account="";
+    private String driveStatus="Google 계정을 연결하면 서재를 자동으로 불러오고 저장합니다.",account="";
 
     BackupController(MainActivity activity){
         this.activity=activity;
+        syncPrefs=activity.getSharedPreferences("sitebox.sync",0);
+        syncedAccount=syncPrefs.getString("email","");account=syncPrefs.getString("label",syncedAccount);
+        if(!syncedAccount.isEmpty())driveStatus="저장된 계정 · 연결을 확인하고 있어요.";
         rollback=new AtomicFile(new File(activity.getFilesDir(),"before-restore.json"));
         drive=new GoogleDriveBackup(activity,new GoogleDriveBackup.Listener(){
-            public void onChanged(String status,String name,boolean busy){if(closed)return;driveStatus=status;account=name==null?"":name;driveBusy=busy;update();}
-            public void onRestore(String json,String label){if(!closed)validateAndPreview(json,label);}
+            public void onChanged(String status,String name,boolean busy){if(closed)return;driveStatus=status;if(name!=null&&!name.isEmpty())account=name;driveBusy=busy;update();}
+            public void onIdentity(String email,String label){if(closed)return;syncedAccount=email;account=label;syncPrefs.edit().putString("email",email).putString("label",label).apply();update();}
+            public void onRestore(String json,String email){if(!closed)receiveRemote(json,email);}
+            public void onSaved(String json){if(!closed)acknowledge(json);}
+            public void onFailure(){if(closed)return;syncing=false;update();schedule(60000);}
+            public void onDisconnected(){if(closed)return;syncing=false;syncedAccount="";account="";syncPrefs.edit().remove("email").remove("label").apply();main.removeCallbacks(syncTick);update();}
         });
     }
     void saveState(Bundle state){drive.saveState(state);}
@@ -46,22 +57,58 @@ final class BackupController {
     String snapshot()throws Exception{return BackupCodec.encode(activity.sites,activity.categories,activity.shelfThemeIndex,activity.bookThemeIndex,activity.backgroundThemeId,activity.motionEnabled);}
     void show(){
         LinearLayout content=new LinearLayout(activity);content.setOrientation(LinearLayout.VERTICAL);content.setPadding(activity.dp(20),activity.dp(8),activity.dp(20),activity.dp(12));
-        content.addView(activity.label("북마크·메모·즐겨찾기·책 순서·카테고리와 서재 테마를 저장합니다. 백업과 복원은 버튼을 누를 때만 실행합니다.",13,0xff574532));
+        content.addView(activity.label("Google 계정을 연결하면 저장된 서재를 자동으로 불러옵니다. 책·메모·즐겨찾기·순서와 테마를 바꾸면 자동 저장합니다.",13,0xff574532));
         statusView=activity.label("",13,0xff574532);statusView.setPadding(0,activity.dp(12),0,activity.dp(12));content.addView(statusView);actions.clear();
-        button(content,"Google 계정 연결",()->drive.connect());
-        button(content,"Google Drive에 백업",()->{try{drive.backup(snapshot());}catch(Exception e){message("현재 데이터를 백업할 수 없어요. 데이터를 확인해 주세요.");}});
-        button(content,"Drive 최근 백업 불러오기",()->drive.restoreLatest());
-        button(content,"Google 계정 연결 해제",()->new AlertDialog.Builder(activity).setMessage("앱의 Google Drive 접근 권한을 해제할까요? 기기 데이터는 유지됩니다.").setNegativeButton("취소",null).setPositiveButton("연결 해제",(d,w)->drive.disconnect()).show());
-        TextView info=activity.label("파일 선택기에서 Google Drive와 사용할 계정을 선택해 저장할 수도 있어요. Drive가 표시되지 않으면 Google Drive 앱의 로그인 상태를 확인해 주세요.",12,0xff746650);info.setPadding(0,activity.dp(12),0,activity.dp(8));content.addView(info);
-        button(content,"파일로 저장 · Google Drive 선택 가능",()->pick(EXPORT));
-        button(content,"백업 파일 불러오기",()->pick(IMPORT));
-        button(content,"복원 전 기기 사본 불러오기",this::readRollback);
+        connectButton=button(content,"Google 계정 연결",()->startSync(true));
+        disconnectButton=button(content,"Google 계정 연결 해제",()->new AlertDialog.Builder(activity).setMessage("자동 동기화를 중지하고 Google Drive 접근 권한을 해제할까요? 기기 데이터와 이미 저장된 서재는 유지됩니다.").setNegativeButton("취소",null).setPositiveButton("연결 해제",(d,w)->drive.disconnect()).show());
+        content.addView(activity.label("오프라인에서도 기기에 저장됩니다. 앱을 다시 열면 연결을 확인하고 동기화를 재시도합니다.",12,0xff746650));
         ScrollView scroll=new ScrollView(activity);scroll.addView(content);
-        AlertDialog dialog=new AlertDialog.Builder(activity).setTitle("Google 계정 · 백업").setView(scroll).setPositiveButton("닫기",null).create();
-        dialog.setOnDismissListener(d->{statusView=null;actions.clear();});update();dialog.show();
+        AlertDialog dialog=new AlertDialog.Builder(activity).setTitle("Google 계정 · 자동 동기화").setView(scroll).setPositiveButton("닫기",null).create();
+        dialog.setOnDismissListener(d->{statusView=null;connectButton=null;disconnectButton=null;actions.clear();});update();dialog.show();
     }
-    private void button(LinearLayout parent,String title,Runnable action){Button b=new Button(activity);b.setText(title);b.setMinHeight(activity.dp(48));b.setOnClickListener(v->{if(!storageBusy&&!driveBusy)action.run();});parent.addView(b);actions.add(b);}
-    private void update(){if(statusView!=null)statusView.setText((account.isEmpty()?"연결된 계정 없음":account)+"\n"+(storageBusy?"백업 파일 처리 중…":driveStatus));for(Button b:actions)b.setEnabled(!storageBusy&&!driveBusy);}
+    private Button button(LinearLayout parent,String title,Runnable action){Button b=new Button(activity);b.setText(title);b.setMinHeight(activity.dp(48));b.setOnClickListener(v->{if(!storageBusy&&!driveBusy&&!syncing)action.run();});parent.addView(b);actions.add(b);return b;}
+    private void update(){if(statusView!=null)statusView.setText((account.isEmpty()?"아직 연결되지 않았어요":account)+"\n"+(storageBusy?"서재를 기기에 반영하고 있어요…":driveStatus));for(Button b:actions)b.setEnabled(!storageBusy&&!driveBusy&&!syncing);if(connectButton!=null)connectButton.setText(syncedAccount.isEmpty()?"Google 계정 연결":"Google 계정 다시 연결");if(disconnectButton!=null)disconnectButton.setVisibility(syncedAccount.isEmpty()?android.view.View.GONE:android.view.View.VISIBLE);}
+    void resume(){foreground=true;schedule(500);}
+    void pause(){foreground=false;main.removeCallbacks(syncTick);if(!syncing&&!driveBusy&&!storageBusy)startSync(false);}
+    void localChanged(){changedDuringSync=true;if(!closed)schedule(1500);}
+    private void schedule(long delay){main.removeCallbacks(syncTick);if(!closed&&foreground&&!syncedAccount.isEmpty())main.postDelayed(syncTick,delay);}
+    private void startSync(boolean explicit){
+        if(closed||syncing||storageBusy||driveBusy)return;
+        if(!explicit&&syncedAccount.isEmpty())return;
+        syncing=true;changedDuringSync=false;main.removeCallbacks(syncTick);
+        if(explicit&&syncedAccount.isEmpty())drive.connect();else drive.resume(syncedAccount,explicit);
+    }
+    private AtomicFile baseline(String email)throws Exception{
+        byte[] hash=java.security.MessageDigest.getInstance("SHA-256").digest(email.toLowerCase(Locale.ROOT).getBytes(StandardCharsets.UTF_8));StringBuilder name=new StringBuilder("sync-");for(byte v:hash)name.append(String.format(Locale.ROOT,"%02x",v));return new AtomicFile(new File(activity.getFilesDir(),name+".json"));
+    }
+    private String baselineRead(String email)throws Exception{AtomicFile file=baseline(email);if(!file.getBaseFile().exists())return null;try(InputStream in=file.openRead()){String json=readBounded(in);BackupCodec.decode(json);return json;}}
+    private static void atomicWrite(AtomicFile file,String json)throws Exception{FileOutputStream out=null;try{out=file.startWrite();out.write(json.getBytes(StandardCharsets.UTF_8));file.finishWrite(out);}catch(Exception e){if(out!=null)file.failWrite(out);throw e;}}
+    private void receiveRemote(String remote,String email){
+        syncing=true;final String[] currentCategories=activity.categories.clone();final String local,expected=revision();try{local=snapshot();}catch(Exception e){syncFailed();return;}
+        work(()->{
+            String previous=baselineRead(email);String owner=syncPrefs.getString("owner","");
+            // A different account never receives the previous account's private library automatically.
+            String merged=!owner.isEmpty()&&!owner.equalsIgnoreCase(email)?(remote==null?BackupCodec.encode(new JSONArray(),currentCategories,0,0,"study",true):remote):SyncPlanner.merge(previous,local,remote);
+            if(!SyncPlanner.same(local,merged))atomicWrite(rollback,local);
+            return merged;
+        },value->{
+            if(!expected.equals(revision())){receiveRemote(remote,email);return;}
+            try{
+                String merged=(String)value;BackupCodec.Snapshot state=BackupCodec.decode(merged);
+                if(!SyncPlanner.same(local,merged)){if(!writePreferences(state)){syncFailed();return;}reload(state);}
+                syncPrefs.edit().putString("owner",email).apply();
+                work(()->{if(remote!=null)atomicWrite(baseline(email),remote);return merged;},ready->{try{
+                    if(remote==null||!SyncPlanner.same((String)ready,remote)){driveStatus="변경사항을 자동 저장하고 있어요…";update();drive.backup((String)ready);}
+                    else completeSync();
+                }catch(Exception e){syncFailed();}});
+            }catch(Exception e){syncFailed();}
+        });
+    }
+    private void acknowledge(String json){final String email=syncedAccount;work(()->{atomicWrite(baseline(email),json);return json;},value->completeSync());}
+    private void completeSync(){syncing=false;driveStatus="자동 동기화 완료 · "+new SimpleDateFormat("HH:mm",Locale.getDefault()).format(new Date());update();schedule(changedDuringSync?1500:60000);}
+    private void syncFailed(){syncing=false;driveStatus="동기화하지 못했어요. 기기 데이터는 유지되며 다음 연결 때 재시도합니다.";update();schedule(60000);}
+    private void reload(BackupCodec.Snapshot state){if(activity.sceneCollapsed)activity.expandFromScene(false);activity.load();activity.motionEnabled=state.motion;activity.page=0;activity.search.setText("");activity.setSearchExpanded(false);activity.populate();activity.updateSceneBackdrop();}
+
     private void message(String text){if(!closed)Toast.makeText(activity,text,Toast.LENGTH_LONG).show();}
     private void pick(int code){
         Intent intent=new Intent(code==EXPORT?Intent.ACTION_CREATE_DOCUMENT:Intent.ACTION_OPEN_DOCUMENT).addCategory(Intent.CATEGORY_OPENABLE);
@@ -124,7 +171,7 @@ final class BackupController {
         if(closed||storageBusy||driveBusy)return;storageBusy=true;update();CancellationSignal signal=new CancellationSignal();cancellation=signal;
         ScheduledFuture<?> timeout=timer.schedule(signal::cancel,45,TimeUnit.SECONDS);
         worker.execute(()->{Object value=null;Exception error=null;try{signal.throwIfCanceled();value=job.run();signal.throwIfCanceled();}catch(Exception e){error=e;}finally{timeout.cancel(false);cancellation=null;}
-            final Object answer=value;final Exception failure=error;main.post(()->{if(closed)return;storageBusy=false;update();if(failure==null)result.accept(answer);else message("파일을 처리하지 못했어요. 백업 형식·크기와 연결 상태를 확인해 주세요. 기존 데이터는 유지됩니다.");});});
+            final Object answer=value;final Exception failure=error;main.post(()->{if(closed)return;storageBusy=false;update();if(failure==null)result.accept(answer);else{if(syncing)syncFailed();else message("파일을 처리하지 못했어요. 백업 형식·크기와 연결 상태를 확인해 주세요. 기존 데이터는 유지됩니다.");}});});
     }
     void close(){closed=true;CancellationSignal signal=cancellation;if(signal!=null)signal.cancel();worker.shutdownNow();timer.shutdownNow();main.removeCallbacksAndMessages(null);drive.close();}
 }

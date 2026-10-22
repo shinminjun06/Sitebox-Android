@@ -59,8 +59,10 @@ final class BackupChecks {
     Thread blocked=new Thread(()->{try{BackupController.transfer(pipe[writing?1:0],payload,cancel);failure.set(new AssertionError("Cancelled pipe succeeded"));}catch(OperationCanceledException expected){}catch(Throwable e){failure.set(e);}finally{if(Thread.currentThread().isInterrupted())failure.set(new AssertionError("Transfer left worker interrupted"));}});
     blocked.start();SystemClock.sleep(120);cancel.cancel();blocked.join(1500);boolean stopped=!blocked.isAlive();pipe[0].close();pipe[1].close();test.check(stopped&&failure.get()==null,"stalled document "+(writing?"write":"read")+" cancels through interruptible channel");
    }
-   test.activeAppWindow();test.main(controller::show);snapshotDialog("Google 계정 · 백업","backup-settings.png");
-   test.clickText("닫기");test.waitForIdleSync();test.check(!activeWindowHasText("Google 계정 · 백업"),"backup settings closes through its visible button");
+   test.activeAppWindow();test.main(controller::show);snapshotDialog("Google 계정 · 자동 동기화","backup-settings.png");
+   test.check(!activeWindowHasText("Google Drive에 백업")&&!activeWindowHasText("백업 파일 불러오기"),"manual backup actions removed from account UI");
+   SyncChecks.run(test);
+   test.clickText("닫기");test.waitForIdleSync();test.check(!activeWindowHasText("Google 계정 · 자동 동기화"),"backup settings closes through its visible button");
    test.activeAppWindow();
    test.main(()->controller.onActivityResult(BackupController.EXPORT,Activity.RESULT_CANCELED,null));test.check(before.equals(activity.getPreferences(0).getAll()),"cancelled picker preserves preferences");
    Intent document=new Intent().setData(BackupTestProvider.DOCUMENT);

@@ -18,3 +18,6 @@
 -keepclassmembers class * implements android.os.Parcelable {
     public static final android.os.Parcelable$Creator CREATOR;
 }
+
+# Sync state is exercised by the native release smoke checks.
+-keep class com.sitebox.app.SyncPlanner { *; }
