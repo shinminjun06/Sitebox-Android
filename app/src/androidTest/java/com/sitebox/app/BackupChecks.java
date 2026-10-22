@@ -61,8 +61,8 @@ final class BackupChecks {
    }
    test.activeAppWindow();test.main(controller::show);snapshotDialog("Google 계정 · 자동 동기화","backup-settings.png");
    test.check(!activeWindowHasText("Google Drive에 백업")&&!activeWindowHasText("백업 파일 불러오기"),"manual backup actions removed from account UI");
-   SyncChecks.run(test);
    test.clickText("닫기");test.waitForIdleSync();test.check(!activeWindowHasText("Google 계정 · 자동 동기화"),"backup settings closes through its visible button");
+   SyncChecks.run(test);
    test.activeAppWindow();
    test.main(()->controller.onActivityResult(BackupController.EXPORT,Activity.RESULT_CANCELED,null));test.check(before.equals(activity.getPreferences(0).getAll()),"cancelled picker preserves preferences");
    Intent document=new Intent().setData(BackupTestProvider.DOCUMENT);

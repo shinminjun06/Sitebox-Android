@@ -34,6 +34,9 @@ final class BackupController {
     private final Runnable syncTick=()->startSync(false);
     private String syncedAccount="";
     private Button connectButton,disconnectButton;
+    private boolean waitingRemote;
+    private String pendingRemote,pendingEmail;
+    private final Runnable applyPending=()->{if(waitingRemote)receiveRemote(pendingRemote,pendingEmail);};
     private volatile CancellationSignal cancellation;
     private String driveStatus="Google 계정을 연결하면 서재를 자동으로 불러오고 저장합니다.",account="";
 
@@ -68,7 +71,7 @@ final class BackupController {
     }
     private Button button(LinearLayout parent,String title,Runnable action){Button b=new Button(activity);b.setText(title);b.setMinHeight(activity.dp(48));b.setOnClickListener(v->{if(!storageBusy&&!driveBusy&&!syncing)action.run();});parent.addView(b);actions.add(b);return b;}
     private void update(){if(statusView!=null)statusView.setText((account.isEmpty()?"아직 연결되지 않았어요":account)+"\n"+(storageBusy?"서재를 기기에 반영하고 있어요…":driveStatus));for(Button b:actions)b.setEnabled(!storageBusy&&!driveBusy&&!syncing);if(connectButton!=null)connectButton.setText(syncedAccount.isEmpty()?"Google 계정 연결":"Google 계정 다시 연결");if(disconnectButton!=null)disconnectButton.setVisibility(syncedAccount.isEmpty()?android.view.View.GONE:android.view.View.VISIBLE);}
-    void resume(){foreground=true;schedule(500);}
+    void resume(){foreground=true;if(waitingRemote){main.removeCallbacks(applyPending);main.postDelayed(applyPending,500);}else schedule(500);}
     void pause(){foreground=false;main.removeCallbacks(syncTick);if(changedDuringSync&&!syncing&&!driveBusy&&!storageBusy)startSync(false);}
     void localChanged(){changedDuringSync=true;if(!closed)schedule(1500);}
     private void schedule(long delay){main.removeCallbacks(syncTick);if(!closed&&foreground&&!syncedAccount.isEmpty())main.postDelayed(syncTick,delay);}
@@ -81,22 +84,30 @@ final class BackupController {
     private AtomicFile baseline(String email)throws Exception{
         byte[] hash=java.security.MessageDigest.getInstance("SHA-256").digest(email.toLowerCase(Locale.ROOT).getBytes(StandardCharsets.UTF_8));StringBuilder name=new StringBuilder("sync-");for(byte v:hash)name.append(String.format(Locale.ROOT,"%02x",v));return new AtomicFile(new File(activity.getFilesDir(),name+".json"));
     }
-    private String baselineRead(String email)throws Exception{AtomicFile file=baseline(email);if(!file.getBaseFile().exists())return null;try(InputStream in=file.openRead()){String json=readBounded(in);BackupCodec.decode(json);return json;}}
+    private AtomicFile accountCopy(String email)throws Exception{return new AtomicFile(new File(activity.getFilesDir(),baseline(email).getBaseFile().getName()+".device"));}
+    private String readSnapshot(AtomicFile file)throws Exception{if(!file.getBaseFile().exists())return null;try(InputStream in=file.openRead()){String json=readBounded(in);BackupCodec.decode(json);return json;}}
+    private String baselineRead(String email)throws Exception{return readSnapshot(baseline(email));}
     private static void atomicWrite(AtomicFile file,String json)throws Exception{FileOutputStream out=null;try{out=file.startWrite();out.write(json.getBytes(StandardCharsets.UTF_8));file.finishWrite(out);}catch(Exception e){if(out!=null)file.failWrite(out);throw e;}}
     private void receiveRemote(String remote,String email){
-        syncing=true;final String[] currentCategories=activity.categories.clone();final String local,expected=revision();try{local=snapshot();}catch(Exception e){syncFailed();return;}
+        if(closed)return;
+        main.removeCallbacks(applyPending);
+        if(!activity.hasWindowFocus()&&statusView==null){waitingRemote=true;pendingRemote=remote;pendingEmail=email;syncing=true;driveStatus="서재를 확인했어요. 편집을 마치면 자동으로 반영합니다.";update();if(foreground)main.postDelayed(applyPending,1000);return;}
+        waitingRemote=false;pendingRemote=null;pendingEmail=null;
+        syncing=true;final String[] currentCategories=activity.categories.clone();final String owner=activity.getPreferences(0).getString("syncOwner","");final String local,expected=revision();try{local=snapshot();}catch(Exception e){syncFailed();return;}
         work(()->{
-            String previous=baselineRead(email);String owner=syncPrefs.getString("owner","");
-            // A different account never receives the previous account's private library automatically.
-            String merged=!owner.isEmpty()&&!owner.equalsIgnoreCase(email)?(remote==null?BackupCodec.encode(new JSONArray(),currentCategories,0,0,"study",true):remote):SyncPlanner.merge(previous,local,remote);
+            String previous=baselineRead(email);String merged;
+            // Store each owner's offline edits separately. Never upload one account's books to another.
+            if(!owner.isEmpty()&&!owner.equalsIgnoreCase(email)){
+                atomicWrite(accountCopy(owner),local);String ownLocal=readSnapshot(accountCopy(email));
+                merged=ownLocal!=null?SyncPlanner.merge(previous,ownLocal,remote):(remote==null?BackupCodec.encode(new JSONArray(),currentCategories,0,0,"study",true):remote);
+            }else merged=SyncPlanner.merge(previous,local,remote);
             if(!SyncPlanner.same(local,merged))atomicWrite(rollback,local);
             return merged;
         },value->{
             if(!expected.equals(revision())){receiveRemote(remote,email);return;}
             try{
                 String merged=(String)value;BackupCodec.Snapshot state=BackupCodec.decode(merged);
-                if(!SyncPlanner.same(local,merged)){if(!writePreferences(state)){syncFailed();return;}reload(state);}
-                syncPrefs.edit().putString("owner",email).apply();
+                if(!SyncPlanner.same(local,merged)||!owner.equalsIgnoreCase(email)){if(!writePreferences(state,email)){syncFailed();return;}reload(state);}
                 work(()->{if(remote!=null)atomicWrite(baseline(email),remote);return merged;},ready->{try{
                     if(remote==null||!SyncPlanner.same((String)ready,remote)){driveStatus="변경사항을 자동 저장하고 있어요…";update();drive.backup((String)ready);}
                     else completeSync();
@@ -163,7 +174,8 @@ final class BackupController {
             if(activity.sceneCollapsed)activity.expandFromScene(false);activity.load();activity.motionEnabled=restored.motion;activity.page=0;activity.search.setText("");activity.setSearchExpanded(false);activity.populate();activity.updateSceneBackdrop();message("백업을 복원했어요.");
         }catch(Exception e){message("복원하지 못했어요. 복원 전 기기 사본을 확인해 주세요.");}});
     }
-    private boolean writePreferences(BackupCodec.Snapshot state){JSONArray names=new JSONArray();for(String name:state.categories)names.put(name);return activity.getPreferences(0).edit().putString("sites",state.sites.toString()).putString("categories",names.toString()).putInt("shelfTheme",state.shelfTheme).putInt("bookTheme",state.bookTheme).putString("backgroundTheme",state.backgroundTheme).putBoolean("studyThemeIntroduced",true).putBoolean("studyMotion",state.motion).commit();}
+    private boolean writePreferences(BackupCodec.Snapshot state){return writePreferences(state,null);}
+    private boolean writePreferences(BackupCodec.Snapshot state,String owner){JSONArray names=new JSONArray();for(String name:state.categories)names.put(name);SharedPreferences.Editor editor=activity.getPreferences(0).edit().putString("sites",state.sites.toString()).putString("categories",names.toString()).putInt("shelfTheme",state.shelfTheme).putInt("bookTheme",state.bookTheme).putString("backgroundTheme",state.backgroundTheme).putBoolean("studyThemeIntroduced",true).putBoolean("studyMotion",state.motion);if(owner!=null)editor.putString("syncOwner",owner);return editor.commit();}
     private static String decodeUtf8(byte[] bytes)throws java.nio.charset.CharacterCodingException{return StandardCharsets.UTF_8.newDecoder().onMalformedInput(CodingErrorAction.REPORT).onUnmappableCharacter(CodingErrorAction.REPORT).decode(ByteBuffer.wrap(bytes)).toString();}
     private static String readBounded(InputStream input)throws Exception{ByteArrayOutputStream bytes=new ByteArrayOutputStream();byte[] chunk=new byte[8192];int n;while((n=input.read(chunk))!=-1){if(bytes.size()+n>BackupCodec.MAX_BYTES)throw new IOException("Too large");bytes.write(chunk,0,n);}return decodeUtf8(bytes.toByteArray());}
     private interface Job{Object run()throws Exception;}private interface Result{void accept(Object value);}
@@ -173,5 +185,5 @@ final class BackupController {
         worker.execute(()->{Object value=null;Exception error=null;try{signal.throwIfCanceled();value=job.run();signal.throwIfCanceled();}catch(Exception e){error=e;}finally{timeout.cancel(false);cancellation=null;}
             final Object answer=value;final Exception failure=error;main.post(()->{if(closed)return;storageBusy=false;update();if(failure==null)result.accept(answer);else{if(syncing)syncFailed();else message("파일을 처리하지 못했어요. 백업 형식·크기와 연결 상태를 확인해 주세요. 기존 데이터는 유지됩니다.");}});});
     }
-    void close(){closed=true;CancellationSignal signal=cancellation;if(signal!=null)signal.cancel();worker.shutdownNow();timer.shutdownNow();main.removeCallbacksAndMessages(null);drive.close();}
+    void close(){closed=true;pendingRemote=null;pendingEmail=null;waitingRemote=false;CancellationSignal signal=cancellation;if(signal!=null)signal.cancel();worker.shutdownNow();timer.shutdownNow();main.removeCallbacksAndMessages(null);drive.close();}
 }
