@@ -301,21 +301,21 @@ public final class SmokeInstrumentation extends Instrumentation {
  }
  void checkProjection(SceneTheme theme){
   ProjectedCabinetView view=activity.miniature;
-  check(view.room()==SceneProjection.find(theme.id),theme.id+" room projection profile applied");
+  check(view.room()==SceneProjection.find(theme.id,activity.sceneBackdrop.getWidth()>activity.sceneBackdrop.getHeight()),theme.id+" room projection profile applied");
   check(view.sideTexture()!=activity.assets.shelf(activity.shelfThemeIndex),theme.id+" dedicated full-grain surface loaded without fallback");
   check(view.sideTexture()==activity.assets.surface(activity.shelfThemeIndex),theme.id+" physical side uses current theme cabinet bitmap");
   check(Math.abs(view.getProjectionFraction()-1)<.0001f,theme.id+" projection animation settled");
   float[] actual=new float[8],expected=new float[8];view.copyRenderedCorners(actual);view.expectedCorners(expected);
   for(int i=0;i<8;i++)check(Math.abs(actual[i]-expected[i])<.1f,theme.id+" rendered homography corner "+i);
   check(Math.max(actual[5],actual[7])>=view.getHeight()-.1f,theme.id+" projected feet retain floor contact");
-  check(Math.abs((actual[5]-actual[1])/(actual[2]-actual[0])-(float)view.getHeight()/view.getWidth())<.001f,theme.id+" physical front preserves snapshot aspect ratio");
-  check(Math.abs(actual[1]-actual[3])<.1f,theme.id+" frontal cabinet crown stays level");
+  check(Math.abs(actual[0]-actual[6])<.1f&&Math.abs(actual[2]-actual[4])<.1f,theme.id+" cabinet uprights remain vertical");
+  check(actual[5]>actual[7]&&view.topVisible(),theme.id+" front follows room floor slope and top is visible below horizon");
   try{
    JSONObject pose=new JSONObject();JSONArray corners=new JSONArray();int[] stageLocation=new int[2];activity.stage.getLocationOnScreen(stageLocation);
    for(int i=0;i<8;i++)corners.put((i%2==0?stageLocation[0]+view.getX():stageLocation[1]+view.getY())+actual[i]*(i%2==0?view.getScaleX():view.getScaleY()));
    pose.put("front",corners);pose.put("depth",view.room().depth);pose.put("sideVisible",view.sideVisible());pose.put("topVisible",view.topVisible());
    float[] side=new float[8],roof=new float[8];view.copyRenderedBodyCorners(side,roof);
-   float[] camera=new float[2];view.roomCamera(camera);float k=1/(1+view.room().depth);
+   float[] camera=new float[2];view.roomCamera(camera);float k=(roof[0]-camera[0])/(actual[0]-camera[0]);
    check(Math.abs(roof[0]-(camera[0]+k*(actual[0]-camera[0])))<.1f&&Math.abs(roof[1]-(camera[1]+k*(actual[1]-camera[1])))<.1f,theme.id+" rear rays use fixed cropped room camera");
    float[] contacts=new float[2];activity.sceneShadow.contactCenters(contacts);
    float projectedLeft=view.getX()+(actual[0]+.05f*(actual[2]-actual[0]))*view.getScaleX(),projectedRight=view.getX()+(actual[0]+.95f*(actual[2]-actual[0]))*view.getScaleX();

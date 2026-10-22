@@ -28,8 +28,8 @@ android {
         minSdk 24
         targetSdk 35
         testInstrumentationRunner 'com.sitebox.app.SmokeInstrumentation'
-        versionCode 19
-        versionName '3.0.7-school'
+        versionCode 20
+        versionName '3.0.8-school'
         buildConfigField 'String', 'SOURCE_REVISION', '"' + revision + '"'
     }
     signingConfigs {

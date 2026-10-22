@@ -21,22 +21,24 @@ final class ProjectedCabinetView extends ImageView {
  private final Paint decorPaint=new Paint(Paint.ANTI_ALIAS_FLAG|Paint.FILTER_BITMAP_FLAG);
  void setRoomDecor(Bitmap bitmap){roomDecor=bitmap;rebuild();invalidateRoom();}
  private void invalidateRoom(){invalidate();if(getParent() instanceof View)((View)getParent()).invalidate();}
- private Bitmap wood;private float ambientLight=1;private float fraction,vpX=-.25f,vpY=-.5f;
+ private Bitmap wood;private float ambientLight=1;private float fraction,vpX=-.25f,vpY=-.5f,widthVP=-16;
  private final ColorMatrix lighting=new ColorMatrix();
  private SceneProjection profile=SceneProjection.ALL[0];
  ProjectedCabinetView(Context context){super(context);setScaleType(ScaleType.FIT_XY);}
  void setAmbientLight(float value){float next=Math.max(0,Math.min(1,value));if(Math.abs(next-ambientLight)<.001f)return;ambientLight=next;rebuild();invalidateRoom();}
  void setRoom(SceneProjection value,Bitmap cabinet){profile=value;wood=cabinet;rebuild();}
  void setCamera(float viewportWidth,float viewportHeight,float imageWidth,float imageHeight,float[] bounds){
+  profile=SceneProjection.find(profile.id,imageWidth>imageHeight);
   float[] transform=SceneTheme.find(profile.id).imageTransform(viewportWidth,viewportHeight,imageWidth,imageHeight);
   vpX=(transform[1]+imageWidth*transform[0]*profile.cameraX-bounds[0])/(bounds[2]-bounds[0]);
-  vpY=(transform[2]+imageHeight*transform[0]*profile.cameraY-bounds[1])/(bounds[3]-bounds[1]);rebuild();
+  vpY=(transform[2]+imageHeight*transform[0]*profile.cameraY-bounds[1])/(bounds[3]-bounds[1]);
+  widthVP=(transform[1]+imageWidth*transform[0]*profile.widthVanishingX-bounds[0])/(bounds[2]-bounds[0]);rebuild();
  }
  boolean sideVisible(){return profile.leftVisible(vpX,vpY,fraction)||profile.rightVisible(vpX,vpY,fraction);}
  boolean topVisible(){return profile.topVisible(vpX,vpY,fraction);}
  void roomCamera(float[] out){out[0]=vpX*getWidth();out[1]=vpY*getHeight();}
- void groundedCorners(float[] out){profile.front(Math.max(1,getLayoutParams().width),Math.max(1,getLayoutParams().height),1,vpX,vpY,out);}
- void expectedCorners(float[] out){profile.front(getWidth(),getHeight(),fraction,vpX,vpY,out);}
+ void groundedCorners(float[] out){profile.front(Math.max(1,getLayoutParams().width),Math.max(1,getLayoutParams().height),1,vpX,vpY,widthVP,out);}
+ void expectedCorners(float[] out){profile.front(getWidth(),getHeight(),fraction,vpX,vpY,widthVP,out);}
  SceneProjection room(){return profile;}
  Bitmap sideTexture(){return wood;}
  public float getProjectionFraction(){return fraction;}
@@ -48,7 +50,7 @@ final class ProjectedCabinetView extends ImageView {
  private void rebuild(){
   float w=getWidth()>0?getWidth():getLayoutParams()==null?0:getLayoutParams().width,h=getHeight()>0?getHeight():getLayoutParams()==null?0:getLayoutParams().height;
   if(w<=0||h<=0)return;
-  rect(source,0,0,w,h);profile.front(w,h,fraction,vpX,vpY,corners);profile.body(w,h,fraction,vpX,vpY,corners,side,roof);
+  rect(source,0,0,w,h);profile.front(w,h,fraction,vpX,vpY,widthVP,corners);profile.body(w,h,fraction,vpX,vpY,widthVP,corners,side,roof);
   float roomBrightness=profile.brightness*(.62f+.38f*ambientLight);
   float b=1+(roomBrightness-1)*fraction,contrast=1-.085f*fraction;
   float warm=.008f+.020f*(1-ambientLight);

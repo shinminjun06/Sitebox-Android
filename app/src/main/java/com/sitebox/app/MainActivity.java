@@ -263,12 +263,15 @@ public class MainActivity extends Activity {
   return renderedSceneTheme.sceneBounds(stage.getWidth(),stage.getHeight(),iw,ih,left,top,right,bottom);
  }
  void positionSceneShadow(float[] target,boolean animate){
-  float shadowWidth=(target[2]-target[0])*1.04f,shadowHeight=Math.max(dp(10),(target[3]-target[1])*.10f);
+  float shadowWidth=(target[2]-target[0])*1.04f,baseHeight=Math.max(dp(10),(target[3]-target[1])*.10f);
   float[] grounded=new float[8];miniature.groundedCorners(grounded);
-  float originalWidth=Math.max(1,miniature.getLayoutParams().width);
-  sceneShadow.setFootprint(SceneProjection.contact(grounded[6],grounded[4],.05f,originalWidth),SceneProjection.contact(grounded[6],grounded[4],.95f,originalWidth),SceneProjection.find(renderedSceneTheme.id).lightDirection());
+  float originalWidth=Math.max(1,miniature.getLayoutParams().width),scale=(target[2]-target[0])/originalWidth;
+  // Each foot has its own floor height after two-point projection.
+  float leftY=target[1]+grounded[7]*scale,rightY=target[1]+grounded[5]*scale;
+  float shadowTop=Math.min(leftY,rightY)-baseHeight*.25f,shadowHeight=baseHeight+Math.abs(leftY-rightY);
+  sceneShadow.setFootprint(SceneProjection.contact(grounded[6],grounded[4],.05f,originalWidth),SceneProjection.contact(grounded[6],grounded[4],.95f,originalWidth),(leftY-shadowTop)/shadowHeight,(rightY-shadowTop)/shadowHeight,miniature.room().lightDirection());
   sceneShadow.animate().cancel();sceneShadow.setLayoutParams(new FrameLayout.LayoutParams(Math.round(shadowWidth),Math.round(shadowHeight)));
-  sceneShadow.setX((target[0]+target[2]-shadowWidth)*.5f);sceneShadow.setY(target[3]-shadowHeight*.25f);sceneShadow.setVisibility(View.VISIBLE);sceneShadow.setAlpha(animate?0:1);
+  sceneShadow.setX((target[0]+target[2]-shadowWidth)*.5f);sceneShadow.setY(shadowTop);sceneShadow.setVisibility(View.VISIBLE);sceneShadow.setAlpha(animate?0:1);
   if(animate)sceneShadow.animate().alpha(1).setStartDelay(170).setDuration(170).start();
  }
  void collapseToScene(boolean animate){

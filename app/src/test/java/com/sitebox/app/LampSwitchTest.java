@@ -8,16 +8,19 @@ import org.robolectric.Robolectric;
 import org.robolectric.RobolectricTestRunner;
 import org.robolectric.android.controller.ActivityController;
 import org.robolectric.annotation.Config;
+import org.robolectric.annotation.GraphicsMode;
 import static org.junit.Assert.*;
 
 @RunWith(RobolectricTestRunner.class)
 @Config(sdk=28)
+@GraphicsMode(GraphicsMode.Mode.NATIVE)
 public class LampSwitchTest {
     ActivityController<MainActivity> lifecycle;
     MainActivity activity;
     @Before public void setup(){
         lifecycle=Robolectric.buildActivity(MainActivity.class).create();activity=lifecycle.get();
         activity.applyBackgroundTheme("study");layout(1080,1920);
+        assertTrue("Lamp hit geometry needs actual WebP decoding, not a 100x100 placeholder",activity.sceneBackdrop.getHeight()>1000);
     }
     @After public void close(){lifecycle.destroy();}
     void layout(int width,int height){
@@ -26,7 +29,7 @@ public class LampSwitchTest {
     }
     View target(String label){
         ArrayList<View> hits=new ArrayList<>();activity.stage.findViewsWithText(hits,label,View.FIND_VIEWS_WITH_CONTENT_DESCRIPTION);
-        assertEquals("A lamp switch must be accessible by its current action",1,hits.size());return hits.get(0);
+        assertEquals("A lamp switch must be accessible by its current action: "+activity.lampSwitch.getContentDescription(),1,hits.size());return hits.get(0);
     }
     @Test public void collapsedLampTapTurnsOffAndSecondTapTurnsOn()throws Exception{
         activity.collapseToScene(false);assertTrue(activity.sceneCollapsed);
