@@ -118,7 +118,13 @@ final class BackupController {
     private void acknowledge(String json){final String email=syncedAccount;work(()->{atomicWrite(baseline(email),json);return json;},value->completeSync());}
     private void completeSync(){syncing=false;driveStatus="자동 동기화 완료 · "+new SimpleDateFormat("HH:mm",Locale.getDefault()).format(new Date());update();schedule(changedDuringSync?1500:60000);}
     private void syncFailed(){syncing=false;driveStatus="동기화하지 못했어요. 기기 데이터는 유지되며 다음 연결 때 재시도합니다.";update();schedule(60000);}
-    private void reload(BackupCodec.Snapshot state){if(activity.sceneCollapsed)activity.expandFromScene(false);activity.load();activity.motionEnabled=state.motion;activity.page=0;activity.search.setText("");activity.setSearchExpanded(false);activity.populate();activity.updateSceneBackdrop();}
+    private void reload(BackupCodec.Snapshot state){
+        boolean collapsed=activity.sceneCollapsed;
+        if(collapsed)activity.expandFromScene(false);
+        activity.load();activity.motionEnabled=state.motion;activity.populate();activity.updateSceneBackdrop();
+        // Re-capture the new cabinet before the first frame; keep the user's scene mode and search.
+        if(collapsed){final android.view.View cabinet=activity.currentCabinet;cabinet.getViewTreeObserver().addOnPreDrawListener(new android.view.ViewTreeObserver.OnPreDrawListener(){public boolean onPreDraw(){if(cabinet.getViewTreeObserver().isAlive())cabinet.getViewTreeObserver().removeOnPreDrawListener(this);if(!closed&&activity.currentCabinet==cabinet)activity.collapseToScene(false);return true;}});}
+    }
 
     private void message(String text){if(!closed)Toast.makeText(activity,text,Toast.LENGTH_LONG).show();}
     private void pick(int code){
