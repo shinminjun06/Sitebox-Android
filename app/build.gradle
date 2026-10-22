@@ -1,41 +1,93 @@
 plugins { id 'com.android.application' }
-def revision = providers.environmentVariable('GITHUB_SHA').getOrElse(providers.exec { commandLine 'git', 'rev-parse', 'HEAD' }.standardOutput.asText.get().trim())
+
+def revision = providers.environmentVariable('GITHUB_SHA').getOrElse(
+    providers.exec { commandLine 'git', 'rev-parse', 'HEAD' }.standardOutput.asText.get().trim())
+
+// Environment variables take precedence over private user Gradle properties.
+// Keep secrets in ~/.gradle/gradle.properties or the CI secret store, never this repository.
+def signingValue = { String name ->
+    providers.environmentVariable(name).orElse(providers.gradleProperty(name)).orNull
+}
+def releaseStore = signingValue('SITEBOX_RELEASE_STORE_FILE')
+def releaseStorePassword = signingValue('SITEBOX_RELEASE_STORE_PASSWORD')
+def releaseAlias = signingValue('SITEBOX_RELEASE_KEY_ALIAS')
+def releaseKeyPassword = signingValue('SITEBOX_RELEASE_KEY_PASSWORD')
+def releaseValues = [
+    SITEBOX_RELEASE_STORE_FILE: releaseStore,
+    SITEBOX_RELEASE_STORE_PASSWORD: releaseStorePassword,
+    SITEBOX_RELEASE_KEY_ALIAS: releaseAlias,
+    SITEBOX_RELEASE_KEY_PASSWORD: releaseKeyPassword
+]
+
 android {
- namespace 'com.sitebox.app'
- compileSdk 35
- defaultConfig {
-  applicationId 'com.sitebox.app'
-  manifestPlaceholders = [appLabel: 'SiteBox']
-  minSdk 24
-  targetSdk 35
-  testInstrumentationRunner 'com.sitebox.app.SmokeInstrumentation'
-  versionCode 11
-  versionName '2.9-school'
-  buildConfigField 'String', 'SOURCE_REVISION', '"' + revision + '"'
- }
- signingConfigs {
-  debug {
-   if (System.getenv('SITEBOX_DEBUG_KEYSTORE')) {
-    storeFile file(System.getenv('SITEBOX_DEBUG_KEYSTORE'))
-    storePassword 'android'
-    keyAlias 'androiddebugkey'
-    keyPassword 'android'
-   }
-  }
- }
- buildTypes {
-  preview {
-   initWith debug
-   applicationIdSuffix '.preview'
-   versionNameSuffix '-preview'
-   manifestPlaceholders = [appLabel: 'SiteBox Preview']
-   matchingFallbacks = ['debug']
-  }
- }
- androidResources { noCompress += ["mp4"] }
- buildFeatures { buildConfig true }
- compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
- lint { abortOnError true }
+    namespace 'com.sitebox.app'
+    compileSdk 35
+    defaultConfig {
+        applicationId 'com.sitebox.app'
+        manifestPlaceholders = [appLabel: 'SiteBox']
+        minSdk 24
+        targetSdk 35
+        testInstrumentationRunner 'com.sitebox.app.SmokeInstrumentation'
+        versionCode 11
+        versionName '2.9-school'
+        buildConfigField 'String', 'SOURCE_REVISION', '"' + revision + '"'
+    }
+    signingConfigs {
+        debug {
+            // Retain the existing development key cache and AGP's debug defaults.
+            def debugStore = providers.environmentVariable('SITEBOX_DEBUG_KEYSTORE').orNull
+            if (debugStore) storeFile rootProject.file(debugStore)
+        }
+        release {
+            if (releaseStore) storeFile rootProject.file(releaseStore)
+            storePassword releaseStorePassword
+            keyAlias releaseAlias
+            keyPassword releaseKeyPassword
+        }
+    }
+    buildTypes {
+        release {
+            signingConfig signingConfigs.release
+            debuggable false
+            minifyEnabled true
+            shrinkResources true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+        preview {
+            initWith debug
+            applicationIdSuffix '.preview'
+            versionNameSuffix '-preview'
+            manifestPlaceholders = [appLabel: 'SiteBox Preview']
+            matchingFallbacks = ['debug']
+        }
+    }
+    androidResources { noCompress += ['mp4'] }
+    buildFeatures { buildConfig true }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+    lint { abortOnError true }
 }
 
-dependencies { implementation "com.google.android.gms:play-services-auth:22.0.0" }
+// Debug builds remain usable without release credentials. Release builds never
+// silently become unsigned or fall back to the development signing config.
+def validateReleaseCredentials = tasks.register('validateSiteboxReleaseSigning') {
+    doLast {
+        def missing = releaseValues.findAll { name, value -> value == null || value.isEmpty() }.keySet()
+        if (!missing.isEmpty()) {
+            throw new GradleException('Missing release signing settings: ' + missing.join(', '))
+        }
+        if (!rootProject.file(releaseStore).isFile()) {
+            throw new GradleException('Release keystore file does not exist. Check SITEBOX_RELEASE_STORE_FILE.')
+        }
+        if (releaseAlias.equalsIgnoreCase('androiddebugkey')) {
+            throw new GradleException('The default Android debug key must not be used for release.')
+        }
+    }
+}
+tasks.matching { it.name == 'preReleaseBuild' }.configureEach {
+    dependsOn validateReleaseCredentials
+}
+
+dependencies { implementation 'com.google.android.gms:play-services-auth:22.0.0' }

@@ -1,0 +1,132 @@
+name: Verify release signing and shrinking
+on:
+  push:
+    branches: [main]
+    paths:
+      - app/build.gradle
+      - app/proguard-rules.pro
+      - .github/workflows/release-check.yml
+  workflow_dispatch:
+jobs:
+  release-check:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+      - name: Install SDK
+        run: |
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null || true
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-35" "build-tools;35.0.0"
+      - name: Reject missing release credentials
+        run: |
+          if gradle :app:validateSiteboxReleaseSigning --no-daemon > missing-signing.txt 2>&1; then
+            echo 'Release validation unexpectedly accepted missing credentials'
+            exit 1
+          fi
+          grep -q 'Missing release signing settings' missing-signing.txt
+      - name: Create an ephemeral CI-only key configuration
+        run: |
+          python3 - <<'PY'
+          import os, secrets
+          password = secrets.token_hex(24)
+          print('::add-mask::' + password)
+          values = {
+              'SITEBOX_RELEASE_STORE_FILE': os.path.join(os.environ['RUNNER_TEMP'], 'sitebox-ci.jks'),
+              'SITEBOX_RELEASE_STORE_PASSWORD': password,
+              'SITEBOX_RELEASE_KEY_ALIAS': 'sitebox-ci',
+              'SITEBOX_RELEASE_KEY_PASSWORD': password,
+          }
+          with open(os.environ['GITHUB_ENV'], 'a') as output:
+              for key, value in values.items():
+                  output.write(key + '=' + value + '\n')
+          PY
+      - name: Build signed and shrunk release
+        run: |
+          keytool -genkeypair -keystore "$SITEBOX_RELEASE_STORE_FILE" -storetype JKS -alias "$SITEBOX_RELEASE_KEY_ALIAS" -keyalg RSA -keysize 3072 -validity 2 -dname "CN=SiteBox CI,O=Test Only,C=KR" -storepass:env SITEBOX_RELEASE_STORE_PASSWORD -keypass:env SITEBOX_RELEASE_KEY_PASSWORD
+          gradle :app:assembleRelease :app:lintRelease --no-daemon
+      - name: Verify the actual release APK
+        run: |
+          export PATH="$ANDROID_HOME/build-tools/35.0.0:$PATH"
+          apksigner verify --verbose --print-certs app/build/outputs/apk/release/app-release.apk > release-verification.txt
+          python3 - <<'PY'
+          import pathlib, re, subprocess
+          apk = 'app/build/outputs/apk/release/app-release.apk'
+          badging = subprocess.check_output(['aapt', 'dump', 'badging', apk], text=True)
+          assert "name='com.sitebox.app'" in badging
+          assert 'application-debuggable' not in badging
+          permissions = re.findall(r"^uses-permission[^:]*: name='([^']+)'", badging, re.M)
+          assert permissions == ['android.permission.INTERNET'], permissions
+          xml = subprocess.check_output(['aapt', 'dump', 'xmltree', apk, 'AndroidManifest.xml'], text=True)
+          debug_flags = [line for line in xml.splitlines() if 'android:debuggable' in line]
+          assert all(re.search(r'\(type 0x12\)0x0\b', line) for line in debug_flags), debug_flags
+          mapping = pathlib.Path('app/build/outputs/mapping/release/mapping.txt').read_text()
+          assert mapping.strip()
+          for name in ('GoogleDriveBackup', 'BackupController', 'BackupCodec', 'MainActivity'):
+              assert f'com.sitebox.app.{name} -> com.sitebox.app.{name}:' in mapping
+          proof = pathlib.Path('release-verification.txt')
+          assert 'CN=SiteBox CI' in proof.read_text()
+          with proof.open('a') as output:
+              output.write('\nPASS release signature, debuggable=false, INTERNET-only manifest, R8 mapping and backup keeps\n')
+          PY
+      - name: Enable emulator acceleration
+        run: sudo chmod 666 /dev/kvm
+      - name: Launch the shrunk release and open backup settings
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          target: google_apis
+          arch: x86_64
+          profile: pixel_5
+          disable-animations: true
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none -camera-front none
+          script: |
+            adb install app/build/outputs/apk/release/app-release.apk
+            adb logcat -c
+            adb shell am start -W -n com.sitebox.app/.MainActivity
+            python3 - <<'PY'
+            import pathlib, re, subprocess, time, xml.etree.ElementTree as ET
+            def adb(*args):
+                return subprocess.check_output(['adb', *args], text=True)
+            def ui():
+                adb('shell', 'uiautomator', 'dump', '/sdcard/release-ui.xml')
+                return ET.fromstring(adb('shell', 'cat', '/sdcard/release-ui.xml'))
+            def click(text):
+                deadline = time.monotonic() + 20
+                while time.monotonic() < deadline:
+                    for node in ui().iter('node'):
+                        if node.get('text') == text:
+                            left, top, right, bottom = map(int, re.findall(r'\d+', node.get('bounds')))
+                            adb('shell', 'input', 'tap', str((left + right)//2), str((top + bottom)//2))
+                            return
+                    time.sleep(.25)
+                raise AssertionError('Missing release UI: ' + text)
+            click('설정')
+            click('Google 계정 · 백업')
+            labels = {node.get('text') for node in ui().iter('node')}
+            for text in ('Google 계정 · 백업', 'Google 계정 연결', '백업 파일 불러오기'):
+                assert text.casefold() in {label.casefold() for label in labels if label}, (text, labels)
+            logs = adb('logcat', '-d', '-s', 'AndroidRuntime:E')
+            assert 'FATAL EXCEPTION' not in logs, logs
+            with open('release-verification.txt', 'a') as output:
+                output.write('PASS shrunk release launch and Google backup settings on Android 15\n')
+            PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: SiteBox-release-verification
+          path: |
+            release-verification.txt
+            app/build/reports/lint-results-release.html
+            app/build/outputs/mapping/release/mapping.txt
+            missing-signing.txt
+      - name: Delete the ephemeral test key
+        if: always()
+        run: rm -f -- "$SITEBOX_RELEASE_STORE_FILE"

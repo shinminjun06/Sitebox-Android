@@ -45,3 +45,78 @@ Actions debug 키는 이후 빌드 사이에 캐시로 유지하지만, 운영 �
 
 사용자 ZIP 테마 가져오기는 미지원이며, 폴더·JSON 확장 규격은
 [테마 문서](app/src/main/assets/themes/README.md)에 정리되어 있습니다.
+
+## 정식 릴리스 서명
+
+`release` 빌드는 `debuggable=false`, R8 난독화·최적화 및 리소스 축소를 적용합니다.
+Google Auth와 Drive 백업 관련 보존 규칙은 `app/proguard-rules.pro`에 있습니다.
+앱 기능·데이터 구조·권한은 변경하지 않으며, 매니페스트 권한은 `INTERNET` 하나입니다.
+`debug`와 `preview`는 개발용입니다. 배포 파일은 `app-release.apk`를 사용하세요.
+
+다음 네 값을 **환경변수 또는 개인용 `~/.gradle/gradle.properties`**에 설정하세요.
+환경변수가 우선합니다. 프로젝트의 추적되는 `gradle.properties`에 비밀번호를 추가하지 마세요.
+
+- `SITEBOX_RELEASE_STORE_FILE`: 키스토어 절대 경로 (상대 경로는 저장소 루트 기준)
+- `SITEBOX_RELEASE_STORE_PASSWORD`: 키스토어 비밀번호
+- `SITEBOX_RELEASE_KEY_ALIAS`: 예: `sitebox-release`
+- `SITEBOX_RELEASE_KEY_PASSWORD`: 개인키 비밀번호
+
+릴리스 설정이 없거나 키 파일이 없으면 빌드가 실패합니다. debug 키로 자동 대체하지 않습니다.
+`androiddebugkey` 별칭도 거부합니다. 키스토어와 비밀번호는 Git에 커밋하지 말고 별도로 안전하게 보관하세요.
+개인용 Gradle 설정 파일을 이용한다면 파일 권한을 제한하세요 (`chmod 600 ~/.gradle/gradle.properties`).
+
+### 키 생성과 OAuth 인증서 확인
+
+아래 명령은 비밀번호를 대화형으로 입력받습니다. 비밀번호를 명령 인수에 쓰지 마세요.
+JKS 형식이므로 키스토어·개인키 비밀번호를 별도로 설정할 수 있습니다.
+
+```sh
+mkdir -p "$HOME/.android"
+keytool -genkeypair -v \
+  -keystore "$HOME/.android/sitebox-release.jks" \
+  -storetype JKS -alias sitebox-release \
+  -keyalg RSA -keysize 3072 -validity 10000
+chmod 600 "$HOME/.android/sitebox-release.jks"
+
+keytool -list -v \
+  -keystore "$HOME/.android/sitebox-release.jks" \
+  -alias sitebox-release
+```
+
+출력의 **SHA1**을 `com.sitebox.app`용 Google Cloud Android OAuth 클라이언트에 등록하세요.
+기존 debug 인증서 SHA-1과 새 release SHA-1은 다릅니다. 기존 안내의 debug SHA-1을 릴리스에 재사용하면 안 됩니다.
+Play App Signing으로 배포할 경우에는 기기에 설치되는 앱의 **앱 서명 인증서** SHA-1도 등록해야 합니다.
+이 값은 업로드 키 인증서와 다를 수 있습니다.
+
+네 서명 값을 설정한 다음 빌드·확인합니다. 로컬에 wrapper가 없으므로 Gradle 8.9를 사용합니다.
+
+```sh
+gradle :app:assembleRelease :app:lintRelease --no-daemon
+
+# Android SDK Build Tools 35.0.0을 PATH에 추가한 환경
+apksigner verify --verbose --print-certs \
+  app/build/outputs/apk/release/app-release.apk
+
+aapt dump badging app/build/outputs/apk/release/app-release.apk
+```
+
+`apksigner`의 인증서가 위 `keytool` 출력과 일치해야 합니다.
+`aapt dump badging` 출력에는 `application-debuggable`이 없어야 하고,
+`uses-permission`은 `android.permission.INTERNET` 하나여야 합니다.
+R8 매핑 파일 `app/build/outputs/mapping/release/mapping.txt`도 버전별로 보관하세요.
+
+### 서명 키를 바꾸기 전 반드시 백업
+
+**현재 debug 서명 설치본에서 새 release 키로 전환하면 같은 패키지에 덮어설치할 수 없습니다.
+기존 앱 삭제 시 앱 내부 데이터와 복원 전 기기 사본도 삭제되므로, 먼저 외부 백업을 완료하세요.**
+
+1. 기존 앱에서 **설정 → Google 계정 · 백업 → 파일로 저장**을 누릅니다.
+2. Google Drive 또는 앱 내부 폴더가 아닌 곳에 JSON을 저장하고, 실제 파일을 열거나 내려받을 수 있는지 확인합니다.
+3. 백업 파일을 확보한 뒤에만 기존 `com.sitebox.app` 설치본을 삭제합니다.
+4. 새 릴리스 APK를 설치하고 **백업 파일 불러오기 → 복원**으로 데이터를 가져옵니다.
+5. Google 직접 연결을 사용한다면 새 release 인증서 SHA-1 등록 후 연결을 확인합니다.
+
+서명을 정식화하고 디버깅을 끄는 것만으로 Play Protect 경고 해제가 보장되지는 않습니다.
+잘못 탐지됐다고 판단되면 [공식 Play Protect 개발자 안내](https://developers.google.com/android/play-protect/warning-dev-guidance?hl=ko)를 따라 검토를 요청하세요.
+
+릴리스 검증 CI가 만드는 임시 키는 자동 검사 전용입니다. 운영 키로 사용하거나 해당 인증서 SHA-1을 OAuth에 등록하지 마세요.
