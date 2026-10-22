@@ -1,0 +1,24 @@
+name: Download SiteBox 3.0.5 APK
+on:
+  push:
+    branches: [distribution/sitebox-3.0.5]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  upload-apk:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify existing signed APK
+        working-directory: distribution/sitebox-3.0.5
+        run: sha256sum --check SHA256SUMS.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: SiteBox-3.0.5-installable-apk
+          path: |
+            distribution/sitebox-3.0.5/SiteBox-3.0.5.apk
+            distribution/sitebox-3.0.5/SHA256SUMS.txt
+            distribution/sitebox-3.0.5/README.md
+          if-no-files-found: error
+          retention-days: 90
