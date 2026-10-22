@@ -86,7 +86,7 @@ public class MainActivity extends Activity {
 
  TextView label(String s,int size,int color){TextView t=new TextView(this);t.setText(s);t.setTextSize(size);t.setTextColor(color);return t;}
  void draw(){
- stage=new LibraryStage(this,()->collapseToScene(true));stage.setBackgroundColor(0xffd4c4a7);
+ stage=new LibraryStage(this,()->collapseToScene(true));stage.setBackgroundColor(0xffd4c4a7);stage.setClipChildren(false);
  backdrop=new ImageView(this);backdrop.setScaleType(ImageView.ScaleType.MATRIX);
  // Measure the live layer on the first pass; backdrop layout may enable it mid-layout.
  roomLayer=new FrameLayout(this);roomLayer.addView(backdrop,new FrameLayout.LayoutParams(-1,-1));studyLive=new StudyLiveView(this);studyLive.setVisibility(View.INVISIBLE);roomLayer.addView(studyLive,new FrameLayout.LayoutParams(-1,-1));stage.addView(roomLayer,new FrameLayout.LayoutParams(-1,-1));
@@ -117,7 +117,7 @@ public class MainActivity extends Activity {
  View.OnLongClickListener reveal=v->{backgroundOnly=true;root.setVisibility(View.INVISIBLE);revealOverlay.setVisibility(View.VISIBLE);return true;};
  header.setOnLongClickListener(reveal);shelves.setOnLongClickListener(reveal);shelfScroll.setOnLongClickListener(reveal);
  sceneShadow=new FurnitureShadow(this);sceneShadow.setVisibility(View.GONE);stage.addView(sceneShadow,new FrameLayout.LayoutParams(1,1));
- miniature=new ProjectedCabinetView(this);miniature.setScaleType(ImageView.ScaleType.FIT_XY);miniature.setContentDescription("작아진 책장 열기");miniature.setVisibility(View.GONE);miniature.setPivotX(0);miniature.setPivotY(0);stage.addView(miniature,new FrameLayout.LayoutParams(1,1));miniature.setOnClickListener(v->expandFromScene(true));
+ miniature=new ProjectedCabinetView(this);miniature.setRoomDecor(assets.get("themes/study/cabinet_decor.webp"));miniature.setScaleType(ImageView.ScaleType.FIT_XY);miniature.setContentDescription("작아진 책장 열기");miniature.setVisibility(View.GONE);miniature.setPivotX(0);miniature.setPivotY(0);stage.addView(miniature,new FrameLayout.LayoutParams(1,1));miniature.setOnClickListener(v->expandFromScene(true));
  lampSwitch=new View(this);lampSwitch.setFocusable(true);lampSwitch.setVisibility(View.GONE);
  lampSwitch.setOnClickListener(v->{if(sceneCollapsed&&!sceneAnimating&&renderedSceneTheme.id.equals("study")){studyLampOn=!studyLampOn;getPreferences(0).edit().putBoolean("studyLampOn",studyLampOn).apply();updateLampArtwork();updateLampSwitch();}});
  stage.addView(lampSwitch,new FrameLayout.LayoutParams(1,1));

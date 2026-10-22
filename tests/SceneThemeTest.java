@@ -27,7 +27,7 @@ public class SceneThemeTest {
   SceneTheme study=SceneTheme.find("study");SceneProjection camera=SceneProjection.find("study");
   for(boolean wide:new boolean[]{false,true}){
    float rear=camera.cameraY+(study.anchorFeet(wide)-camera.cameraY)/(1+camera.depth);
-   if(rear<(wide?.66f:.58f)||rear>(wide?.68f:.60f))throw new AssertionError("Rear feet must meet the wall-floor seam");
+   if(rear<(wide?.67f:.59f)||rear>(wide?.69f:.61f))throw new AssertionError("Rear feet must meet the wall-floor seam");
    float iw=wide?1672:852,ih=wide?941:1846;
    float[] bounds=study.sceneBounds(iw,ih,iw,ih,0,0,0,0);
    float vx=(iw*camera.cameraX-bounds[0])/(bounds[2]-bounds[0]);

@@ -4,6 +4,7 @@ import android.content.Context;
 import android.graphics.*;
 import android.graphics.drawable.Drawable;
 import android.widget.ImageView;
+import android.view.View;
 
 /** Lightweight 2.5D live snapshot. The expanded BookshelfView is never transformed.
  * All paths/matrices are cached; no bitmap decode or allocation occurs in onDraw. */
@@ -14,12 +15,17 @@ final class ProjectedCabinetView extends ImageView {
  private final float[] source=new float[8],textureSource=new float[8],topSource=new float[8];
  private final float[] corners=new float[8],side=new float[8],roof=new float[8];
  private boolean lampEnabled=true;
- void setLampEnabled(boolean enabled){if(lampEnabled==enabled)return;lampEnabled=enabled;rebuild();invalidate();}
+ void setLampEnabled(boolean enabled){if(lampEnabled==enabled)return;lampEnabled=enabled;rebuild();invalidateRoom();}
+ private Bitmap roomDecor;
+ private final RectF decorBounds=new RectF();
+ private final Paint decorPaint=new Paint(Paint.ANTI_ALIAS_FLAG|Paint.FILTER_BITMAP_FLAG);
+ void setRoomDecor(Bitmap bitmap){roomDecor=bitmap;rebuild();invalidateRoom();}
+ private void invalidateRoom(){invalidate();if(getParent() instanceof View)((View)getParent()).invalidate();}
  private Bitmap wood;private float ambientLight=1;private float fraction,vpX=-.25f,vpY=-.5f;
  private final ColorMatrix lighting=new ColorMatrix();
  private SceneProjection profile=SceneProjection.ALL[0];
  ProjectedCabinetView(Context context){super(context);setScaleType(ScaleType.FIT_XY);}
- void setAmbientLight(float value){float next=Math.max(0,Math.min(1,value));if(Math.abs(next-ambientLight)<.001f)return;ambientLight=next;rebuild();invalidate();}
+ void setAmbientLight(float value){float next=Math.max(0,Math.min(1,value));if(Math.abs(next-ambientLight)<.001f)return;ambientLight=next;rebuild();invalidateRoom();}
  void setRoom(SceneProjection value,Bitmap cabinet){profile=value;wood=cabinet;rebuild();}
  void setCamera(float viewportWidth,float viewportHeight,float imageWidth,float imageHeight,float[] bounds){
   float[] transform=SceneTheme.find(profile.id).imageTransform(viewportWidth,viewportHeight,imageWidth,imageHeight);
@@ -44,17 +50,18 @@ final class ProjectedCabinetView extends ImageView {
   if(w<=0||h<=0)return;
   rect(source,0,0,w,h);profile.front(w,h,fraction,vpX,vpY,corners);profile.body(w,h,fraction,vpX,vpY,corners,side,roof);
   float roomBrightness=profile.brightness*(.62f+.38f*ambientLight);
-  float b=1+(roomBrightness-1)*fraction,contrast=1-.075f*fraction;
-  float warm=.016f+.025f*(1-ambientLight);
+  float b=1+(roomBrightness-1)*fraction,contrast=1-.085f*fraction;
+  float warm=.008f+.020f*(1-ambientLight);
   if(!lampEnabled){b*=1-.20f*fraction;warm=-.035f*(1-ambientLight);}
   lighting.set(new float[]{b*contrast+warm*fraction,0,0,0,4*fraction,0,b*contrast,0,0,3*fraction,0,0,b*contrast-warm*fraction,0,3*fraction,0,0,0,1,0});
-  ColorMatrix saturation=new ColorMatrix();saturation.setSaturation(1-.16f*fraction);lighting.postConcat(saturation);
-  ColorMatrixColorFilter filter=fraction==0?null:new ColorMatrixColorFilter(lighting);texturePaint.setColorFilter(filter);setColorFilter(filter);
+  ColorMatrix saturation=new ColorMatrix();saturation.setSaturation(1-.22f*fraction);lighting.postConcat(saturation);
+  ColorMatrixColorFilter filter=fraction==0?null:new ColorMatrixColorFilter(lighting);texturePaint.setColorFilter(filter);decorPaint.setColorFilter(filter);setColorFilter(filter);
+  if(roomDecor!=null){float dw=w*.90f;decorBounds.set(w*.05f,2-dw*roomDecor.getHeight()/roomDecor.getWidth(),w*.95f,2);}
   frontMatrix.setPolyToPoly(source,0,corners,0,4);quad(sidePath,side);quad(topPath,roof);
   if(wood!=null){
-   // Outer upright is clean uninterrupted timber, outside all nine cubbies.
-   rect(textureSource,0,0,wood.getWidth(),wood.getHeight());
-   rect(topSource,0,0,wood.getWidth(),wood.getHeight());
+   // Sample a plank-width strip so a square wood texture is not squeezed into the narrow side or roof.
+   rect(textureSource,wood.getWidth()*.44f,0,wood.getWidth()*.56f,wood.getHeight());
+   rect(topSource,0,wood.getHeight()*.44f,wood.getWidth(),wood.getHeight()*.56f);
    sideMatrix.setPolyToPoly(textureSource,0,side,0,4);topMatrix.setPolyToPoly(topSource,0,roof,0,4);
   }
  }
@@ -64,7 +71,11 @@ final class ProjectedCabinetView extends ImageView {
  }
  @Override protected void onDraw(Canvas canvas){
   Drawable drawable=getDrawable();if(drawable==null)return;
-  if(fraction>0&&wood!=null){if(sideVisible())face(canvas,sidePath,sideMatrix,48);if(topVisible())face(canvas,topPath,topMatrix,14);}
-  int save=canvas.save();canvas.concat(frontMatrix);super.onDraw(canvas);canvas.restoreToCount(save);
+  if(fraction>0&&wood!=null){if(sideVisible())face(canvas,sidePath,sideMatrix,34);if(topVisible())face(canvas,topPath,topMatrix,14);}
+  int save=canvas.save();canvas.concat(frontMatrix);super.onDraw(canvas);
+  // The same live furniture transform and lighting keep props attached during collapse/rotation.
+  // The parent allows this small decoration region above the cabinet, without adding a hit target.
+  if(roomDecor!=null&&fraction>0){decorPaint.setAlpha(Math.round(255*fraction*fraction*fraction));canvas.drawBitmap(roomDecor,null,decorBounds,decorPaint);}
+  canvas.restoreToCount(save);
  }
 }

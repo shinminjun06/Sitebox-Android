@@ -7,3 +7,7 @@ The compact cabinet is moved slightly toward the wall bay (.43 portrait center),
 Old local selections are persisted as study. Known former room IDs remain accepted by backup validation, then normalize to study; book contents and the rest of the backup are preserved. Unknown IDs remain rejected by strict backup validation.
 
 Verification includes Java geometry checks, native rendering previews, preference and cloud-backup migration regression tests, unit tests, release lint, and signing checks. Actual phone interaction is not verified by native rendering previews.
+
+## Reference refinement · 3.0.7
+
+The supplied reference favors a near-frontal dark timber cabinet. The camera X is now .69 with shallow .055 depth, a .82 base brightness, and reduced saturation; stored shelf finishes remain selectable and expanded furniture is untouched. A 768×384 alpha sprite supplies the plant, small botanical frame, and mug above the cabinet. It uses the same projection and room-light filter as the live cabinet snapshot, with an opacity ramp during collapse. The stage allows drawing above the miniature view so foliage is not clipped. The sprite adds no interaction target and contains no fixed fake books. Its decoded memory is included in artwork budget validation.

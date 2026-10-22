@@ -2,8 +2,8 @@ package com.sitebox.app;
 
 /** Perspective cuboid parallel to the room wall. Rear corners converge on the camera horizon. */
 final class SceneProjection {
- // Window-side vanishing point gives the cabinet a visible right panel rather than a flat sticker.
- static final SceneProjection[] ALL={new SceneProjection("study",.78f,.43f,.085f,.90f)};
+ // A shallow window-side perspective matches the near-frontal cabinet in the reference room.
+ static final SceneProjection[] ALL={new SceneProjection("study",.69f,.43f,.055f,.82f)};
  final String id; final float cameraX,cameraY,depth,brightness;
  private SceneProjection(String id,float x,float y,float depth,float brightness){this.id=id;cameraX=x;cameraY=y;this.depth=depth;this.brightness=brightness;}
  static SceneProjection find(String id){for(SceneProjection p:ALL)if(p.id.equals(id))return p;return ALL[0];}

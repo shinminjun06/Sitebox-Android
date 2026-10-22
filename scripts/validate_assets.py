@@ -44,9 +44,15 @@ for orientation,wide in [('portrait',False),('landscape',True)]:
   assert im.width*im.height*4<=8*1024*1024 and p.stat().st_size<500000
 print('PASS: theme 1 portrait and landscape plates fit room cache and APK size budget')
 
+decor=root/'study/cabinet_decor.webp'
+with Image.open(decor) as im:
+ im.load();assert im.mode=='RGBA' and im.size==(768,384)
+ assert im.getchannel('A').getextrema()==(0,255) and decor.stat().st_size<500000
+print('PASS: cabinet-top decor has real transparent alpha and bounded decoded memory')
+
 for shelf in ['oak','walnut','white_oak']:
  for book in ['classic','pastel','modern']:
-  active=[root/'shelves'/shelf/'cabinet.webp',root/'shelves'/shelf/'surface.webp']+list((root/'books'/book).glob('*.webp'))
+  active=[decor,root/'shelves'/shelf/'cabinet.webp',root/'shelves'/shelf/'surface.webp']+list((root/'books'/book).glob('*.webp'))
   assert sum(Image.open(p).width*Image.open(p).height*4 for p in active)<12*1024*1024
 print('PASS: each active shelf/book combination fits the isolated 12 MiB artwork cache')
 
