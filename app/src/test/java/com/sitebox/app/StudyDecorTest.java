@@ -35,6 +35,9 @@ public class StudyDecorTest {
             }
             a.sites.put(new JSONObject().put("name","실제 저장한 책").put("url","https://example.com/").put("category",a.categories[0]));a.populate();layout(a,428,926);
             Bitmap populated=roomSnapshot(a,art);assertFalse("A saved book must appear in its compact shelf",empty.sameAs(populated));assertEquals(1,a.sites.length());
+            layout(a,591,1206);long now=1700000000000L;
+            a.setAmbientPreview(new WeatherState(20,0,0,0,now,0,0,now,true,0,1),now);a.collapseToScene(false);layout(a,591,1206);save(render(a,591,1206),"single-book-day");
+            a.setAmbientPreview(new WeatherState(20,0,0,0,now,0,0,now,true,0,0),now);save(render(a,591,1206),"single-book-night");
             empty.recycle();changedLabels.recycle();populated.recycle();
         }finally{lifecycle.destroy();}
     }
@@ -49,11 +52,9 @@ public class StudyDecorTest {
                 if(a.sceneCollapsed)a.expandFromScene(false);
                 int w=wide?926:428,h=wide?428:926;layout(a,w,h);
                 long now=1700000000000L;a.setAmbientPreview(new WeatherState(20,0,0,0,now,0,0,now,true,0,night?0:1),now);a.updateSceneBackdrop();a.collapseToScene(false);layout(a,w,h);
-                float[] front=new float[8],contacts=new float[4];a.miniature.copyRenderedCorners(front);a.sceneShadow.contactCenters(contacts);
+                float[] front=new float[8];a.miniature.copyRenderedCorners(front);
                 assertTrue("Low cabinet top must be visible below the eye line",a.miniature.topVisible());
                 assertTrue("Front feet must follow room slope",front[5]>front[7]+1);
-                assertEquals(a.miniature.getY()+front[7]*a.miniature.getScaleY(),contacts[2],2f);
-                assertEquals(a.miniature.getY()+front[5]*a.miniature.getScaleY(),contacts[3],2f);
                 Bitmap decor=a.assets.get("themes/study/cabinet_decor.webp");assertNotNull(decor);
                 Bitmap with=render(a,w,h);a.miniature.setRoomDecor(null);Bitmap without=render(a,w,h);
                 int bottom=(int)a.miniature.getY(),top=Math.max(0,bottom-(int)(a.miniature.getWidth()*a.miniature.getScaleX()*.7f));int changes=0;

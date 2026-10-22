@@ -317,9 +317,8 @@ public final class SmokeInstrumentation extends Instrumentation {
    float[] side=new float[8],roof=new float[8];view.copyRenderedBodyCorners(side,roof);
    float[] camera=new float[2];view.roomCamera(camera);float k=(roof[0]-camera[0])/(actual[0]-camera[0]);
    check(Math.abs(roof[0]-(camera[0]+k*(actual[0]-camera[0])))<.1f&&Math.abs(roof[1]-(camera[1]+k*(actual[1]-camera[1])))<.1f,theme.id+" rear rays use fixed cropped room camera");
-   float[] contacts=new float[2];activity.sceneShadow.contactCenters(contacts);
-   float projectedLeft=view.getX()+(actual[0]+.05f*(actual[2]-actual[0]))*view.getScaleX(),projectedRight=view.getX()+(actual[0]+.95f*(actual[2]-actual[0]))*view.getScaleX();
-   check(Math.abs(contacts[0]-projectedLeft)<2&&Math.abs(contacts[1]-projectedRight)<2,theme.id+" narrow contact shadows align with actual sprite feet");
+   float[] contacts=new float[4],floor=new float[8];activity.sceneShadow.contactCenters(contacts);view.groundedFootprint(floor);
+   check(Math.abs(contacts[0]-(view.getX()+floor[6]*view.getScaleX()))<1&&Math.abs(contacts[1]-(view.getX()+floor[4]*view.getScaleX()))<1&&Math.abs(contacts[2]-(view.getY()+floor[7]*view.getScaleY()))<1&&Math.abs(contacts[3]-(view.getY()+floor[5]*view.getScaleY()))<1,theme.id+" contact shadows align with opaque sprite soles");
    for(int face=0;face<2;face++){float[] points=face==0?side:roof;JSONArray coordinates=new JSONArray();for(int i=0;i<8;i++)coordinates.put((i%2==0?stageLocation[0]+view.getX():stageLocation[1]+view.getY())+points[i]*(i%2==0?view.getScaleX():view.getScaleY()));pose.put(face==0?"side":"top",coordinates);}
    File directory=new File(getTargetContext().getExternalFilesDir(null),"qa");directory.mkdirs();
    String orientation=activity.getResources().getConfiguration().orientation==2?"landscape":"portrait";

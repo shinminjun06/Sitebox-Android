@@ -3,35 +3,38 @@ package com.sitebox.app;
 /** Two-point room perspective, with vertical cabinet posts kept upright. */
 final class SceneProjection {
  // Intersections of the back-wall ceiling beam and baseboard, measured on each source plate.
- private static final SceneProjection PORTRAIT=calibrated(854,1842,.78f,300,46,534,14,300,1073,612,1106);
- private static final SceneProjection LANDSCAPE=calibrated(1672,941,.68f,453,39,877,7,454,621,1155,666);
+ private static final SceneProjection PORTRAIT=calibrated(854,1842,.012f,300,46,534,14,300,1073,612,1106,260,1080);
+ private static final SceneProjection LANDSCAPE=calibrated(1672,941,.05f,453,39,877,7,454,621,1155,666,400,636);
  static final SceneProjection[] ALL={PORTRAIT};
  final String id="study";
- final float cameraX,cameraY,widthVanishingX,depth=.04f,brightness=.82f;
- private SceneProjection(float x,float y,float widthX){cameraX=x;cameraY=y;widthVanishingX=widthX;}
- private static SceneProjection calibrated(float iw,float ih,float depthX,float x1,float y1,float x2,float y2,float x3,float y3,float x4,float y4){
+ final float cameraX,cameraY,widthVanishingX,depth,brightness=.82f;
+ private SceneProjection(float x,float y,float widthX,float depth){cameraX=x;cameraY=y;widthVanishingX=widthX;this.depth=depth;}
+ private static SceneProjection calibrated(float iw,float ih,float depth,float x1,float y1,float x2,float y2,float x3,float y3,float x4,float y4,float sideX,float sideY){
   float m1=(y2-y1)/(x2-x1),m2=(y4-y3)/(x4-x3);
   float x=(y3-m2*x3-y1+m1*x1)/(m1-m2),y=y1+m1*(x-x1);
-  return new SceneProjection(depthX,y/ih,x/iw);
+  // The side-wall floor line supplies the second vanishing point. It can be well
+  // outside the photograph; an arbitrary point inside the window flattens the cabinet.
+  float depthX=x3+(y-y3)*(sideX-x3)/(sideY-y3);
+  return new SceneProjection(depthX/iw,y/ih,x/iw,depth);
  }
  static SceneProjection find(String id){return PORTRAIT;}
  static SceneProjection find(String id,boolean wide){return wide?LANDSCAPE:PORTRAIT;}
  float lightDirection(){return -.12f;}
  private float fit(float f,float vx,float vy){
   float d=depth*Math.max(0,Math.min(1,f));
-  return Math.max(.001f,Math.min(1,Math.min(1+d*vy,Math.min(1+2*d*vx,1+2*d*(1-vx)))));
+  return Math.max(.001f,Math.min(1,Math.min(1+d*vy,Math.min(1+d*vx,1+d*(1-vx)))));
  }
  boolean leftVisible(float vx){return leftVisible(vx,0,0);}
  boolean rightVisible(float vx){return rightVisible(vx,0,0);}
  boolean topVisible(float vy){return vy<0;}
- boolean leftVisible(float vx,float vy,float f){return vx<(1-fit(f,vx,vy))*.5f;}
- boolean rightVisible(float vx,float vy,float f){return vx>(1+fit(f,vx,vy))*.5f;}
+ boolean leftVisible(float vx,float vy,float f){return vx<0;}
+ boolean rightVisible(float vx,float vy,float f){return vx>1;}
  boolean topVisible(float vx,float vy,float f){return vy<1-fit(f,vx,vy);}
  static float contact(float left,float right,float fraction,float width){return ((left+(right-left)*fraction)/width+.02f)/1.04f;}
  void front(float w,float h,float f,float[] out){front(w,h,f,-.25f,-.5f,-16,out);}
  void front(float w,float h,float f,float vx,float vy,float[] out){front(w,h,f,vx,vy,-16,out);}
  void front(float w,float h,float f,float vx,float vy,float ux,float[] out){
-  float s=fit(f,vx,vy),left=(w-w*s)*.5f,right=(w+w*s)*.5f,top=h-h*s,u=ux*w,v=vy*h;
+  float s=fit(f,vx,vy),left=vx<0?w-w*s:0,right=left+w*s,top=h-h*s,u=ux*w,v=vy*h;
   float ql=u<left?(left-u)/(right-u):1,qr=u>right?(u-right)/(u-left):1;
   ql=1+f*(ql-1);qr=1+f*(qr-1);
   // Reserve headroom for the far upper corner as well as the near one during interpolation.

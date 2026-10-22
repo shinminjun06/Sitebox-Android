@@ -10,7 +10,8 @@ import android.view.View;
  * All paths/matrices are cached; no bitmap decode or allocation occurs in onDraw. */
 final class ProjectedCabinetView extends ImageView {
  private final Matrix frontMatrix=new Matrix(),sideMatrix=new Matrix(),topMatrix=new Matrix();
- private final Path sidePath=new Path(),topPath=new Path();
+ private final Path sidePath=new Path(),topPath=new Path(),rearLegPath=new Path();
+ private final Paint rearLegPaint=new Paint(Paint.ANTI_ALIAS_FLAG);
  private final Paint texturePaint=new Paint(Paint.ANTI_ALIAS_FLAG|Paint.FILTER_BITMAP_FLAG),shade=new Paint(Paint.ANTI_ALIAS_FLAG);
  private final float[] source=new float[8],textureSource=new float[8],topSource=new float[8];
  private final float[] corners=new float[8],side=new float[8],roof=new float[8];
@@ -20,18 +21,35 @@ final class ProjectedCabinetView extends ImageView {
  private Bitmap roomSnapshot;
  private final Paint roomPaint=new Paint(Paint.ANTI_ALIAS_FLAG|Paint.FILTER_BITMAP_FLAG);
  private final RectF roomBounds=new RectF();
+ private final float[] footSources={.05f,1,.95f,1};
  private boolean naturalWood;
- void setRoomSnapshot(Bitmap bitmap,boolean natural){roomSnapshot=bitmap;naturalWood=natural;rebuild();invalidate();}
+ void setRoomSnapshot(Bitmap bitmap,boolean natural){
+  roomSnapshot=bitmap;naturalWood=natural;
+  if(bitmap!=null){
+   // Sprite files have transparent padding below their feet. Find actual opaque
+   // soles once per snapshot, rather than grounding the rectangular image bounds.
+   for(int foot=0;foot<2;foot++){
+    int left=foot==0?0:bitmap.getWidth()*4/5,right=foot==0?bitmap.getWidth()/5:bitmap.getWidth();boolean found=false;
+    for(int y=bitmap.getHeight()-1;y>=bitmap.getHeight()*4/5&&!found;y--){
+     int count=0;float sum=0;
+     for(int x=left;x<right;x++)if(Color.alpha(bitmap.getPixel(x,y))>220){count++;sum+=x+.5f;}
+     if(count>=2){footSources[foot*2]=sum/count/bitmap.getWidth();footSources[foot*2+1]=(y+1f)/bitmap.getHeight();found=true;}
+    }
+    if(!found){footSources[foot*2]=foot==0?.05f:.95f;footSources[foot*2+1]=1;}
+   }
+  }
+  rebuild();invalidate();
+ }
  private final RectF decorBounds=new RectF();
  private final Paint decorPaint=new Paint(Paint.ANTI_ALIAS_FLAG|Paint.FILTER_BITMAP_FLAG);
  void setRoomDecor(Bitmap bitmap){roomDecor=bitmap;rebuild();invalidateRoom();}
  private void invalidateRoom(){invalidate();if(getParent() instanceof View)((View)getParent()).invalidate();}
- private Bitmap wood;private float ambientLight=1;private float fraction,vpX=-.25f,vpY=-.5f,widthVP=-16;
+ private Bitmap wood;private int woodColor=0xff775536;private float ambientLight=1;private float fraction,vpX=-.25f,vpY=-.5f,widthVP=-16;
  private final ColorMatrix lighting=new ColorMatrix();
  private SceneProjection profile=SceneProjection.ALL[0];
  ProjectedCabinetView(Context context){super(context);setScaleType(ScaleType.FIT_XY);}
  void setAmbientLight(float value){float next=Math.max(0,Math.min(1,value));if(Math.abs(next-ambientLight)<.001f)return;ambientLight=next;rebuild();invalidateRoom();}
- void setRoom(SceneProjection value,Bitmap cabinet){profile=value;wood=cabinet;rebuild();}
+ void setRoom(SceneProjection value,Bitmap cabinet){profile=value;wood=cabinet;if(wood!=null){int c=wood.getPixel(wood.getWidth()/2,wood.getHeight()/2);woodColor=Color.rgb(Math.round(Color.red(c)*.75f),Math.round(Color.green(c)*.75f),Math.round(Color.blue(c)*.75f));}rebuild();}
  void setCamera(float viewportWidth,float viewportHeight,float imageWidth,float imageHeight,float[] bounds){
   profile=SceneProjection.find(profile.id,imageWidth>imageHeight);
   float[] transform=SceneTheme.find(profile.id).imageTransform(viewportWidth,viewportHeight,imageWidth,imageHeight);
@@ -43,6 +61,21 @@ final class ProjectedCabinetView extends ImageView {
  boolean topVisible(){return profile.topVisible(vpX,vpY,fraction);}
  void roomCamera(float[] out){out[0]=vpX*getWidth();out[1]=vpY*getHeight();}
  void groundedCorners(float[] out){profile.front(Math.max(1,getLayoutParams().width),Math.max(1,getLayoutParams().height),1,vpX,vpY,widthVP,out);}
+ void groundedFootprint(float[] out){
+  float w=Math.max(1,getLayoutParams().width),h=Math.max(1,getLayoutParams().height);
+  float[] a=new float[8];profile.front(w,h,1,vpX,vpY,widthVP,a);
+  Matrix floorMatrix=new Matrix();float[] rectangle={0,0,w,0,w,h,0,h};floorMatrix.setPolyToPoly(rectangle,0,a,0,4);
+  // Clockwise floor footprint: rear left, rear right, front right, front left.
+  float[] feet={footSources[0]*w,footSources[1]*h,footSources[2]*w,footSources[3]*h};floorMatrix.mapPoints(feet);
+  float maxHeight=Math.max(a[7]-a[1],a[5]-a[3]);
+  for(int foot=0;foot<2;foot++){
+   float across=(feet[foot*2]-a[0])/(a[2]-a[0]);
+   float upright=(a[7]-a[1])*(1-across)+(a[5]-a[3])*across;
+   float k=1/(1+profile.depth*upright/maxHeight);
+   out[foot*2]=vpX*w+k*(feet[foot*2]-vpX*w);out[foot*2+1]=vpY*h+k*(feet[foot*2+1]-vpY*h);
+   int front=foot==0?6:4;out[front]=feet[foot*2];out[front+1]=feet[foot*2+1];
+  }
+ }
  void expectedCorners(float[] out){profile.front(getWidth(),getHeight(),fraction,vpX,vpY,widthVP,out);}
  SceneProjection room(){return profile;}
  Bitmap sideTexture(){return wood;}
@@ -67,6 +100,17 @@ final class ProjectedCabinetView extends ImageView {
   roomBounds.set(0,0,w,h);
   if(roomDecor!=null){float dw=w*.90f;decorBounds.set(w*.05f,2-dw*roomDecor.getHeight()/roomDecor.getWidth(),w*.95f,2);}
   frontMatrix.setPolyToPoly(source,0,corners,0,4);quad(sidePath,side);quad(topPath,roof);
+  rearLegPath.rewind();
+  if(fraction>0&&sideVisible()){
+   int foot=profile.leftVisible(vpX,vpY,fraction)?0:1;
+   float[] sole={footSources[foot*2]*w,footSources[foot*2+1]*h};frontMatrix.mapPoints(sole);
+   float across=(sole[0]-corners[0])/(corners[2]-corners[0]);
+   float leftHeight=corners[7]-corners[1],rightHeight=corners[5]-corners[3];
+   float k=1/(1+profile.depth*fraction*(leftHeight*(1-across)+rightHeight*across)/Math.max(leftHeight,rightHeight));
+   float x=vpX*w+k*(sole[0]-vpX*w),y=vpY*h+k*(sole[1]-vpY*h),half=w*.012f;
+   rearLegPath.addRect(x-half,y-h*.052f,x+half,y,Path.Direction.CW);
+   rearLegPaint.setColor(woodColor);rearLegPaint.setColorFilter(texturePaint.getColorFilter());rearLegPaint.setAlpha(Math.round(255*fraction*fraction*fraction));
+  }
   if(wood!=null){
    // Sample a plank-width strip so a square wood texture is not squeezed into the narrow side or roof.
    rect(textureSource,wood.getWidth()*.44f,0,wood.getWidth()*.56f,wood.getHeight());
@@ -80,7 +124,7 @@ final class ProjectedCabinetView extends ImageView {
  }
  @Override protected void onDraw(Canvas canvas){
   Drawable drawable=getDrawable();if(drawable==null)return;
-  if(fraction>0&&wood!=null){if(sideVisible())face(canvas,sidePath,sideMatrix,34);if(topVisible())face(canvas,topPath,topMatrix,14);}
+  if(fraction>0&&wood!=null){if(sideVisible()){canvas.drawPath(rearLegPath,rearLegPaint);face(canvas,sidePath,sideMatrix,34);}if(topVisible())face(canvas,topPath,topMatrix,14);}
   int save=canvas.save();canvas.concat(frontMatrix);
   if(roomSnapshot==null||fraction==0)super.onDraw(canvas);
   else {

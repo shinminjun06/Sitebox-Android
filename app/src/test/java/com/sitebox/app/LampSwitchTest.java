@@ -59,7 +59,11 @@ public class LampSwitchTest {
         activity.collapseToScene(false);View lamp=target("조명 끄기");
         float cabinetLeft=activity.miniature.getX();
         assertTrue("Lamp and cabinet need a visible gap",cabinetLeft>=lamp.getX()+lamp.getLayoutParams().width+activity.dp(20));
-        assertTrue("The room needs more breathing space",activity.miniature.getLayoutParams().height*activity.miniature.getScaleY()<activity.stage.getHeight()*.25f);
+        // Projection reserves empty space in the ImageView for its depth. Bound the
+        // rendered cabinet rather than treating that transparent margin as furniture.
+        float[] front=new float[8],side=new float[8],roof=new float[8];activity.miniature.copyRenderedCorners(front);activity.miniature.copyRenderedBodyCorners(side,roof);
+        float top=Math.min(Math.min(front[1],front[3]),Math.min(roof[1],roof[3]));
+        assertTrue("The room needs more breathing space",(Math.max(front[5],front[7])-top)*activity.miniature.getScaleY()<activity.stage.getHeight()*.25f);
     }
     @Test public void landscapeLampRemainsTappableWithoutOpeningCabinet(){
         layout(1920,1080);activity.collapseToScene(false);View lamp=target("조명 끄기");

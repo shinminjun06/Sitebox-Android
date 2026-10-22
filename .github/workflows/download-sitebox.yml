@@ -1,7 +1,7 @@
-name: Download SiteBox 3.0.9 APK
+name: Download SiteBox 3.0.10 APK
 on:
   push:
-    branches: [distribution/sitebox-3.0.9]
+    branches: [distribution/sitebox-3.0.10]
   workflow_dispatch:
 permissions:
   contents: read
@@ -11,11 +11,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Verify existing signed APK
-        working-directory: distribution/sitebox-3.0.9
+        working-directory: distribution/sitebox-3.0.10
         run: sha256sum --check SHA256SUMS.txt
       - uses: actions/upload-artifact@v4
         with:
-          name: SiteBox-3.0.9-installable-apk
-          path: distribution/sitebox-3.0.9/
+          name: SiteBox-3.0.10-installable-apk
+          path: distribution/sitebox-3.0.10/
           if-no-files-found: error
           retention-days: 90

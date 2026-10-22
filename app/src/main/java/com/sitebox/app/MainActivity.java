@@ -263,15 +263,16 @@ public class MainActivity extends Activity {
   return renderedSceneTheme.sceneBounds(stage.getWidth(),stage.getHeight(),iw,ih,left,top,right,bottom);
  }
  void positionSceneShadow(float[] target,boolean animate){
-  float shadowWidth=(target[2]-target[0])*1.04f,baseHeight=Math.max(dp(10),(target[3]-target[1])*.10f);
-  float[] grounded=new float[8];miniature.groundedCorners(grounded);
-  float originalWidth=Math.max(1,miniature.getLayoutParams().width),scale=(target[2]-target[0])/originalWidth;
-  // Each foot has its own floor height after two-point projection.
-  float leftY=target[1]+grounded[7]*scale,rightY=target[1]+grounded[5]*scale;
-  float shadowTop=Math.min(leftY,rightY)-baseHeight*.25f,shadowHeight=baseHeight+Math.abs(leftY-rightY);
-  sceneShadow.setFootprint(SceneProjection.contact(grounded[6],grounded[4],.05f,originalWidth),SceneProjection.contact(grounded[6],grounded[4],.95f,originalWidth),(leftY-shadowTop)/shadowHeight,(rightY-shadowTop)/shadowHeight,miniature.room().lightDirection());
-  sceneShadow.animate().cancel();sceneShadow.setLayoutParams(new FrameLayout.LayoutParams(Math.round(shadowWidth),Math.round(shadowHeight)));
-  sceneShadow.setX((target[0]+target[2]-shadowWidth)*.5f);sceneShadow.setY(shadowTop);sceneShadow.setVisibility(View.VISIBLE);sceneShadow.setAlpha(animate?0:1);
+  float[] floor=new float[8];miniature.groundedFootprint(floor);
+  float scale=(target[2]-target[0])/Math.max(1,miniature.getLayoutParams().width);
+  float minX=Float.MAX_VALUE,minY=Float.MAX_VALUE,maxX=-Float.MAX_VALUE,maxY=-Float.MAX_VALUE;
+  for(int i=0;i<8;i+=2){floor[i]=target[0]+floor[i]*scale;floor[i+1]=target[1]+floor[i+1]*scale;minX=Math.min(minX,floor[i]);maxX=Math.max(maxX,floor[i]);minY=Math.min(minY,floor[i+1]);maxY=Math.max(maxY,floor[i+1]);}
+  float cabinetWidth=floor[4]-floor[6],padding=Math.max(dp(8),cabinetWidth*.24f);
+  float left=minX-padding,top=minY-padding*.45f;
+  int width=(int)Math.ceil(maxX-minX+2*padding),height=(int)Math.ceil(maxY-minY+padding*1.8f);
+  for(int i=0;i<8;i+=2){floor[i]-=left;floor[i+1]-=top;}
+  sceneShadow.animate().cancel();sceneShadow.setLayoutParams(new FrameLayout.LayoutParams(width,height));
+  sceneShadow.setFloor(floor,cabinetWidth);sceneShadow.setX(left);sceneShadow.setY(top);sceneShadow.setVisibility(View.VISIBLE);sceneShadow.setAlpha(animate?0:1);
   if(animate)sceneShadow.animate().alpha(1).setStartDelay(170).setDuration(170).start();
  }
  void collapseToScene(boolean animate){

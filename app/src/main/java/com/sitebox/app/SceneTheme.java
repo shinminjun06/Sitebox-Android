@@ -3,7 +3,7 @@ package com.sitebox.app;
 /** Stable persisted room IDs and source-image anchors, independent of book/cabinet finishes. */
 final class SceneTheme {
  static final String PREFERENCE_KEY="backgroundTheme";
- static final SceneTheme[] ALL={new SceneTheme("study","테마 1 · 햇살 공부방",.505f,.617f,.18f)};
+ static final SceneTheme[] ALL={new SceneTheme("study","테마 1 · 햇살 공부방",.51f,.625f,.21f)};
  // Old cloud backups remain readable after removing their room artwork.
  static boolean acceptsBackupId(String id){
   if("study".equals(id))return true;
@@ -16,8 +16,8 @@ final class SceneTheme {
  static SceneTheme find(String id){for(SceneTheme scene:ALL)if(scene.id.equals(id))return scene;return ALL[0];}
  String assetPath(boolean wide){return "scenes/study_"+(wide?"landscape":"portrait")+".webp";}
  float anchorX(boolean wide){return id.equals("study")&&wide?.40f:centerX;}
- float anchorFeet(boolean wide){return id.equals("study")&&wide?.718f:feet;}
- float anchorHeight(boolean wide){return id.equals("study")&&wide?.30f:height;}
+ float anchorFeet(boolean wide){return id.equals("study")&&wide?.745f:feet;}
+ float anchorHeight(boolean wide){return id.equals("study")&&wide?.31f:height;}
  static String initialTheme(String saved,boolean introduced){return find(saved).id;}
  private static float clamp(float value,float min,float max){return Math.max(min,Math.min(max,value));}
  /** Scale, x translation, y translation used by both ImageView and furniture geometry. */

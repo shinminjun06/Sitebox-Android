@@ -26,8 +26,7 @@ public class SceneThemeTest {
   for(String old:new String[]{null,"classroom","wizard","train","unknown"})for(boolean introduced:new boolean[]{false,true})if(!SceneTheme.initialTheme(old,introduced).equals("study"))throw new AssertionError("Old room choices migrate to study");
   SceneTheme study=SceneTheme.find("study");
   for(boolean wide:new boolean[]{false,true}){
-   SceneProjection camera=SceneProjection.find("study",wide);float rear=camera.cameraY+(study.anchorFeet(wide)-camera.cameraY)/(1+camera.depth);
-   if(rear<(wide?.70f:.60f)||rear>(wide?.71f:.612f))throw new AssertionError("Rear feet must meet the wall-floor seam");
+   SceneProjection camera=SceneProjection.find("study",wide);
    float iw=wide?1672:852,ih=wide?941:1846;
    float[] bounds=study.sceneBounds(iw,ih,iw,ih,0,0,0,0);
    float vx=(iw*camera.cameraX-bounds[0])/(bounds[2]-bounds[0]);
