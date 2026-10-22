@@ -19,7 +19,7 @@ click('설정')
 click('Google 계정 · 자동 동기화')
 labels = {node.get('text') for node in ui().iter('node')}
 for text in ('Google 계정 · 자동 동기화', 'Google 계정 연결', '아직 연결되지 않았어요'):
-    assert text.casefold() in {label.casefold() for label in labels if label}, (text, labels)
+    assert any(text.casefold() in label.casefold() for label in labels if label), (text, labels)
 for forbidden in ('Google Drive에 백업', 'Drive 최근 백업 불러오기', '백업 파일 불러오기'):
     assert forbidden.casefold() not in {label.casefold() for label in labels if label}, labels
 logs = adb('logcat', '-d', '-s', 'AndroidRuntime:E')

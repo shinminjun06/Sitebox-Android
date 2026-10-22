@@ -47,12 +47,13 @@ final class GoogleDriveBackup {
  private final ThreadPoolExecutor worker=new ThreadPoolExecutor(1,1,0,TimeUnit.MILLISECONDS,new ArrayBlockingQueue<>(1));
  private volatile boolean closed;private volatile HttpsURLConnection active;
  private boolean busy,awaiting,retried,interactive;private volatile int generation;private int operation;private String token,account="",email="",payload;
+ private String cachedAccount="",cachedId="",cachedJson;
  private String status="Google 계정을 연결해 주세요.";private Runnable timeout;
  GoogleDriveBackup(Activity activity,Listener listener){this.activity=activity;this.listener=listener;auth=Identity.getAuthorizationClient(activity);}
  private void changed(String text){if(closed)return;status=text;listener.onChanged(status,account,busy);}
  private boolean begin(int op,String data){if(closed||busy)return false;busy=true;operation=op;payload=data;retried=false;generation++;changed("Google Drive 작업 중…");return true;}
- void connect(){if(begin(2,null)){interactive=true;email="";token=null;authorize(true);}}
- void resume(String savedEmail,boolean explicit){if(savedEmail==null||savedEmail.isEmpty())return;if(begin(2,null)){interactive=explicit;email=savedEmail;authorize(false);}}
+ void connect(){if(begin(2,null)){interactive=true;email="";token=null;cachedAccount="";cachedId="";cachedJson=null;authorize(true);}}
+ void resume(String savedEmail,boolean explicit){if(savedEmail==null||savedEmail.isEmpty())return;if(begin(2,null)){interactive=explicit;email=savedEmail;if(token!=null)runIo(generation);else authorize(false);}}
  String email(){return email;}
  void backup(String json){if(!begin(1,json))return;try{BackupCodec.decode(json);}catch(Exception e){fail("백업 데이터를 확인해 주세요.");return;}if(token==null)authorize(false);else runIo(generation);}
  void restoreLatest(){if(!begin(2,null))return;if(token==null)authorize(false);else runIo(generation);}
@@ -94,13 +95,13 @@ final class GoogleDriveBackup {
      String boundary="sitebox_"+UUID.randomUUID().toString().replace("-","");
      String body="--"+boundary+"\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n"+metadata+"\r\n--"+boundary+"\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n"+data+"\r\n--"+boundary+"--\r\n";
      JSONObject uploaded=new JSONObject(http("POST","https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id",body.getBytes(StandardCharsets.UTF_8),"multipart/related; boundary="+boundary,bearer,META_LIMIT,io));
-     if(uploaded.getString("id").isEmpty())throw new IOException();
+     if(uploaded.getString("id").isEmpty())throw new IOException();cachedAccount=verifiedEmail;cachedId=uploaded.getString("id");cachedJson=data;
     }else if(op==2){
      String query="trashed = false and appProperties has { key='kind' and value='siteboxBackup' }";
      JSONObject listing=new JSONObject(http("GET","https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&orderBy=createdTime%20desc&pageSize=1&fields=files(id,name,createdTime)&q="+URLEncoder.encode(query,"UTF-8"),null,null,bearer,META_LIMIT,io));
      JSONArray files=listing.getJSONArray("files");if(files.length()==0){main.post(()->{if(valid(gen)){email=verifiedEmail;account=name+" ("+email+")";finish("저장된 서재가 없어 기기 내용을 자동 저장합니다.");listener.onRestore(null,verifiedEmail);}});return;}
      JSONObject file=files.getJSONObject(0);String id=file.getString("id");if(!id.matches("[A-Za-z0-9_-]+"))throw new IOException();
-     restored=http("GET","https://www.googleapis.com/drive/v3/files/"+id+"?alt=media",null,null,bearer,BackupCodec.MAX_BYTES,io);BackupCodec.decode(restored);label=file.getString("name");
+     if(id.equals(cachedId)&&verifiedEmail.equals(cachedAccount)&&cachedJson!=null)restored=cachedJson;else{restored=http("GET","https://www.googleapis.com/drive/v3/files/"+id+"?alt=media",null,null,bearer,BackupCodec.MAX_BYTES,io);BackupCodec.decode(restored);cachedAccount=verifiedEmail;cachedId=id;cachedJson=restored;}label=file.getString("name");
     }
     final String json=restored,restoreLabel=label;
     main.post(()->{if(valid(gen)){email=verifiedEmail;account=name+" ("+email+")";finish(op==1?"Google Drive에 새 백업을 저장했어요.":op==2?"백업을 확인했어요.":"Google 계정이 연결됐어요.");if(!closed){if(op==2)listener.onRestore(json,verifiedEmail);else if(op==1)listener.onSaved(data);}}});
@@ -119,7 +120,7 @@ final class GoogleDriveBackup {
  }
  void saveState(Bundle out){out.putBoolean(STATE,awaiting);out.putInt(STATE+".op",operation);}
  void restoreState(Bundle state){if(state!=null&&state.getBoolean(STATE,false)&&!closed){awaiting=true;busy=true;operation=state.getInt(STATE+".op",2);interactive=true;payload=null;generation++;changed("Google 연결 결과를 기다리고 있어요.");armTimeout(generation);}}
- void close(){closed=true;generation++;token=null;payload=null;account="";email="";cancelTimeout();main.removeCallbacksAndMessages(null);HttpsURLConnection c=active;if(c!=null)c.disconnect();worker.shutdownNow();}
+ void close(){closed=true;cachedJson=null;cachedAccount="";cachedId="";generation++;token=null;payload=null;account="";email="";cancelTimeout();main.removeCallbacksAndMessages(null);HttpsURLConnection c=active;if(c!=null)c.disconnect();worker.shutdownNow();}
  private static final class IoContext{final int generation;final long deadline;IoContext(int gen){generation=gen;deadline=SystemClock.elapsedRealtime()+45000;}}
  private void checkIo(IoContext io)throws IOException{if(closed||generation!=io.generation||Thread.currentThread().isInterrupted()||SystemClock.elapsedRealtime()>=io.deadline)throw new IOException();}
  private static final class Unauthorized extends IOException {}

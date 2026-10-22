@@ -58,7 +58,7 @@ final class BackupController {
     void show(){
         LinearLayout content=new LinearLayout(activity);content.setOrientation(LinearLayout.VERTICAL);content.setPadding(activity.dp(20),activity.dp(8),activity.dp(20),activity.dp(12));
         content.addView(activity.label("Google 계정을 연결하면 저장된 서재를 자동으로 불러옵니다. 책·메모·즐겨찾기·순서와 테마를 바꾸면 자동 저장합니다.",13,0xff574532));
-        statusView=activity.label("",13,0xff574532);statusView.setPadding(0,activity.dp(12),0,activity.dp(12));content.addView(statusView);actions.clear();
+        statusView=activity.label("",13,0xff574532);statusView.setTextIsSelectable(true);statusView.setPadding(0,activity.dp(12),0,activity.dp(12));content.addView(statusView);actions.clear();
         connectButton=button(content,"Google 계정 연결",()->startSync(true));
         disconnectButton=button(content,"Google 계정 연결 해제",()->new AlertDialog.Builder(activity).setMessage("자동 동기화를 중지하고 Google Drive 접근 권한을 해제할까요? 기기 데이터와 이미 저장된 서재는 유지됩니다.").setNegativeButton("취소",null).setPositiveButton("연결 해제",(d,w)->drive.disconnect()).show());
         content.addView(activity.label("오프라인에서도 기기에 저장됩니다. 앱을 다시 열면 연결을 확인하고 동기화를 재시도합니다.",12,0xff746650));
@@ -69,7 +69,7 @@ final class BackupController {
     private Button button(LinearLayout parent,String title,Runnable action){Button b=new Button(activity);b.setText(title);b.setMinHeight(activity.dp(48));b.setOnClickListener(v->{if(!storageBusy&&!driveBusy&&!syncing)action.run();});parent.addView(b);actions.add(b);return b;}
     private void update(){if(statusView!=null)statusView.setText((account.isEmpty()?"아직 연결되지 않았어요":account)+"\n"+(storageBusy?"서재를 기기에 반영하고 있어요…":driveStatus));for(Button b:actions)b.setEnabled(!storageBusy&&!driveBusy&&!syncing);if(connectButton!=null)connectButton.setText(syncedAccount.isEmpty()?"Google 계정 연결":"Google 계정 다시 연결");if(disconnectButton!=null)disconnectButton.setVisibility(syncedAccount.isEmpty()?android.view.View.GONE:android.view.View.VISIBLE);}
     void resume(){foreground=true;schedule(500);}
-    void pause(){foreground=false;main.removeCallbacks(syncTick);if(!syncing&&!driveBusy&&!storageBusy)startSync(false);}
+    void pause(){foreground=false;main.removeCallbacks(syncTick);if(changedDuringSync&&!syncing&&!driveBusy&&!storageBusy)startSync(false);}
     void localChanged(){changedDuringSync=true;if(!closed)schedule(1500);}
     private void schedule(long delay){main.removeCallbacks(syncTick);if(!closed&&foreground&&!syncedAccount.isEmpty())main.postDelayed(syncTick,delay);}
     private void startSync(boolean explicit){
