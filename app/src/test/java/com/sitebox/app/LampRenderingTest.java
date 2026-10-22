@@ -21,6 +21,17 @@ public class LampRenderingTest {
     Bitmap asset(String name)throws Exception{try(java.io.InputStream in=RuntimeEnvironment.getApplication().getAssets().open("scenes/"+name+".webp")){Bitmap b=BitmapFactory.decodeStream(in);assertNotNull(name,b);return b;}}
     @Test public void switchingOffReplacesIndoorLightingButPreservesSunlight()throws Exception{verifyRelighting(false);}
     @Test public void nightSwitchRemovesWarmReflectionsAndLampShadows()throws Exception{verifyRelighting(true);}
+    @Test public void litNightKeepsCoolMoonlightAwayFromTheDeskLamp()throws Exception{
+        Bitmap day=asset("study_portrait"),night=asset("study_night_portrait"),off=asset("study_lamp_off_night_portrait");
+        StudyLiveView live=new StudyLiveView(RuntimeEnvironment.getApplication());live.setMotionEnabled(false);live.setScene(day,night,false,new float[]{.5f,0,0});live.setLampPlates(null,off);
+        long now=1700000000000L;live.setWeather(new WeatherState(20,0,0,0,now,0,0,now,true,0,0),now);
+        int w=day.getWidth()/2,h=day.getHeight()/2;live.measure(View.MeasureSpec.makeMeasureSpec(w,View.MeasureSpec.EXACTLY),View.MeasureSpec.makeMeasureSpec(h,View.MeasureSpec.EXACTLY));live.layout(0,0,w,h);
+        Bitmap on=render(day,live,w,h);int wall=on.getPixel(Math.round(w*.30f),Math.round(h*.30f));
+        assertTrue("A lit desk lamp must retain the reference's blue-grey moonlit wall",Color.blue(wall)>Color.red(wall));
+        int bulb=on.getPixel(Math.round(w*.035f),Math.round(h*.486f));assertTrue("The warm-white bulb still emits light",Color.red(bulb)>Color.blue(bulb));
+        int paper=on.getPixel(Math.round(w*.30f),Math.round(h*.79f));assertTrue("Warm lamp light remains local to the desktop",Color.red(paper)>Color.blue(paper));
+        live.release();day.recycle();night.recycle();off.recycle();on.recycle();
+    }
     void verifyRelighting(boolean nightTime)throws Exception{
         Bitmap day=asset("study_portrait"),night=asset("study_night_portrait"),offDay=asset("study_lamp_off_portrait"),offNight=asset("study_lamp_off_night_portrait");
         StudyLiveView live=new StudyLiveView(RuntimeEnvironment.getApplication());

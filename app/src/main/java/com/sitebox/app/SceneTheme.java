@@ -3,7 +3,7 @@ package com.sitebox.app;
 /** Stable persisted room IDs and source-image anchors, independent of book/cabinet finishes. */
 final class SceneTheme {
  static final String PREFERENCE_KEY="backgroundTheme";
- static final SceneTheme[] ALL={new SceneTheme("study","테마 1 · 햇살 공부방",.51f,.625f,.21f)};
+ static final SceneTheme[] ALL={new SceneTheme("study","테마 1 · 햇살 공부방",.425f,.607f,.199f)};
  // Old cloud backups remain readable after removing their room artwork.
  static boolean acceptsBackupId(String id){
   if("study".equals(id))return true;

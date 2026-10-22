@@ -2,8 +2,9 @@ package com.sitebox.app;
 
 /** Two-point room perspective, with vertical cabinet posts kept upright. */
 final class SceneProjection {
- // Intersections of the back-wall ceiling beam and baseboard, measured on each source plate.
- private static final SceneProjection PORTRAIT=calibrated(854,1842,.012f,300,46,534,14,300,1073,612,1106,260,1080);
+ // Portrait follows the cabinet silhouette in the user's target photograph. Its
+ // nearly parallel front differs from the illustrated wall's long structural lines.
+ private static final SceneProjection PORTRAIT=new SceneProjection(1,.34f,-11,.04f);
  private static final SceneProjection LANDSCAPE=calibrated(1672,941,.05f,453,39,877,7,454,621,1155,666,400,636);
  static final SceneProjection[] ALL={PORTRAIT};
  final String id="study";

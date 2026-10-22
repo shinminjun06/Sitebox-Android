@@ -337,7 +337,8 @@ public class MainActivity extends Activity {
  void updateLampArtwork(){
   boolean useOff=renderedSceneTheme.id.equals("study")&&!studyLampOn;
   String suffix=BookLayout.wideScene(backdrop.getWidth(),backdrop.getHeight())?"landscape":"portrait";
-  studyLive.setLampPlates(useOff?assets.get("scenes/study_lamp_off_"+suffix+".webp"):null,useOff?assets.get("scenes/study_lamp_off_night_"+suffix+".webp"):null);
+  // The moonlit plate supplies the cool room even while the desk lamp is on.
+  studyLive.setLampPlates(useOff?assets.get("scenes/study_lamp_off_"+suffix+".webp"):null,assets.get("scenes/study_lamp_off_night_"+suffix+".webp"));
  }
  void updateAmbient(){
   if(studyLive==null||weather==null)return;

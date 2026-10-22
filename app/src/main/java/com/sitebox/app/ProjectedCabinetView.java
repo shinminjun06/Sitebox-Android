@@ -91,14 +91,14 @@ final class ProjectedCabinetView extends ImageView {
   rect(source,0,0,w,h);profile.front(w,h,fraction,vpX,vpY,widthVP,corners);profile.body(w,h,fraction,vpX,vpY,widthVP,corners,side,roof);
   float roomBrightness=.96f*(.48f+.52f*ambientLight);
   float b=1+(roomBrightness-1)*fraction,contrast=1-.04f*fraction;
-  float warm=.008f+.020f*(1-ambientLight);
-  if(!lampEnabled){b*=1-.20f*fraction;warm=-.035f*(1-ambientLight);}
-  lighting.set(new float[]{b*contrast+warm*fraction,0,0,0,4*fraction,0,b*contrast,0,0,3*fraction,0,0,b*contrast-warm*fraction,0,3*fraction,0,0,0,1,0});
+  float warm=.008f*ambientLight,moon=(1-ambientLight)*fraction;
+  if(!lampEnabled){b*=1-.20f*fraction;warm=-.016f*(1-ambientLight);}
+  lighting.set(new float[]{b*contrast*(1-.17f*moon)+warm*fraction,0,0,0,4*fraction,0,b*contrast,0,0,3*fraction,0,0,b*contrast*(1+.18f*moon)-warm*fraction,0,(3+5*moon)*fraction,0,0,0,1,0});
   ColorMatrix saturation=new ColorMatrix();saturation.setSaturation(1-.02f*fraction);lighting.postConcat(saturation);
   ColorMatrixColorFilter filter=fraction==0?null:new ColorMatrixColorFilter(lighting);texturePaint.setColorFilter(filter);decorPaint.setColorFilter(filter);roomPaint.setColorFilter(filter);setColorFilter(filter);
   if(naturalWood){ColorMatrix timber=new ColorMatrix(new float[]{.72f,0,0,0,0,0,.60f,0,0,0,0,0,.48f,0,0,0,0,0,1,0});timber.postConcat(lighting);texturePaint.setColorFilter(new ColorMatrixColorFilter(timber));}
   roomBounds.set(0,0,w,h);
-  if(roomDecor!=null){float dw=w*.90f;decorBounds.set(w*.05f,2-dw*roomDecor.getHeight()/roomDecor.getWidth(),w*.95f,2);}
+  if(roomDecor!=null){float dw=w*1.06f;decorBounds.set(-w*.075f,2-dw*roomDecor.getHeight()/roomDecor.getWidth(),w*.985f,2);}
   frontMatrix.setPolyToPoly(source,0,corners,0,4);quad(sidePath,side);quad(topPath,roof);
   rearLegPath.rewind();
   if(fraction>0&&sideVisible()){

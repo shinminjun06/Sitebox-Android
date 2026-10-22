@@ -291,7 +291,15 @@ final class StudyLiveView extends FrameLayout {
     /** Full-room light plate is below video so opaque night artwork never hides playback. */
     private final class RoomLightView extends View {
         private final Paint roomPaint = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.FILTER_BITMAP_FLAG);
-        RoomLightView(Context context) { super(context); setClickable(false); }
+        private final Paint nightBlend=new Paint(),warmMask=new Paint(Paint.ANTI_ALIAS_FLAG);
+        RoomLightView(Context context) {
+            super(context);setClickable(false);
+            warmMask.setShader(new RadialGradient(0,0,1,new int[]{0xffffffff,0xffffffff,0x00ffffff},new float[]{0,.55f,1},Shader.TileMode.CLAMP));
+            warmMask.setXfermode(new android.graphics.PorterDuffXfermode(android.graphics.PorterDuff.Mode.DST_OUT));
+        }
+        private void keepWarm(Canvas canvas,float x,float y,float rx,float ry,int strength){
+            warmMask.setAlpha(strength);int save=canvas.save();canvas.translate(offsetX+day.getWidth()*scale*x,offsetY+day.getHeight()*scale*y);canvas.scale(day.getWidth()*scale*rx,day.getHeight()*scale*ry);canvas.drawCircle(0,0,1,warmMask);canvas.restoreToCount(save);
+        }
         @Override protected void onDraw(Canvas canvas) {
             if (day == null || day.isRecycled()) return;
             if (night != null && !night.isRecycled() && daylight < 1) {
@@ -300,6 +308,17 @@ final class StudyLiveView extends FrameLayout {
             } else if (night == null && daylight < 1) {
                 roomPaint.setColor(0xff101b37); roomPaint.setAlpha(Math.round(160*(1-daylight)));
                 canvas.drawRect(0,0,getWidth(),getHeight(),roomPaint);
+            }
+            if(lampEnabled&&daylight<1&&lampOffNight!=null&&!lampOffNight.isRecycled()){
+                // Preserve moonlight and leaf shadows on the room, with warm light
+                // confined to the bulb and desk. Both registered source plates stay intact.
+                int save=canvas.save();canvas.clipPath(glass,android.graphics.Region.Op.DIFFERENCE);
+                nightBlend.setAlpha(Math.round(255*(1-daylight)));
+                int layer=canvas.saveLayer(0,0,getWidth(),getHeight(),nightBlend);
+                roomPaint.setAlpha(255);canvas.drawBitmap(lampOffNight,lampOffNightMatrix,roomPaint);
+                keepWarm(canvas,.04f,wide?.51f:.477f,wide?.12f:.20f,wide?.13f:.09f,255);
+                keepWarm(canvas,.22f,.88f,wide?.48f:.70f,wide?.38f:.27f,185);
+                canvas.restoreToCount(layer);canvas.restoreToCount(save);
             }
             if(!lampEnabled&&lampOffDay!=null&&!lampOffDay.isRecycled()){
                 // Replace indoor illumination, including baked highlights and cast shadows.
