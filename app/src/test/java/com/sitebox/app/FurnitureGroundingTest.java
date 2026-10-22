@@ -23,9 +23,8 @@ public class FurnitureGroundingTest {
                 if(a.sceneCollapsed)a.expandFromScene(false);layout(a,size[0],size[1]);a.collapseToScene(false);layout(a,size[0],size[1]);
                 float[] front=new float[8],side=new float[8],roof=new float[8];a.miniature.copyRenderedCorners(front);a.miniature.copyRenderedBodyCorners(side,roof);
                 float depth=(roof[2]-front[2])/(front[2]-front[0]);
-                // The target portrait shows a narrow side, unlike the wider room view.
-                assertTrue("Visible cabinet side is too thin: "+depth,depth>=(size[0]<size[1]?.03f:.075f));
-                assertTrue("Cabinet must not become a deep box: "+depth,depth<=(size[0]<size[1]?.08f:.25f));
+                assertTrue("A real closed side must follow the room camera: "+depth,depth>=.10f);
+                assertTrue("Cabinet must not become a deep box: "+depth,depth<=.30f);
             }
         }finally{lifecycle.destroy();}
     }

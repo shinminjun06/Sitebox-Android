@@ -13,8 +13,7 @@ public class SceneProjectionTest {
  convex(a);near(a[0],a[6]);near(a[2],a[4]);near(Math.max(a[5],a[7]),416);near(r[4],a[2]);near(r[5],a[3]);near(r[6],a[0]);near(r[7],a[1]);
  if(f>0){
   if(p.leftVisible(vx,vy,f)||p.rightVisible(vx,vy,f))convex(s);if(p.topVisible(vx,vy,f))convex(r);
-  RoomPerspectiveTest.ray(r[0],r[1],r[6],r[7],vx*320,vy*416);RoomPerspectiveTest.ray(r[2],r[3],r[4],r[5],vx*320,vy*416);
-  if(f==1){RoomPerspectiveTest.ray(a[0],a[1],a[2],a[3],ux*320,vy*416);RoomPerspectiveTest.ray(r[0],r[1],r[2],r[3],ux*320,vy*416);}
+  if(f==1){RoomPerspectiveTest.ray(r[0],r[1],r[6],r[7],vx*320,vy*416);RoomPerspectiveTest.ray(r[2],r[3],r[4],r[5],vx*320,vy*416);RoomPerspectiveTest.ray(a[0],a[1],a[2],a[3],ux*320,vy*416);RoomPerspectiveTest.ray(r[0],r[1],r[2],r[3],ux*320,vy*416);}
  }
  near(SceneProjection.contact(a[6],a[4],.05f,320)*1.04f*320-.02f*320,a[6]+.05f*(a[4]-a[6]));
  if(f==0){float[] identity={0,0,320,0,320,416,0,416};for(int i=0;i<8;i++)near(a[i],identity[i]);}

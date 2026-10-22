@@ -19,7 +19,9 @@ public class SceneThemeTest {
     if(feet<24||feet>h-24)throw new AssertionError("Anchor-aware crop must keep floor visible");
     float[] b=theme.sceneBounds(w,h,iw,ih,10,24,10,24);
     if(b[0]<10||b[1]<24||b[2]>w-10||b[3]>h-24)throw new AssertionError("Furniture must respect safe areas");
-    if(Math.abs((b[3]-b[1])/(b[2]-b[0])-1.3f)>.001f)throw new AssertionError("Cabinet must retain aspect ratio");
+    float[] source=SceneProjection.find("study",iw>ih).imageBounds();
+    float projectedRatio=(source[3]-source[1])*ih/((source[2]-source[0])*iw);
+    if(Math.abs((b[3]-b[1])/(b[2]-b[0])-projectedRatio)>.001f)throw new AssertionError("Use the camera's projected aspect, not the editor sprite's aspect");
     if(Math.abs(b[3]-feet)>.01f)throw new AssertionError("Furniture and image must share floor transform");
    }
   }

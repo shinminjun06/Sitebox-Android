@@ -15,9 +15,9 @@ final class SceneTheme {
  private SceneTheme(String id,String name,float centerX,float feet,float height){this.id=id;this.name=name;this.centerX=centerX;this.feet=feet;this.height=height;}
  static SceneTheme find(String id){for(SceneTheme scene:ALL)if(scene.id.equals(id))return scene;return ALL[0];}
  String assetPath(boolean wide){return "scenes/study_"+(wide?"landscape":"portrait")+".webp";}
- float anchorX(boolean wide){return id.equals("study")&&wide?.40f:centerX;}
- float anchorFeet(boolean wide){return id.equals("study")&&wide?.745f:feet;}
- float anchorHeight(boolean wide){return id.equals("study")&&wide?.31f:height;}
+ float anchorX(boolean wide){float[] b=SceneProjection.find(id,wide).imageBounds();return (b[0]+b[2])*.5f;}
+ float anchorFeet(boolean wide){return SceneProjection.find(id,wide).imageBounds()[3];}
+ float anchorHeight(boolean wide){float[] b=SceneProjection.find(id,wide).imageBounds();return b[3]-b[1];}
  static String initialTheme(String saved,boolean introduced){return find(saved).id;}
  private static float clamp(float value,float min,float max){return Math.max(min,Math.min(max,value));}
  /** Scale, x translation, y translation used by both ImageView and furniture geometry. */
@@ -31,10 +31,12 @@ final class SceneTheme {
   float availableWidth=Math.max(1,width-leftInset-rightInset-2*padding),availableHeight=Math.max(1,viewportHeight-topInset-bottomInset-2*padding);
   boolean wide=imageWidth>imageHeight;
   float[] matrix=imageTransform(width,viewportHeight,imageWidth,imageHeight);
-  float h=Math.min(imageHeight*matrix[0]*anchorHeight(wide),Math.min(availableHeight*.62f,availableWidth*1.3f*.70f)),w=h/1.3f;
+  float[] b=SceneProjection.find(id,wide).imageBounds();
+  float w=(b[2]-b[0])*imageWidth*matrix[0],h=(b[3]-b[1])*imageHeight*matrix[0];
+  float fit=Math.min(1,Math.min(availableWidth/w,availableHeight/h));w*=fit;h*=fit;
   float center=matrix[1]+imageWidth*matrix[0]*anchorX(wide);
   float left=clamp(center-w*.5f,leftInset+padding,width-rightInset-padding-w);
-  float bottom=clamp(matrix[2]+imageHeight*matrix[0]*anchorFeet(wide),topInset+padding+h,viewportHeight-bottomInset-padding);
+  float bottom=clamp(matrix[2]+imageHeight*matrix[0]*b[3],topInset+padding+h,viewportHeight-bottomInset-padding);
   return new float[]{left,bottom-h,left+w,bottom};
  }
 }

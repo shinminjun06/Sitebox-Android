@@ -9,6 +9,13 @@ public class RoomPerspectiveTest {
   for(boolean wide:new boolean[]{false,true}){
    float iw=wide?1672:854,ih=wide?941:1842;
    SceneProjection p=SceneProjection.find("study",wide);SceneTheme room=SceneTheme.find("study");
+   // Independent intersections of the photographed beam/baseboard and side floor.
+   // A self-consistent cabinet can still be at the wrong angle to the room.
+   float measuredWidthVP=wide?-3713.633f:-3934.678f;
+   float measuredHorizon=wide?353.463f:625.101f;
+   float measuredDepthVP=wide?1417.134f:2859.421f;
+   if(Math.abs(p.widthVanishingX*iw-measuredWidthVP)>1||Math.abs(p.cameraY*ih-measuredHorizon)>1||Math.abs(p.cameraX*iw-measuredDepthVP)>1)
+    throw new AssertionError("Cabinet camera must match the measured room walls, not an arbitrary front slope");
    for(float[] viewport:wide?new float[][]{{926,428},{1560,720},{480,320}}:new float[][]{{428,926},{720,1560},{320,480},{1080,1080}}){
     float w=viewport[0],h=viewport[1];float[] t=room.imageTransform(w,h,iw,ih),b=room.sceneBounds(w,h,iw,ih,0,0,0,0);
     float bw=b[2]-b[0],bh=b[3]-b[1];
@@ -21,19 +28,23 @@ public class RoomPerspectiveTest {
     ray(r[0],r[1],r[6],r[7],vx*bw,vy*bh);ray(r[2],r[3],r[4],r[5],vx*bw,vy*bh);
     if(a[5]-a[7]<1)throw new AssertionError("Feet must follow the sloping back-wall floor, not a screen-horizontal baseline");
     if(!p.topVisible(vx,vy,1))throw new AssertionError("Low cabinet is below the room horizon: its top must be visible");
-    float retreat=1/(1+p.depth);
-    for(int i:wide?new int[]{6,4}:new int[0]){
-     float rearX=(vx*bw+retreat*(a[i]-vx*bw)+b[0]-t[1])/t[0],rearY=(vy*bh+retreat*(a[i+1]-vy*bh)+b[1]-t[2])/t[0];
+    float[] feet=new float[8];p.footprint(bw,bh,feet);
+    for(int i:new int[]{0,2}){
+     float rearX=(feet[i]+b[0]-t[1])/t[0],rearY=(feet[i+1]+b[1]-t[2])/t[0];
      float floorY=wide?621+(rearX-454)*45/701:1073+(rearX-300)*33/312;
      if(rearX<(wide?454:300))throw new AssertionError("Cabinet rear must remain inside the back wall corner");
      if(rearY<floorY+8||rearY>floorY+(wide?90:120))throw new AssertionError("Rear foot must rest on floor in front of the wall, not the baseboard: "+rearY+" floor "+floorY);
     }
     float visibleDepth=(r[2]-a[2])/(a[2]-a[0]);
-    if(visibleDepth<(wide?.075f:.03f)||visibleDepth>(wide?.25f:.08f))throw new AssertionError("Cabinet depth must follow its room reference: "+visibleDepth);
+    if(visibleDepth<.10f||visibleDepth>.30f)throw new AssertionError("Cabinet needs a physically plausible enclosed side: "+visibleDepth);
     // Front foot slope should agree with independently observed baseboard direction.
     float measured=wide?45f/701:33f/312;
     float slope=(a[5]-a[7])/(a[4]-a[6]);
-    if(wide&&Math.abs(slope-measured)>.025)throw new AssertionError("Cabinet floor slope "+slope+" disagrees with room "+measured);
+    if(Math.abs(slope-measured)>.025)throw new AssertionError("Cabinet floor slope "+slope+" disagrees with room "+measured);
+    for(float shelfY:new float[]{.03f,.31f,.61f,.91f}){
+     float[] line=new float[6];p.point(bw,bh,1,.045f,shelfY,0,line,0);p.point(bw,bh,1,.955f,shelfY,0,line,2);p.point(bw,bh,1,.045f,shelfY,1,line,4);
+     ray(line[0],line[1],line[2],line[3],ux*bw,vy*bh);ray(line[0],line[1],line[4],line[5],vx*bw,vy*bh);
+    }
    }
   }
   System.out.println("PASS: front, rear and depth edges share room vanishing points; floor slope follows artwork");

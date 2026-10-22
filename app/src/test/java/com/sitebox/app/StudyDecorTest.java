@@ -41,7 +41,7 @@ public class StudyDecorTest {
             empty.recycle();changedLabels.recycle();populated.recycle();
         }finally{lifecycle.destroy();}
     }
-    Bitmap roomSnapshot(MainActivity a,Bitmap art){Bitmap b=Bitmap.createBitmap(a.currentCabinet.getWidth(),a.currentCabinet.getHeight(),Bitmap.Config.ARGB_8888);a.currentCabinet.drawRoom(new Canvas(b),art,true);return b;}
+    Bitmap roomSnapshot(MainActivity a,Bitmap art){Bitmap b=Bitmap.createBitmap(a.currentCabinet.getWidth(),a.currentCabinet.getHeight(),Bitmap.Config.ARGB_8888);a.currentCabinet.drawRoomBooks(new Canvas(b));return b;}
     @Test public void decorRendersAboveCompactCabinetWithoutChangingBooks()throws Exception{
         ActivityController<MainActivity> lifecycle=Robolectric.buildActivity(MainActivity.class).create();MainActivity a=lifecycle.get();
         try{

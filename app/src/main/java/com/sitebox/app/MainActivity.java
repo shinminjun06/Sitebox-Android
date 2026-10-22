@@ -117,7 +117,7 @@ public class MainActivity extends Activity {
  View.OnLongClickListener reveal=v->{backgroundOnly=true;root.setVisibility(View.INVISIBLE);revealOverlay.setVisibility(View.VISIBLE);return true;};
  header.setOnLongClickListener(reveal);shelves.setOnLongClickListener(reveal);shelfScroll.setOnLongClickListener(reveal);
  sceneShadow=new FurnitureShadow(this);sceneShadow.setVisibility(View.GONE);stage.addView(sceneShadow,new FrameLayout.LayoutParams(1,1));
- miniature=new ProjectedCabinetView(this);miniature.setRoomDecor(assets.get("themes/study/cabinet_decor.webp"));miniature.setScaleType(ImageView.ScaleType.FIT_XY);miniature.setContentDescription("작아진 책장 열기");miniature.setVisibility(View.GONE);miniature.setPivotX(0);miniature.setPivotY(0);stage.addView(miniature,new FrameLayout.LayoutParams(1,1));miniature.setOnClickListener(v->expandFromScene(true));
+ miniature=new ProjectedCabinetView(this);miniature.setRoomJoinery(assets.get("themes/study/room_cabinet.webp"));miniature.setRoomDecor(assets.get("themes/study/cabinet_decor.webp"));miniature.setScaleType(ImageView.ScaleType.FIT_XY);miniature.setContentDescription("작아진 책장 열기");miniature.setVisibility(View.GONE);miniature.setPivotX(0);miniature.setPivotY(0);stage.addView(miniature,new FrameLayout.LayoutParams(1,1));miniature.setOnClickListener(v->expandFromScene(true));
  lampSwitch=new View(this);lampSwitch.setFocusable(true);lampSwitch.setVisibility(View.GONE);
  lampSwitch.setOnClickListener(v->{if(sceneCollapsed&&!sceneAnimating&&renderedSceneTheme.id.equals("study")){studyLampOn=!studyLampOn;getPreferences(0).edit().putBoolean("studyLampOn",studyLampOn).apply();updateLampArtwork();updateLampSwitch();}});
  stage.addView(lampSwitch,new FrameLayout.LayoutParams(1,1));
@@ -159,7 +159,7 @@ public class MainActivity extends Activity {
    miniature.animate().cancel();cancelProjection();controls.animate().cancel();sceneShadow.animate().cancel();
    sceneAnimating=false;controls.setVisibility(View.INVISIBLE);controls.setAlpha(1);
    float[] target=sceneBounds();float scale=(target[2]-target[0])/miniature.getLayoutParams().width;
-   miniature.setRoom(SceneProjection.find(renderedSceneTheme.id),assets.surface(shelfThemeIndex));miniature.setProjectionFraction(1);miniature.setX(target[0]);miniature.setY(target[1]);miniature.setScaleX(scale);miniature.setScaleY(scale);miniature.setEnabled(true);
+   miniature.setRoom(SceneProjection.find(renderedSceneTheme.id),assets.surface(shelfThemeIndex));miniature.setProjectionFraction(1);miniature.setX(target[0]);miniature.setY(target[1]);miniature.setScaleX(scale);miniature.setScaleY((target[3]-target[1])/miniature.getLayoutParams().height);miniature.setEnabled(true);
    miniature.setCamera(stage.getWidth(),stage.getHeight(),sceneBackdrop.getWidth(),sceneBackdrop.getHeight(),target);
    positionSceneShadow(target,false);
   }
@@ -264,9 +264,9 @@ public class MainActivity extends Activity {
  }
  void positionSceneShadow(float[] target,boolean animate){
   float[] floor=new float[8];miniature.groundedFootprint(floor);
-  float scale=(target[2]-target[0])/Math.max(1,miniature.getLayoutParams().width);
+  float scale=(target[2]-target[0])/Math.max(1,miniature.getLayoutParams().width),scaleY=(target[3]-target[1])/Math.max(1,miniature.getLayoutParams().height);
   float minX=Float.MAX_VALUE,minY=Float.MAX_VALUE,maxX=-Float.MAX_VALUE,maxY=-Float.MAX_VALUE;
-  for(int i=0;i<8;i+=2){floor[i]=target[0]+floor[i]*scale;floor[i+1]=target[1]+floor[i+1]*scale;minX=Math.min(minX,floor[i]);maxX=Math.max(maxX,floor[i]);minY=Math.min(minY,floor[i+1]);maxY=Math.max(maxY,floor[i+1]);}
+  for(int i=0;i<8;i+=2){floor[i]=target[0]+floor[i]*scale;floor[i+1]=target[1]+floor[i+1]*scaleY;minX=Math.min(minX,floor[i]);maxX=Math.max(maxX,floor[i]);minY=Math.min(minY,floor[i+1]);maxY=Math.max(maxY,floor[i+1]);}
   float cabinetWidth=floor[4]-floor[6],padding=Math.max(dp(8),cabinetWidth*.24f);
   float left=minX-padding,top=minY-padding*.45f;
   int width=(int)Math.ceil(maxX-minX+2*padding),height=(int)Math.ceil(maxY-minY+padding*1.8f);
@@ -284,15 +284,15 @@ public class MainActivity extends Activity {
   Canvas canvas=new Canvas(snapshot);canvas.scale(sampling,sampling);currentCabinet.draw(canvas);
   Bitmap roomSnapshot=Bitmap.createBitmap(snapshot.getWidth(),snapshot.getHeight(),Bitmap.Config.ARGB_8888);
   Canvas roomCanvas=new Canvas(roomSnapshot);roomCanvas.scale(sampling,sampling);
-  currentCabinet.drawRoom(roomCanvas,shelfThemeIndex==0?assets.get("themes/study/room_cabinet.webp"):assets.shelf(shelfThemeIndex),shelfThemeIndex==0);
+  currentCabinet.drawRoomBooks(roomCanvas);
   miniature.setRoomSnapshot(roomSnapshot,shelfThemeIndex==0);
   miniature.animate().cancel();cancelProjection();miniature.setRoom(SceneProjection.find(renderedSceneTheme.id),assets.surface(shelfThemeIndex));miniature.setProjectionFraction(0);miniature.setImageBitmap(snapshot);miniature.setLayoutParams(new FrameLayout.LayoutParams(width,height));miniature.setX(from.left);miniature.setY(from.top);miniature.setScaleX(1);miniature.setScaleY(1);miniature.setVisibility(View.VISIBLE);miniature.setEnabled(false);
-  float[] target=sceneBounds();float scale=(target[2]-target[0])/width;
+  float[] target=sceneBounds();float scale=(target[2]-target[0])/width,scaleY=(target[3]-target[1])/height;
   miniature.setCamera(stage.getWidth(),stage.getHeight(),sceneBackdrop.getWidth(),sceneBackdrop.getHeight(),target);
   positionSceneShadow(target,animate);
   Runnable finish=()->{miniature.setProjectionFraction(1);controls.setVisibility(View.INVISIBLE);controls.setAlpha(1);sceneAnimating=false;miniature.setEnabled(true);updateLampSwitch();};
-  if(animate){animateProjection(1);controls.animate().setStartDelay(0).withEndAction(null).alpha(0).setDuration(180).start();miniature.animate().x(target[0]).y(target[1]).scaleX(scale).scaleY(scale).setDuration(340).setInterpolator(new android.view.animation.DecelerateInterpolator()).withEndAction(finish).start();}
-  else {miniature.setProjectionFraction(1);miniature.setX(target[0]);miniature.setY(target[1]);miniature.setScaleX(scale);miniature.setScaleY(scale);finish.run();}
+  if(animate){animateProjection(1);controls.animate().setStartDelay(0).withEndAction(null).alpha(0).setDuration(180).start();miniature.animate().x(target[0]).y(target[1]).scaleX(scale).scaleY(scaleY).setDuration(340).setInterpolator(new android.view.animation.DecelerateInterpolator()).withEndAction(finish).start();}
+  else {miniature.setProjectionFraction(1);miniature.setX(target[0]);miniature.setY(target[1]);miniature.setScaleX(scale);miniature.setScaleY(scaleY);finish.run();}
  }
  void expandFromScene(boolean animate){
   if(!sceneCollapsed||sceneAnimating)return;
