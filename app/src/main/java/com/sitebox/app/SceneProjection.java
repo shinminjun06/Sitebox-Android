@@ -4,7 +4,7 @@ package com.sitebox.app;
 final class SceneProjection {
  // Portrait follows the cabinet silhouette in the user's target photograph. Its
  // nearly parallel front differs from the illustrated wall's long structural lines.
- private static final SceneProjection PORTRAIT=new SceneProjection(1,.34f,-11,.04f);
+ private static final SceneProjection PORTRAIT=new SceneProjection(1,.34f,-17,.04f);
  private static final SceneProjection LANDSCAPE=calibrated(1672,941,.05f,453,39,877,7,454,621,1155,666,400,636);
  static final SceneProjection[] ALL={PORTRAIT};
  final String id="study";

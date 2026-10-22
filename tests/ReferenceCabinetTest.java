@@ -10,6 +10,8 @@ public class ReferenceCabinetTest {
   for(int i=0;i<8;i++){
    float actual=front[i]+b[i%2];if(Math.abs(actual-target[i])>7)throw new AssertionError("Portrait silhouette misses target corner "+i+": "+actual+" vs "+target[i]);
   }
+  float baseSlope=(front[5]-front[7])/(front[4]-front[6]);
+  if(baseSlope>.035f)throw new AssertionError("Portrait base leans too much for the target photograph: slope="+baseSlope);
   System.out.println("PASS: portrait cabinet silhouette stays within seven pixels of the target photograph");
  }
 }
