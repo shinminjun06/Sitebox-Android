@@ -2,24 +2,12 @@ package com.sitebox.app;
 
 /** Perspective cuboid parallel to the room wall. Rear corners converge on the camera horizon. */
 final class SceneProjection {
- static final SceneProjection[] ALL={
-  new SceneProjection("study",.52f,.43f,.06f,.86f),
-  new SceneProjection("classroom",.50f,.41f,.10f,.96f),
-  new SceneProjection("library",.51f,.46f,.09f,.82f),
-  new SceneProjection("bedroom",.46f,.40f,.10f,.94f),
-  new SceneProjection("greenhouse",.48f,.49f,.11f,.96f),
-  new SceneProjection("cafe",.46f,.45f,.10f,.92f),
-  new SceneProjection("tatami",.50f,.45f,.09f,.94f),
-  new SceneProjection("attic",.49f,.35f,.10f,.91f),
-  new SceneProjection("lab",.54f,.43f,.08f,.93f),
-  new SceneProjection("wizard",.54f,.43f,.09f,.73f),
-  new SceneProjection("seaside",.50f,.40f,.10f,.97f),
-  new SceneProjection("train",.46f,.43f,.10f,.88f)
- };
+ // Window-side vanishing point gives the cabinet a visible right panel rather than a flat sticker.
+ static final SceneProjection[] ALL={new SceneProjection("study",.78f,.43f,.085f,.90f)};
  final String id; final float cameraX,cameraY,depth,brightness;
  private SceneProjection(String id,float x,float y,float depth,float brightness){this.id=id;cameraX=x;cameraY=y;this.depth=depth;this.brightness=brightness;}
  static SceneProjection find(String id){for(SceneProjection p:ALL)if(p.id.equals(id))return p;return ALL[0];}
- float lightDirection(){return id.equals("greenhouse")?-.04f:(id.equals("library")||id.equals("wizard")||id.equals("lab"))?.08f:-.08f;}
+ float lightDirection(){return -.12f;}
  private float fit(float f,float vx,float vy){
   float d=depth*Math.max(0,Math.min(1,f));
   return Math.max(.001f,Math.min(1,Math.min(1+d*vy,Math.min(1+2*d*vx,1+2*d*(1-vx)))));

@@ -8,7 +8,7 @@ Source anchors: portrait center x=.36, front feet y=.605, height=.28; landscape 
 
 Background cache (8 MiB), artwork cache (16 MiB) and sampled preview cache (2 MiB) are independent so browsing rooms cannot evict furniture images. No RGB565 reduction, unsafe recycling, or new rendering loop is introduced. Current-room bitmap reuse and both cache bounds are asserted on the device, and all caches clear on memory pressure. The active finish, its full surface and four book variants use about 8.3 MiB, below the 16 MiB artwork bound. Total bounded cache budget stays at 26 MiB; the aim is less decode churn, not an unmeasured claim of lower total process memory.
 
-Theme 1 is first in the picker. On its first introduction only, fresh installations and the former default classroom selection switch to study; explicit other room choices remain. A persisted introduction flag allows later manual return to classroom. Existing bookmarks, categories, sorting and independent shelf/book styles are untouched. Classroom remains selectable alongside all ten other older concepts.
+Theme 1 is the only shipped room as of 3.0.6. Other room artwork and projection profiles have been removed. Old local room preferences and known legacy room IDs in cloud backups migrate to study while preserving books, categories, notes, shelf/book finishes, and motion settings.
 
 Validation: pure Java catalogue, crop/safe-area geometry, introduction/selection rules, source asset decode/size budgets; native CI covers all 12 rooms in both orientations and existing features. Native results and screenshots must be inspected for the actual release commit. This update does not establish that a previously reported device security warning is resolved.
 

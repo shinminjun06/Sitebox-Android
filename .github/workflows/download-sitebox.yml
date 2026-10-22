@@ -1,0 +1,21 @@
+name: Download SiteBox 3.0.6 APK
+on:
+  push:
+    branches: [distribution/sitebox-3.0.6]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  upload-apk:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify existing signed APK
+        working-directory: distribution/sitebox-3.0.6
+        run: sha256sum --check SHA256SUMS.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: SiteBox-3.0.6-installable-apk
+          path: distribution/sitebox-3.0.6/
+          if-no-files-found: error
+          retention-days: 90

@@ -31,10 +31,13 @@ final class StudyLiveView extends FrameLayout {
     private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.FILTER_BITMAP_FLAG);
     private final Paint glowPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final RoomLightView roomLight;
+    private boolean lampEnabled=true;
     private final GlassFrame videoClip;
     private final TextureView texture;
     private final Atmosphere atmosphere;
-    private Bitmap day, night;
+    private Bitmap day, night, lampOffDay, lampOffNight;
+    private final Matrix lampOffDayMatrix=new Matrix(),lampOffNightMatrix=new Matrix();
+    void setLampPlates(Bitmap dayOff,Bitmap nightOff){lampOffDay=dayOff;lampOffNight=nightOff;updateGeometry();roomLight.invalidate();}
     private boolean wide, active, motionEnabled = true, attached, decoderFailed, firstFrame, renderingStarted, videoNight;
     private float scale = 1, offsetX, offsetY, daylight = 1, targetDaylight = 1;
     private float cloudiness = .25f, targetCloudiness = .25f, rain, snow, targetRain, targetSnow;
@@ -132,9 +135,10 @@ final class StudyLiveView extends FrameLayout {
         roomLight.invalidate();
         atmosphere.invalidate();
     }
+    void setLampEnabled(boolean enabled){if(lampEnabled==enabled)return;lampEnabled=enabled;roomLight.invalidate();atmosphere.invalidate();}
     void setActive(boolean value) { if(value&&!active)decoderFailed=false;active = value; reconcile(); }
     void setMotionEnabled(boolean value) { if(value&&!motionEnabled)decoderFailed=false;motionEnabled = value; reconcile(); }
-    void release() { active = false; handler.removeCallbacks(tick); stopVideo(); }
+    void release() { lampOffDay=null;lampOffNight=null;active = false; handler.removeCallbacks(tick); stopVideo(); }
     boolean isPlaying() {
         try { return player != null && player.isPlaying(); }
         catch (IllegalStateException ignored) { return false; }
@@ -209,6 +213,8 @@ final class StudyLiveView extends FrameLayout {
             pane(.637f,.352f, .889f,.345f, .889f,.420f, .637f,.420f);
             pane(.934f,.345f, 1f,.341f, 1f,.440f, .934f,.440f);
         }
+        if(lampOffDay!=null){lampOffDayMatrix.setScale(day.getWidth()*scale/lampOffDay.getWidth(),day.getHeight()*scale/lampOffDay.getHeight());lampOffDayMatrix.postTranslate(offsetX,offsetY);}
+        if(lampOffNight!=null){lampOffNightMatrix.setScale(day.getWidth()*scale/lampOffNight.getWidth(),day.getHeight()*scale/lampOffNight.getHeight());lampOffNightMatrix.postTranslate(offsetX,offsetY);}
         glass.transform(sceneMatrix);
         glass.computeBounds(glassBounds, true);
         if (getWidth() > 0 && getHeight() > 0) {
@@ -295,6 +301,14 @@ final class StudyLiveView extends FrameLayout {
                 roomPaint.setColor(0xff101b37); roomPaint.setAlpha(Math.round(160*(1-daylight)));
                 canvas.drawRect(0,0,getWidth(),getHeight(),roomPaint);
             }
+            if(!lampEnabled&&lampOffDay!=null&&!lampOffDay.isRecycled()){
+                // Replace indoor illumination, including baked highlights and cast shadows.
+                // Retain the exact window pixels and video registration in every lamp state.
+                int save=canvas.save();canvas.clipPath(glass,android.graphics.Region.Op.DIFFERENCE);
+                roomPaint.setAlpha(255);canvas.drawBitmap(lampOffDay,lampOffDayMatrix,roomPaint);
+                if(lampOffNight!=null&&!lampOffNight.isRecycled()&&daylight<1){roomPaint.setAlpha(Math.round(255*(1-daylight)));canvas.drawBitmap(lampOffNight,lampOffNightMatrix,roomPaint);}
+                canvas.restoreToCount(save);
+            }
             if (cloudiness > .01f && daylight > .01f) {
                 roomPaint.setColor(0xff233345);
                 roomPaint.setAlpha(Math.round(70*cloudiness*daylight));
@@ -340,7 +354,7 @@ final class StudyLiveView extends FrameLayout {
             }
             canvas.restoreToCount(save);
             float lampStrength = Math.max(1-daylight,Math.max(0,cloudiness-.6f)*.8f*daylight);
-            if (lampStrength > .01f && lampRadius > 0) {
+            if (lampEnabled && lampStrength > .01f && lampRadius > 0) {
                 glowPaint.setAlpha(Math.round(lampStrength*150));
                 canvas.drawCircle(lampX,lampY,lampRadius,glowPaint);
             }

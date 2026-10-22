@@ -35,8 +35,7 @@ final class ThemeAssets {
  Bitmap surface(int index){Bitmap surface=get("themes/shelves/"+SHELVES[index]+"/surface.webp");return surface!=null?surface:shelf(index);}
  Bitmap book(int index,int variant){return get("themes/books/"+BOOKS[index]+"/"+(variant%4)+".webp");}
  Bitmap scene(boolean landscape){
-  Bitmap room=get("scenes/classroom_"+(landscape?"landscape":"portrait")+".webp");
-  return room!=null?room:get("school_morning.jpg");
+  return get("scenes/study_"+(landscape?"landscape":"portrait")+".webp");
  }
  Bitmap scene(SceneTheme theme,boolean landscape){
   Bitmap room=get(theme.assetPath(landscape));return room!=null?room:scene(landscape);

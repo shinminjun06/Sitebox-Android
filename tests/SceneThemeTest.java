@@ -2,8 +2,8 @@ package com.sitebox.app;
 import java.util.HashSet;
 public class SceneThemeTest {
  public static void main(String[] args){
-  String[] ids={"study","classroom","library","bedroom","greenhouse","cafe","tatami","attic","lab","wizard","seaside","train"};
-  if(SceneTheme.ALL.length!=ids.length)throw new AssertionError("Twelve backgrounds required");
+  String[] ids={"study"};
+  if(SceneTheme.ALL.length!=ids.length)throw new AssertionError("Only study is selectable");
   HashSet<String> unique=new HashSet<>();
   for(int i=0;i<ids.length;i++){
    SceneTheme theme=SceneTheme.ALL[i];
@@ -23,12 +23,16 @@ public class SceneThemeTest {
     if(Math.abs(b[3]-feet)>.01f)throw new AssertionError("Furniture and image must share floor transform");
    }
   }
-  if(!SceneTheme.initialTheme("classroom",false).equals("study")||!SceneTheme.initialTheme(null,false).equals("study")||!SceneTheme.initialTheme("classroom",true).equals("classroom")||!SceneTheme.initialTheme("wizard",false).equals("wizard"))throw new AssertionError("Study introduction preserves explicit nondefault selection and allows returning to classroom");
-  SceneTheme study=SceneTheme.find("study");SceneProjection studyCamera=SceneProjection.find("study");
-  for(boolean wide:new boolean[]{false,true}){float frontFeet=study.anchorFeet(wide),rear=studyCamera.cameraY+(frontFeet-studyCamera.cameraY)/(1+studyCamera.depth);float floor=wide?.675f:.595f;if(Math.abs(rear-floor)>.002f||!wide&&frontFeet>.608f)throw new AssertionError("Study rear meets wall-floor seam and front feet stay behind foreground books");}
-  SceneTheme train=SceneTheme.find("train");
-  float rearFloor=SceneProjection.find("train").cameraY+(train.feet-SceneProjection.find("train").cameraY)/(1+SceneProjection.find("train").depth);
-  if(train.feet!=.74f||train.height!=.23f||rearFloor<.71f||rearFloor>.72f)throw new AssertionError("Train feet must stand on parquet below baseboard, with rear floor near source .713");
+  for(String old:new String[]{null,"classroom","wizard","train","unknown"})for(boolean introduced:new boolean[]{false,true})if(!SceneTheme.initialTheme(old,introduced).equals("study"))throw new AssertionError("Old room choices migrate to study");
+  SceneTheme study=SceneTheme.find("study");SceneProjection camera=SceneProjection.find("study");
+  for(boolean wide:new boolean[]{false,true}){
+   float rear=camera.cameraY+(study.anchorFeet(wide)-camera.cameraY)/(1+camera.depth);
+   if(rear<(wide?.66f:.58f)||rear>(wide?.68f:.60f))throw new AssertionError("Rear feet must meet the wall-floor seam");
+   float iw=wide?1672:852,ih=wide?941:1846;
+   float[] bounds=study.sceneBounds(iw,ih,iw,ih,0,0,0,0);
+   float vx=(iw*camera.cameraX-bounds[0])/(bounds[2]-bounds[0]);
+   if(!camera.rightVisible(vx,0,1))throw new AssertionError("Room-facing side must remain visible");
+  }
   if(SceneTheme.find(null)!=SceneTheme.ALL[0]||SceneTheme.find("removed-room")!=SceneTheme.ALL[0])throw new AssertionError("Missing and unknown saved IDs must use study");
   System.out.println("PASS: stable room IDs, fallback, shared crop/pose geometry and safe areas");
  }

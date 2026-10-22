@@ -34,7 +34,8 @@ public class MainActivity extends Activity {
  long lastDragScroll=0;
  TextView pageSummary;
  LinearLayout controls;
- View revealOverlay;
+ View revealOverlay,lampSwitch;
+ boolean studyLampOn=true;
  BookshelfView currentCabinet;
  ProjectedCabinetView miniature;
  android.animation.ValueAnimator projectionAnimator;
@@ -69,7 +70,7 @@ public class MainActivity extends Activity {
  int dp(float v){return (int)(getResources().getDisplayMetrics().density*v+0.5f);}
  GradientDrawable bg(int color,int radius){GradientDrawable d=new GradientDrawable();d.setColor(color);d.setCornerRadius(dp(radius));return d;}
  BackupController backups;
- void load(){android.content.SharedPreferences prefs=getPreferences(0);boolean introduced=prefs.getBoolean("studyThemeIntroduced",false);backgroundThemeId=SceneTheme.initialTheme(prefs.getString(SceneTheme.PREFERENCE_KEY,null),introduced);if(!introduced)prefs.edit().putBoolean("studyThemeIntroduced",true).putString(SceneTheme.PREFERENCE_KEY,backgroundThemeId).apply();shelfThemeIndex=Math.max(0,Math.min(2,getPreferences(0).getInt("shelfTheme",0)));bookThemeIndex=Math.max(0,Math.min(2,getPreferences(0).getInt("bookTheme",0)));try{sites=new JSONArray(getPreferences(0).getString("sites","[]"));}catch(Exception e){sites=new JSONArray();}try{JSONArray saved=new JSONArray(getPreferences(0).getString("categories","[]"));if(saved.length()==9)for(int i=0;i<9;i++)categories[i]=saved.optString(i,categories[i]);}catch(Exception ignored){}}
+ void load(){android.content.SharedPreferences prefs=getPreferences(0);studyLampOn=prefs.getBoolean("studyLampOn",true);boolean introduced=prefs.getBoolean("studyThemeIntroduced",false);backgroundThemeId=SceneTheme.initialTheme(prefs.getString(SceneTheme.PREFERENCE_KEY,null),introduced);if(!introduced||!backgroundThemeId.equals(prefs.getString(SceneTheme.PREFERENCE_KEY,null)))prefs.edit().putBoolean("studyThemeIntroduced",true).putString(SceneTheme.PREFERENCE_KEY,backgroundThemeId).apply();shelfThemeIndex=Math.max(0,Math.min(2,getPreferences(0).getInt("shelfTheme",0)));bookThemeIndex=Math.max(0,Math.min(2,getPreferences(0).getInt("bookTheme",0)));try{sites=new JSONArray(getPreferences(0).getString("sites","[]"));}catch(Exception e){sites=new JSONArray();}try{JSONArray saved=new JSONArray(getPreferences(0).getString("categories","[]"));if(saved.length()==9)for(int i=0;i<9;i++)categories[i]=saved.optString(i,categories[i]);}catch(Exception ignored){}}
  void save(){JSONArray names=new JSONArray();for(String c:categories)names.put(c);getPreferences(0).edit().putString("sites",sites.toString()).putString("categories",names.toString()).putInt("shelfTheme",shelfThemeIndex).putInt("bookTheme",bookThemeIndex).apply();if(backups!=null)backups.localChanged();}
  @Override public void onCreate(Bundle b){
  super.onCreate(b);assets=new ThemeAssets(this);load();motionEnabled=getPreferences(0).getBoolean("studyMotion",true);weather=new WeatherRepository(this,(state,status)->updateAmbient());
@@ -117,6 +118,9 @@ public class MainActivity extends Activity {
  header.setOnLongClickListener(reveal);shelves.setOnLongClickListener(reveal);shelfScroll.setOnLongClickListener(reveal);
  sceneShadow=new FurnitureShadow(this);sceneShadow.setVisibility(View.GONE);stage.addView(sceneShadow,new FrameLayout.LayoutParams(1,1));
  miniature=new ProjectedCabinetView(this);miniature.setScaleType(ImageView.ScaleType.FIT_XY);miniature.setContentDescription("작아진 책장 열기");miniature.setVisibility(View.GONE);miniature.setPivotX(0);miniature.setPivotY(0);stage.addView(miniature,new FrameLayout.LayoutParams(1,1));miniature.setOnClickListener(v->expandFromScene(true));
+ lampSwitch=new View(this);lampSwitch.setFocusable(true);lampSwitch.setVisibility(View.GONE);
+ lampSwitch.setOnClickListener(v->{if(sceneCollapsed&&!sceneAnimating&&renderedSceneTheme.id.equals("study")){studyLampOn=!studyLampOn;getPreferences(0).edit().putBoolean("studyLampOn",studyLampOn).apply();updateLampArtwork();updateLampSwitch();}});
+ stage.addView(lampSwitch,new FrameLayout.LayoutParams(1,1));
  setContentView(stage);root.requestApplyInsets();
  search.addTextChangedListener(new TextWatcher(){public void beforeTextChanged(CharSequence s,int a,int c,int f){}public void onTextChanged(CharSequence s,int a,int b,int c){filter=s.toString();updateSearchIndicator();page=0;populate();}public void afterTextChanged(Editable e){}});
  populate();root.requestFocus();
@@ -142,7 +146,7 @@ public class MainActivity extends Activity {
   boolean wide=BookLayout.wideScene(backdrop.getWidth(),backdrop.getHeight());
   SceneTheme selected=SceneTheme.find(backgroundThemeId);
   Bitmap chosen=assets.get(selected.assetPath(wide));
-  renderedSceneTheme=chosen!=null?selected:SceneTheme.find("classroom");
+  renderedSceneTheme=selected;
   sceneBackdrop=chosen!=null?chosen:assets.scene(wide);
   backdrop.setImageBitmap(sceneBackdrop);
   if(sceneBackdrop!=null){
@@ -159,6 +163,7 @@ public class MainActivity extends Activity {
    miniature.setCamera(stage.getWidth(),stage.getHeight(),sceneBackdrop.getWidth(),sceneBackdrop.getHeight(),target);
    positionSceneShadow(target,false);
   }
+  updateLampSwitch();
  }
  void showBackgroundThemes(){
   LinearLayout content=new LinearLayout(this);content.setOrientation(LinearLayout.VERTICAL);content.setPadding(dp(14),dp(6),dp(14),0);
@@ -277,13 +282,13 @@ public class MainActivity extends Activity {
   float[] target=sceneBounds();float scale=(target[2]-target[0])/width;
   miniature.setCamera(stage.getWidth(),stage.getHeight(),sceneBackdrop.getWidth(),sceneBackdrop.getHeight(),target);
   positionSceneShadow(target,animate);
-  Runnable finish=()->{miniature.setProjectionFraction(1);controls.setVisibility(View.INVISIBLE);controls.setAlpha(1);sceneAnimating=false;miniature.setEnabled(true);};
+  Runnable finish=()->{miniature.setProjectionFraction(1);controls.setVisibility(View.INVISIBLE);controls.setAlpha(1);sceneAnimating=false;miniature.setEnabled(true);updateLampSwitch();};
   if(animate){animateProjection(1);controls.animate().setStartDelay(0).withEndAction(null).alpha(0).setDuration(180).start();miniature.animate().x(target[0]).y(target[1]).scaleX(scale).scaleY(scale).setDuration(340).setInterpolator(new android.view.animation.DecelerateInterpolator()).withEndAction(finish).start();}
   else {miniature.setProjectionFraction(1);miniature.setX(target[0]);miniature.setY(target[1]);miniature.setScaleX(scale);miniature.setScaleY(scale);finish.run();}
  }
  void expandFromScene(boolean animate){
   if(!sceneCollapsed||sceneAnimating)return;
-  sceneCollapsed=false;sceneAnimating=animate;RectF target=cabinetBounds();miniature.setEnabled(false);controls.setAlpha(animate?0:1);controls.setVisibility(View.VISIBLE);
+  sceneCollapsed=false;sceneAnimating=animate;updateLampSwitch();RectF target=cabinetBounds();miniature.setEnabled(false);controls.setAlpha(animate?0:1);controls.setVisibility(View.VISIBLE);
   sceneShadow.animate().cancel();if(animate)sceneShadow.animate().alpha(0).setStartDelay(0).setDuration(170).withEndAction(()->sceneShadow.setVisibility(View.GONE)).start();else sceneShadow.setVisibility(View.GONE);
   Runnable finish=()->{cancelProjection();miniature.setProjectionFraction(0);miniature.setX(target.left);miniature.setY(target.top);miniature.setScaleX(1);miniature.setScaleY(1);miniature.setVisibility(View.GONE);miniature.setImageDrawable(null);controls.setAlpha(1);sceneAnimating=false;};
   if(animate){animateProjection(0);controls.animate().alpha(1).setStartDelay(170).setDuration(170).withEndAction(()->controls.animate().setStartDelay(0)).start();miniature.animate().x(target.left).y(target.top).scaleX(1).scaleY(1).setDuration(340).setInterpolator(new android.view.animation.DecelerateInterpolator()).withEndAction(finish).start();}
@@ -298,15 +303,38 @@ public class MainActivity extends Activity {
  @Override protected void onResume(){super.onResume();foreground=true;restartAmbient();if(backups!=null)backups.resume();}
  @Override protected void onPause(){foreground=false;if(backups!=null)backups.pause();ambientHandler.removeCallbacks(ambientTick);if(studyLive!=null)studyLive.setActive(false);super.onPause();}
  void restartAmbient(){ambientHandler.removeCallbacks(ambientTick);if(studyLive==null)return;studyLive.setActive(foreground&&backgroundThemeId.equals("study"));if(foreground&&backgroundThemeId.equals("study")){updateAmbient();weather.refresh(false);ambientHandler.postDelayed(ambientTick,60000);}}
+ void updateLampSwitch(){
+  if(studyLive==null||lampSwitch==null)return;
+  studyLive.setLampEnabled(studyLampOn);
+  sceneShadow.setLampEnabled(studyLampOn||!renderedSceneTheme.id.equals("study"));
+  miniature.setLampEnabled(studyLampOn||!renderedSceneTheme.id.equals("study"));
+  lampSwitch.setContentDescription(studyLampOn?"조명 끄기":"조명 켜기");
+  if(!sceneCollapsed||sceneAnimating||!renderedSceneTheme.id.equals("study")||sceneBackdrop==null){lampSwitch.setVisibility(View.GONE);return;}
+  boolean wide=BookLayout.wideScene(backdrop.getWidth(),backdrop.getHeight());
+  float[] m=renderedSceneTheme.imageTransform(backdrop.getWidth(),backdrop.getHeight(),sceneBackdrop.getWidth(),sceneBackdrop.getHeight());
+  float imageW=sceneBackdrop.getWidth()*m[0],imageH=sceneBackdrop.getHeight()*m[0];
+  // Use the same source-image transform as the lamp artwork, in either orientation.
+  float left=Math.max(0,m[1]),right=Math.min(stage.getWidth(),m[1]+imageW*(wide?.095f:.18f));
+  float top=Math.max(0,m[2]+imageH*(wide?.36f:.38f)),bottom=Math.min(stage.getHeight(),m[2]+imageH*(wide?.56f:.52f));
+  if(right<=left||bottom<=top){lampSwitch.setVisibility(View.GONE);return;}
+  int width=Math.min(stage.getWidth(),Math.max(dp(48),Math.round(right-left))),height=Math.min(stage.getHeight(),Math.max(dp(48),Math.round(bottom-top)));
+  lampSwitch.setLayoutParams(new FrameLayout.LayoutParams(width,height));lampSwitch.setX(Math.max(0,Math.min(left,stage.getWidth()-width)));lampSwitch.setY(Math.max(0,Math.min(top,stage.getHeight()-height)));lampSwitch.setVisibility(View.VISIBLE);
+ }
  void updateStudyScene(boolean wide){
   boolean enabled=renderedSceneTheme.id.equals("study");studyLive.setVisibility(enabled?View.VISIBLE:View.GONE);
   if(enabled){Bitmap night=assets.get("scenes/study_night_"+(wide?"landscape":"portrait")+".webp");studyLive.setScene(sceneBackdrop,night,wide,renderedSceneTheme.imageTransform(backdrop.getWidth(),backdrop.getHeight(),sceneBackdrop.getWidth(),sceneBackdrop.getHeight()));}
+  updateLampArtwork();
   studyLive.setMotionEnabled(motionEnabled);restartAmbient();
+ }
+ void updateLampArtwork(){
+  boolean useOff=renderedSceneTheme.id.equals("study")&&!studyLampOn;
+  String suffix=BookLayout.wideScene(backdrop.getWidth(),backdrop.getHeight())?"landscape":"portrait";
+  studyLive.setLampPlates(useOff?assets.get("scenes/study_lamp_off_"+suffix+".webp"):null,useOff?assets.get("scenes/study_lamp_off_night_"+suffix+".webp"):null);
  }
  void updateAmbient(){
   if(studyLive==null||weather==null)return;
   WeatherState state=ambientPreview!=null?ambientPreview:weather.state();long now=ambientPreview!=null?ambientPreviewTime:System.currentTimeMillis();
-  studyLive.setWeather(state,now);if(miniature!=null)miniature.setAmbientLight(state.daylight(now)*(1-.35f*state.cloudiness()));
+  studyLive.setWeather(state,now);if(miniature!=null)miniature.setAmbientLight(state.daylight(now)*(1-.35f*state.cloudiness()));if(sceneShadow!=null)sceneShadow.setAmbientLight(state.daylight(now)*(1-.35f*state.cloudiness()));
   if(ambientStatus!=null){String updated=state.available?weatherClock(state.observedAt,state):"없음";ambientStatus.setText("날씨 지역: "+weather.place().name+"\n"+weather.status()+"\n"+(state.available?state.description()+" · "+String.format(java.util.Locale.getDefault(),"%.1f°C",state.temperature):"시간만 반영 중")+"\n날씨 기준 시각: "+updated+"\n"+(state.available?"지역 현재 시각: ":"기기 시각: ")+weatherClock(now,state));}
  }
  String weatherClock(long time,WeatherState state){java.text.DateFormat format=android.text.format.DateFormat.getTimeFormat(this);if(state.utcOffsetSeconds!=Integer.MIN_VALUE){java.util.TimeZone zone=java.util.TimeZone.getTimeZone("GMT");zone.setRawOffset(state.utcOffsetSeconds*1000);format.setTimeZone(zone);}return format.format(new java.util.Date(time));}

@@ -13,6 +13,8 @@ final class ProjectedCabinetView extends ImageView {
  private final Paint texturePaint=new Paint(Paint.ANTI_ALIAS_FLAG|Paint.FILTER_BITMAP_FLAG),shade=new Paint(Paint.ANTI_ALIAS_FLAG);
  private final float[] source=new float[8],textureSource=new float[8],topSource=new float[8];
  private final float[] corners=new float[8],side=new float[8],roof=new float[8];
+ private boolean lampEnabled=true;
+ void setLampEnabled(boolean enabled){if(lampEnabled==enabled)return;lampEnabled=enabled;rebuild();invalidate();}
  private Bitmap wood;private float ambientLight=1;private float fraction,vpX=-.25f,vpY=-.5f;
  private final ColorMatrix lighting=new ColorMatrix();
  private SceneProjection profile=SceneProjection.ALL[0];
@@ -41,8 +43,12 @@ final class ProjectedCabinetView extends ImageView {
   float w=getWidth()>0?getWidth():getLayoutParams()==null?0:getLayoutParams().width,h=getHeight()>0?getHeight():getLayoutParams()==null?0:getLayoutParams().height;
   if(w<=0||h<=0)return;
   rect(source,0,0,w,h);profile.front(w,h,fraction,vpX,vpY,corners);profile.body(w,h,fraction,vpX,vpY,corners,side,roof);
-  float b=1+(profile.brightness*(profile.id.equals("study")?(.60f+.40f*ambientLight):1)-1)*fraction,contrast=1-.045f*fraction;float warm=profile.id.equals("wizard")?-.025f:profile.id.equals("lab")?-.01f:profile.id.equals("study")?.012f+.04f*(1-ambientLight):.012f;
-  lighting.set(new float[]{b*contrast+warm*fraction,0,0,0,3*fraction,0,b*contrast,0,0,3*fraction,0,0,b*contrast-warm*fraction,0,4*fraction,0,0,0,1,0});
+  float roomBrightness=profile.brightness*(.62f+.38f*ambientLight);
+  float b=1+(roomBrightness-1)*fraction,contrast=1-.075f*fraction;
+  float warm=.016f+.025f*(1-ambientLight);
+  if(!lampEnabled){b*=1-.20f*fraction;warm=-.035f*(1-ambientLight);}
+  lighting.set(new float[]{b*contrast+warm*fraction,0,0,0,4*fraction,0,b*contrast,0,0,3*fraction,0,0,b*contrast-warm*fraction,0,3*fraction,0,0,0,1,0});
+  ColorMatrix saturation=new ColorMatrix();saturation.setSaturation(1-.16f*fraction);lighting.postConcat(saturation);
   ColorMatrixColorFilter filter=fraction==0?null:new ColorMatrixColorFilter(lighting);texturePaint.setColorFilter(filter);setColorFilter(filter);
   frontMatrix.setPolyToPoly(source,0,corners,0,4);quad(sidePath,side);quad(topPath,roof);
   if(wood!=null){
@@ -58,7 +64,7 @@ final class ProjectedCabinetView extends ImageView {
  }
  @Override protected void onDraw(Canvas canvas){
   Drawable drawable=getDrawable();if(drawable==null)return;
-  if(fraction>0&&wood!=null){if(sideVisible())face(canvas,sidePath,sideMatrix,30);if(topVisible())face(canvas,topPath,topMatrix,8);}
+  if(fraction>0&&wood!=null){if(sideVisible())face(canvas,sidePath,sideMatrix,48);if(topVisible())face(canvas,topPath,topMatrix,14);}
   int save=canvas.save();canvas.concat(frontMatrix);super.onDraw(canvas);canvas.restoreToCount(save);
  }
 }

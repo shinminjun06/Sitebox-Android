@@ -3,39 +3,30 @@ package com.sitebox.app;
 /** Stable persisted room IDs and source-image anchors, independent of book/cabinet finishes. */
 final class SceneTheme {
  static final String PREFERENCE_KEY="backgroundTheme";
- static final SceneTheme[] ALL={
-  new SceneTheme("study","테마 1 · 햇살 공부방",.36f,.605f,.28f),
-  new SceneTheme("classroom","햇살 교실",.62f,.69f,.23f),
-  new SceneTheme("library","고전 도서관",0.34f,0.69f,0.18f),
-  new SceneTheme("bedroom","나만의 방",0.65f,0.62f,0.20f),
-  new SceneTheme("greenhouse","유리 온실",0.62f,0.74f,0.17f),
-  new SceneTheme("cafe","북카페",0.68f,0.69f,0.22f),
-  new SceneTheme("tatami","일본식 다다미방",0.42f,0.68f,0.21f),
-  new SceneTheme("attic","다락방",0.68f,0.58f,0.19f),
-  new SceneTheme("lab","미래 연구실",0.36f,0.67f,0.21f),
-  new SceneTheme("wizard","마법사의 서재",0.36f,0.68f,0.20f),
-  new SceneTheme("seaside","바닷가 별장",0.66f,0.66f,0.15f),
-  new SceneTheme("train","기차 객실",0.68f,0.74f,0.23f)
- };
+ static final SceneTheme[] ALL={new SceneTheme("study","테마 1 · 햇살 공부방",.43f,.605f,.21f)};
+ // Old cloud backups remain readable after removing their room artwork.
+ static boolean acceptsBackupId(String id){
+  if("study".equals(id))return true;
+  for(String legacy:new String[]{"classroom","library","bedroom","greenhouse","cafe","tatami","attic","lab","wizard","seaside","train"})if(legacy.equals(id))return true;
+  return false;
+ }
  final String id,name;
  final float centerX,feet,height;
  private SceneTheme(String id,String name,float centerX,float feet,float height){this.id=id;this.name=name;this.centerX=centerX;this.feet=feet;this.height=height;}
  static SceneTheme find(String id){for(SceneTheme scene:ALL)if(scene.id.equals(id))return scene;return ALL[0];}
- String assetPath(boolean wide){return "scenes/"+id+((id.equals("classroom")||id.equals("study"))?(wide?"_landscape":"_portrait"):"")+".webp";}
- float anchorX(boolean wide){return id.equals("study")&&wide?.35f:centerX;}
+ String assetPath(boolean wide){return "scenes/study_"+(wide?"landscape":"portrait")+".webp";}
+ float anchorX(boolean wide){return id.equals("study")&&wide?.40f:centerX;}
  float anchorFeet(boolean wide){return id.equals("study")&&wide?.69f:feet;}
- float anchorHeight(boolean wide){return id.equals("study")&&wide?.43f:height;}
- static String initialTheme(String saved,boolean introduced){return !introduced&&(saved==null||saved.equals("classroom"))?"study":find(saved).id;}
+ float anchorHeight(boolean wide){return id.equals("study")&&wide?.34f:height;}
+ static String initialTheme(String saved,boolean introduced){return find(saved).id;}
  private static float clamp(float value,float min,float max){return Math.max(min,Math.min(max,value));}
  /** Scale, x translation, y translation used by both ImageView and furniture geometry. */
  float[] imageTransform(float width,float viewportHeight,float imageWidth,float imageHeight){
   float scale=Math.max(width/imageWidth,viewportHeight/imageHeight);
   boolean wide=imageWidth>imageHeight;float cx=anchorX(wide),fy=anchorFeet(wide);
-  if(id.equals("classroom"))return new float[]{scale,(width-imageWidth*scale)*.5f,(viewportHeight-imageHeight*scale)*.5f};
   return new float[]{scale,clamp(width*.5f-imageWidth*scale*cx,width-imageWidth*scale,0),clamp(viewportHeight*.84f-imageHeight*scale*fy,viewportHeight-imageHeight*scale,0)};
  }
  float[] sceneBounds(float width,float viewportHeight,float imageWidth,float imageHeight,float leftInset,float topInset,float rightInset,float bottomInset){
-  if(id.equals("classroom"))return BookLayout.sceneBounds(width,viewportHeight,imageWidth,imageHeight,leftInset,topInset,rightInset,bottomInset);
   float padding=Math.min(width,viewportHeight)*.025f;
   float availableWidth=Math.max(1,width-leftInset-rightInset-2*padding),availableHeight=Math.max(1,viewportHeight-topInset-bottomInset-2*padding);
   boolean wide=imageWidth>imageHeight;

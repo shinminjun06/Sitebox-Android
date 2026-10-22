@@ -18,26 +18,10 @@ for kind,keys in [('shelves',['oak','walnut','white_oak']),('books',['classic','
 assert count==15
 print('PASS: 15 raster assets, 6 theme manifests; dimensions, format, alpha, paths')
 
-for name,wide in [('portrait',False),('landscape',True)]:
- path=Path('app/src/main/assets/scenes')/('classroom_'+name+'.webp')
- with Image.open(path) as room:
-  room.load()
-  assert room.format=='WEBP' and room.mode=='RGB',path
-  assert (room.width>room.height)==wide and max(room.size)<=2048,(path,room.size)
-  assert path.stat().st_size<500000,path
-print('PASS: portrait and landscape classroom backgrounds; orientation, decode, memory and file-size bounds')
-
-scene_hashes=set()
-for key in ['library','bedroom','greenhouse','cafe','tatami','attic','lab','wizard','seaside','train']:
- path=Path('app/src/main/assets/scenes')/(key+'.webp')
- with Image.open(path) as room:
-  room.load()
-  assert room.format=='WEBP' and room.mode=='RGB' and room.height>room.width,(key,room.size)
-  assert max(room.size)<=2048 and path.stat().st_size<500000,path
- import hashlib
- scene_hashes.add(hashlib.sha256(path.read_bytes()).hexdigest())
-assert len(scene_hashes)==10,'Each concept needs distinct artwork'
-print('PASS: ten unique portrait background concepts; bounded WebP assets')
+scene_files=list(Path('app/src/main/assets/scenes').iterdir())
+assert len(scene_files)==12 and all(p.name.startswith('study_') for p in scene_files)
+assert not Path('app/src/main/assets/school_morning.jpg').exists()
+print('PASS: only theme 1 room artwork and video loops are bundled')
 
 # Independent full-grain timber surfaces: decode every shipped finish, no alpha or sprite strip.
 surfaces=[]
@@ -83,3 +67,15 @@ for orientation in ["portrait","landscape"]:
  pair=[Image.open(Path("app/src/main/assets/scenes")/("study_"+phase+orientation+".webp")) for phase in ["","night_"]]
  assert sum(im.width*im.height*4 for im in pair)<12*1024*1024
 print("PASS: active day/night image pairs fit the 12 MiB room cache")
+
+# Independently relit lamp-off plates retain ambient/sun shadows instead of a tint overlay.
+for orientation in ["portrait", "landscape"]:
+ active=[]
+ for phase in ["", "night_", "lamp_off_", "lamp_off_night_"]:
+  path=Path("app/src/main/assets/scenes")/("study_"+phase+orientation+".webp")
+  with Image.open(path) as im:
+   im.load();assert im.mode=="RGB" and im.format=="WEBP"
+   assert (im.width>im.height)==(orientation=="landscape") and path.stat().st_size<500000
+   active.append(im.width*im.height*4)
+ assert sum(active)<20*1024*1024, (orientation,active)
+print("PASS: lamp-on/off day/night artwork bounded to 20 MiB active decoded room memory")

@@ -157,8 +157,8 @@ public final class SmokeInstrumentation extends Instrumentation {
    main(()->activity.studyLive.failVideoForTest());android.os.SystemClock.sleep(300);
    main(()->check(!activity.studyLive.isPlaying()&&!activity.studyLive.hasVideoFrame()&&activity.backdrop.getDrawable()!=null,"study decoder error keeps static artwork fallback"));
    main(()->activity.applyBackgroundTheme("classroom"));
-   main(()->check(!activity.studyLive.isPlaying()&&activity.studyLive.getVisibility()==View.GONE,"other room hides live study and releases decoder"));
-   main(()->activity.applyBackgroundTheme("study"));awaitStudyVideo("study reentry resets failed decoder");
+   main(()->check(activity.backgroundThemeId.equals("study")&&activity.studyLive.getVisibility()==View.VISIBLE,"retired room safely falls back to study"));
+   main(()->activity.setStudyMotion(false));main(()->activity.setStudyMotion(true));awaitStudyVideo("study motion restart resets failed decoder");
    java.util.Calendar fallbackNoon=java.util.Calendar.getInstance();fallbackNoon.setTimeInMillis(noon);fallbackNoon.set(java.util.Calendar.HOUR_OF_DAY,12);
    final long fallbackTime=fallbackNoon.getTimeInMillis();
    main(()->activity.setAmbientPreview(WeatherState.empty(),fallbackTime));awaitDaylight(1);
@@ -232,7 +232,7 @@ public final class SmokeInstrumentation extends Instrumentation {
   final String data=activity.sites.toString();final int shelf=activity.shelfThemeIndex,book=activity.bookThemeIndex;
   main(()->{activity.search.setText("example.com/");activity.page=1;activity.populate();});
   final int page=activity.page;final String filter=activity.filter;
-  check(SceneTheme.ALL.length==12,"study theme plus eleven existing background concepts");
+  check(SceneTheme.ALL.length==1,"only the study background remains");
   for(SceneTheme theme:SceneTheme.ALL){
    main(()->activity.showBackgroundThemes());
    clickBackgroundChoice(theme.name);waitForIdleSync();
@@ -485,16 +485,8 @@ public final class SmokeInstrumentation extends Instrumentation {
   do {main(()->ready[0]=activity.sceneCollapsed==collapsed&&!activity.sceneAnimating&&activity.stage.getWidth()>0&&activity.stage.getHeight()>0);if(ready[0])return;android.os.SystemClock.sleep(50);}while(android.os.SystemClock.uptimeMillis()<deadline);
   throw new AssertionError("scene transition timed out: collapsed="+collapsed);
  }
- void checkRoomGrounding(){
-  Bitmap room=activity.sceneBackdrop;android.util.DisplayMetrics viewport=activity.getResources().getDisplayMetrics();boolean landscape=BookLayout.wideScene(viewport.widthPixels,viewport.heightPixels);
-  check(room!=null&&(room.getWidth()>room.getHeight())==landscape,"orientation-specific classroom artwork loaded");
-  float scale=Math.max((float)activity.stage.getWidth()/room.getWidth(),(float)activity.stage.getHeight()/room.getHeight());
-  float offset=(activity.stage.getHeight()-room.getHeight()*scale)*.5f;
-  float sill=offset+room.getHeight()*scale*(landscape?.45f:.43f),floor=offset+room.getHeight()*scale*(landscape?.72f:.665f);
-  float top=activity.miniature.getY(),feet=top+activity.miniature.getHeight()*activity.miniature.getScaleY();
-  check(top>sill&&feet>floor&&feet<floor+room.getHeight()*scale*.06f,"live cabinet stands beneath sill on classroom floor");
-  check(activity.sceneShadow.getVisibility()==View.VISIBLE&&activity.sceneShadow.getAlpha()>.99f,"contact shadow visible beneath compact cabinet");
- }
+ void checkRoomGrounding(){checkSelectedScene(SceneTheme.find("study"));}
+
  void pinchCollapseRestore(){
   final int count=activity.sites.length(),oldPage=activity.page;final String oldFilter=activity.filter;
   pinch(false);awaitScene(false);
