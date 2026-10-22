@@ -102,6 +102,14 @@ jobs:
             app/build/reports/lint-results-release.html
             app/build/outputs/mapping/release/mapping.txt
             missing-signing.txt
+      # This test-key binary is an intermediate, never a production download.
+      # Distribution must re-sign it with the owner's persistent private key.
+      - uses: actions/upload-artifact@v4
+        with:
+          name: SiteBox-release-for-resigning
+          path: app/build/outputs/apk/release/app-release.apk
+          retention-days: 7
+          if-no-files-found: error
       - name: Delete the ephemeral test key
         if: always()
         run: rm -f -- "$SITEBOX_RELEASE_STORE_FILE"
