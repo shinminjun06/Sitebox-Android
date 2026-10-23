@@ -57,6 +57,8 @@ Existing three book styles and book images are reused. Three persisted cabinet f
 
 ThemeAssets samples images to screen/low-RAM limits, samples outside textures independently, keeps the frame in the artwork cache and separates room/preview caches. No bitmap decode or book snapshot occurs during draw/animation. Paths and matrices are reused; text/UV geometry is prepared on layout/state changes. The raw ten-image source set is below 64 MiB, and runtime sampling lowers it further (outside art is sampled independently). Active photographic references survive cache eviction, avoiding weather flicker; caches are bounded separately, not claimed as the total process memory.
 
+The composed indoor photo/matte has a hardware layer at rest, so moving weather/video below it does not repeatedly run the full-screen matte composition. Camera movement temporarily releases this cache, and lighting/matrix changes invalidate it. Its additional GPU surface is approximately viewport width × height × 4 bytes; this is separate from bitmap LRU sizes and is managed by Android.
+
 A persisted per-device reduced-effects switch disables camera parallax and window decoding, and reduces weather particles/ticks. Low-RAM devices default to reduced effects. It does not change the library or cloud format. The existing motion switch, lifecycle decoder pause/release, Open-Meteo city/cache/offline status and time-based day/night remain supported.
 
 Contact shadows remain enabled to keep the cabinet grounded; reduced mode saves the heavier camera/video/weather work instead of removing the floor contact.
