@@ -15,7 +15,10 @@ public final class ModelSmokeInstrumentation extends SmokeInstrumentation {
   Bundle result=new Bundle();int code=Activity.RESULT_OK;String original=null;
   try{
    phase("native GLB startup");activity=(MainActivity)startActivitySync(new Intent(getTargetContext(),MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));waitForIdleSync();
-   original=activity.sites.toString();awaitModel();awaitScene(true);snapshot("3d-room.png");
+   original=activity.sites.toString();awaitModel();awaitScene(true);main(()->{
+    android.graphics.Bitmap image=activity.roomExperience.model.getBitmap(64,128);check(image!=null,"GPU texture has displayed pixels");
+    java.util.HashSet<Integer> colors=new java.util.HashSet<>();for(int y=12;y<116;y+=3)for(int x=3;x<61;x+=3)colors.add(image.getPixel(x,y));image.recycle();check(colors.size()>60,"actual room pixels are nonuniform, not an empty background");
+   });snapshot("3d-room.png");
    main(()->{check(activity.roomExperience.model.renderableCount()>650,"actual supplied GLB rendered with furniture and walls");check(activity.roomExperience.model.failure()==null,"native renderer reports no initialization failure");check(activity.roomExperience.model.frames()>0,"Filament GPU frame submitted");check(activity.roomExperience.model.finishMaterialCount()>15,"shelf finishes have isolated model materials");});
    tapRoomCabinet();snapshot("3d-editor-empty.png");
    main(()->{check(!activity.header.performLongClick(),"empty long press does not collapse or hide editor");check(!activity.backgroundOnly&&!activity.sceneCollapsed&&activity.controls.getVisibility()==View.VISIBLE,"editor remains visible after long press");
@@ -32,9 +35,9 @@ public final class ModelSmokeInstrumentation extends SmokeInstrumentation {
    resizeWindow(720,1560);main(()->{activity.load();activity.populate();check(activity.sites.length()>0,"book data survives preferences reload");});
    checks.append("PASS actual 3D room, shared camera, native book management, gestures and lifecycle verified\n");
   }catch(Throwable e){code=Activity.RESULT_CANCELED;checks.append("FAIL ").append(e).append('\n');try{snapshot("3d-failure.png");}catch(Throwable ignored){}}
-  finally{if(activity!=null&&original!=null){final String saved=original;main(()->{try{activity.sites=new JSONArray(saved);activity.save();}catch(JSONException e){throw new RuntimeException(e);}activity.finish();});}}
+  finally{if(activity!=null&&original!=null){final String saved=original;main(()->{try{activity.sites=new JSONArray(saved);activity.save();}catch(JSONException e){throw new RuntimeException(e);}if(activity.roomExperience.model.presented())activity.finish();});}}
   result.putString("stream",checks.toString());finish(code,result);
  }
  void resizeWindow(int w,int h){ActivityMonitor monitor=addMonitor(MainActivity.class.getName(),null,false);try{shell("wm size "+w+"x"+h);Activity next=monitor.waitForActivityWithTimeout(5000);if(next!=null)activity=(MainActivity)next;waitForIdleSync();awaitModel();}finally{removeMonitor(monitor);}}
- void awaitModel(){long end=SystemClock.uptimeMillis()+60000;while(SystemClock.uptimeMillis()<end){final boolean[] ready={false};main(()->{if(activity.roomExperience.model.failure()!=null)throw new AssertionError(activity.roomExperience.model.failure());ready[0]=activity.roomExperience.model.ready()&&activity.roomExperience.model.frames()>0;});if(ready[0])return;SystemClock.sleep(200);}throw new AssertionError("Native model did not render within 60 seconds");}
+ void awaitModel(){long end=SystemClock.uptimeMillis()+60000;while(SystemClock.uptimeMillis()<end){final boolean[] ready={false};main(()->{if(activity.roomExperience.model.failure()!=null)throw new AssertionError(activity.roomExperience.model.failure());ready[0]=activity.roomExperience.model.ready()&&activity.roomExperience.model.presented();});if(ready[0])return;SystemClock.sleep(200);}throw new AssertionError("Native model did not present within 60 seconds; frames="+activity.roomExperience.model.frames()+", available="+activity.roomExperience.model.isAvailable()+", shown="+activity.roomExperience.model.isShown()+", size="+activity.roomExperience.model.getWidth()+"x"+activity.roomExperience.model.getHeight()+", alpha="+activity.roomExperience.model.getAlpha());}
 }

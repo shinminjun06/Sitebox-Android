@@ -25,6 +25,9 @@ public class RoomModelTest {
   for(int i=0;i<3;i++){assertTrue(dark[i]>0&&dark[i]<1);assertTrue(light[i]>1&&Float.isFinite(light[i]));}
   assertArrayEquals(RoomModelGeometry.finishTint(0),RoomModelGeometry.finishTint(-4),0);
  }
+ @Test public void roomCameraStaysInsideTheAuthoredRoomShell(){
+  RoomCameraRig rig=new RoomCameraRig();rig.update(591,1206,40,100,550,1000,1);assertTrue("A camera outside the open front leaves blank borders",rig.eye[2]<2.3);assertTrue(rig.eye[2]>-.77);
+ }
  @Test public void nineActualModelOpeningsNeverTouchFrameOrOneAnother(){
   for(int i=0;i<9;i++){float[] r=RoomModelGeometry.cell(i);assertTrue(r[0]>0&&r[1]>0&&r[2]<1&&r[3]<1);assertTrue(r[0]<r[2]&&r[1]<r[3]);assertEquals(i,RoomModelGeometry.hit((r[0]+r[2])/2,(r[1]+r[3])/2));}
  }

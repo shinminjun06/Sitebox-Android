@@ -10,6 +10,7 @@ import android.view.TextureView;
 import com.google.android.filament.*;
 import com.google.android.filament.gltfio.*;
 import com.google.android.filament.android.TextureHelper;
+import com.google.android.filament.android.DisplayHelper;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
@@ -19,6 +20,9 @@ import java.util.function.Consumer;
 /** Native renderer of the supplied room. All Filament calls belong to the UI thread. */
 final class ModelRoomView extends TextureView implements TextureView.SurfaceTextureListener,Choreographer.FrameCallback {
  private Engine engine;
+ private DisplayHelper displayHelper;
+ private int warmup;
+ boolean presented(){return presented;}
  private Renderer renderer;
  private com.google.android.filament.View view;
  private Scene scene;
@@ -69,7 +73,7 @@ final class ModelRoomView extends TextureView implements TextureView.SurfaceText
   if(engine!=null||disposed)return;
   Filament.init();Gltfio.init();engine=Engine.create(Engine.Backend.OPENGL);renderer=engine.createRenderer();view=engine.createView();scene=engine.createScene();
   cameraEntity=EntityManager.get().create();camera=engine.createCamera(cameraEntity);camera.setExposure(16,1f/125,100);view.setScene(scene);view.setCamera(camera);
-  Renderer.ClearOptions clear=new Renderer.ClearOptions();clear.clear=true;clear.clearColor=new float[]{.055f,.065f,.08f,1};renderer.setClearOptions(clear);
+  Renderer.ClearOptions clear=new Renderer.ClearOptions();clear.clear=true;clear.discard=false;clear.clearColor=new float[]{.055f,.065f,.08f,1};renderer.setClearOptions(clear);
   configureQuality();
   materials=new UbershaderProvider(engine);loader=new AssetLoader(engine,materials,EntityManager.get());resources=new ResourceLoader(engine);
   try(InputStream input=getContext().getAssets().open(RoomModelGeometry.ASSET)){
@@ -101,7 +105,7 @@ final class ModelRoomView extends TextureView implements TextureView.SurfaceText
   new LightManager.Builder(LightManager.Type.DIRECTIONAL).color(1,.88f,.72f).intensity(65000).direction(-.55f,-.85f,.55f).castShadows(true).shadowOptions(shadow).build(engine,sun);scene.addEntity(sun);
   lamp=EntityManager.get().create();new LightManager.Builder(LightManager.Type.POINT).position(-.69f,1.44f,-1.57f).color(1,.66f,.32f).intensity(2400).falloff(3.8f).castShadows(false).build(engine,lamp);scene.addEntity(lamp);
   ambient=new IndirectLight.Builder().irradiance(1,new float[]{1,1,1}).intensity(18000).build(engine);scene.setIndirectLight(ambient);
-  android.util.Log.i("SiteBox3D","Loaded supplied room GLB: "+asset.getRenderableEntities().length+" renderables");asset.releaseSourceData();applyFinish();updateCamera();updateLights();updateWindow();status.accept(null);
+  android.util.Log.i("SiteBox3D","Loaded supplied room GLB: "+asset.getRenderableEntities().length+" renderables, scene="+scene.getRenderableCount()+", surface="+getWidth()+"x"+getHeight());asset.releaseSourceData();applyFinish();updateCamera();updateLights();updateWindow();
  }
  private void configureQuality(){
   view.setAntiAliasing(com.google.android.filament.View.AntiAliasing.FXAA);
@@ -141,25 +145,26 @@ final class ModelRoomView extends TextureView implements TextureView.SurfaceText
  void requestFrame(){dirty=true;if(active&&!disposed&&!scheduled&&swap!=null){scheduled=true;Choreographer.getInstance().postFrameCallback(this);}}
  @Override public void doFrame(long time){
   scheduled=false;if(!active||disposed||swap==null||view==null)return;
-  if(dirty){dirty=false;if(renderer.beginFrame(swap,time)){renderer.render(view);renderer.endFrame();frames++;}else dirty=true;}
-  if(dirty)requestFrame();
+  if(dirty||!presented||warmup<8){dirty=false;if(renderer.beginFrame(swap,time)){renderer.render(view);renderer.endFrame();frames++;warmup++;invalidate();}else dirty=true;}
+  if(dirty||!presented||warmup<8)requestFrame();
  }
  @Override public void onSurfaceTextureAvailable(SurfaceTexture texture,int width,int height){
-  try{initialize();surface=new Surface(texture);swap=engine.createSwapChain(surface);resize(width,height);requestFrame();}
+  try{texture.setDefaultBufferSize(width,height);initialize();surface=new Surface(texture);swap=engine.createSwapChain(surface);displayHelper=new DisplayHelper(getContext());displayHelper.attach(renderer,getDisplay());resize(width,height);requestFrame();}
   catch(RuntimeException|LinkageError e){error=e.toString();android.util.Log.e("SiteBox3D","Native room initialization failed",e);status.accept("3D 방을 열지 못했어요. 앱을 다시 열어 주세요.\n"+error);}
  }
- private void resize(int width,int height){if(view!=null){view.setViewport(new Viewport(0,0,width,height));updateCamera();requestFrame();}}
+ private void resize(int width,int height){if(view!=null){view.setViewport(new Viewport(0,0,width,height));updateCamera();engine.flushAndWait();requestFrame();}}
  @Override public void onSurfaceTextureSizeChanged(SurfaceTexture texture,int width,int height){resize(width,height);}
  @Override public boolean onSurfaceTextureDestroyed(SurfaceTexture texture){
-  Choreographer.getInstance().removeFrameCallback(this);scheduled=false;presented=false;
+  Choreographer.getInstance().removeFrameCallback(this);scheduled=false;presented=false;warmup=0;if(displayHelper!=null){displayHelper.detach();displayHelper=null;}
   if(swap!=null){engine.destroySwapChain(swap);engine.flushAndWait();swap=null;}if(surface!=null){surface.release();surface=null;}return true;
  }
- @Override public void onSurfaceTextureUpdated(SurfaceTexture texture){if(!presented&&asset!=null&&frames>0){presented=true;android.util.Log.i("SiteBox3D","room GPU frame presented");}}
+ @Override public void onSurfaceTextureUpdated(SurfaceTexture texture){if(!presented&&asset!=null&&frames>0){presented=true;status.accept(null);android.util.Log.i("SiteBox3D","room GPU frame presented");}}
  void dispose(){
   if(disposed)return;disposed=true;active=false;Choreographer.getInstance().removeFrameCallback(this);scheduled=false;
   if(engine==null)return;
+  if(displayHelper!=null){displayHelper.detach();displayHelper=null;}
   if(swap!=null){engine.destroySwapChain(swap);engine.flushAndWait();swap=null;}if(surface!=null){surface.release();surface=null;}
-  if(resources!=null){resources.asyncCancelLoad();resources.destroy();}for(MaterialInstance material:shelfMaterials)engine.destroyMaterialInstance(material);shelfMaterials.clear();shelfFactors.clear();if(asset!=null){loader.destroyAsset(asset);asset=null;}if(loader!=null)loader.destroy();
+  if(resources!=null){resources.asyncCancelLoad();resources.destroy();}if(asset!=null){loader.destroyAsset(asset);asset=null;}for(MaterialInstance material:shelfMaterials)engine.destroyMaterialInstance(material);shelfMaterials.clear();shelfFactors.clear();if(loader!=null)loader.destroy();
   if(materials!=null){materials.destroyMaterials();materials.destroy();}
   for(Texture t:windows.values())engine.destroyTexture(t);windows.clear();
   if(ambient!=null)engine.destroyIndirectLight(ambient);

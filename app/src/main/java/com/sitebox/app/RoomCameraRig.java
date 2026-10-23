@@ -7,15 +7,15 @@ final class RoomCameraRig {
  private double width,height,rx,ry,rz,ux,uy,uz,fx,fy,fz;
  void update(float w,float h,float left,float top,float right,float bottom,float room){
   width=Math.max(1,w);height=Math.max(1,h);aspect=width/height;
-  double d=2-RoomModelGeometry.FRONT,editorTan=(RoomModelGeometry.TOP-RoomModelGeometry.BOTTOM)/(2*d*Math.max(.01,(bottom-top)/height));
+  double editorZ=1.05,d=editorZ-RoomModelGeometry.FRONT,editorTan=(RoomModelGeometry.TOP-RoomModelGeometry.BOTTOM)/(2*d*Math.max(.01,(bottom-top)/height));
   double cx=(RoomModelGeometry.LEFT+RoomModelGeometry.RIGHT)/2,cy=(RoomModelGeometry.TOP+RoomModelGeometry.BOTTOM)/2;
   double ex=cx-((left+right)/width-1)*d*editorTan*aspect;
   double ey=cy+((top+bottom)/height-1)*d*editorTan;
   // Fixed horizontal room FOV in portrait; bounded vertical FOV in landscape.
   double roomTan=Math.max(.70,.54/aspect);
   tanY=editorTan+(roomTan-editorTan)*room;
-  eye[0]=ex+(-.08-ex)*room;eye[1]=ey+(1.45-ey)*room;eye[2]=2+(3.90-2)*room;
-  target[0]=ex+(-.12-ex)*room;target[1]=ey+(1.32-ey)*room;target[2]=1+(-.9-1)*room;
+  eye[0]=ex+(-.8-ex)*room;eye[1]=ey+(1.45-ey)*room;eye[2]=editorZ+(2.2-editorZ)*room;
+  target[0]=ex+(-.7-ex)*room;target[1]=ey+(1.32-ey)*room;target[2]=(editorZ-1)+(-.9-(editorZ-1))*room;
   fx=target[0]-eye[0];fy=target[1]-eye[1];fz=target[2]-eye[2];double n=Math.sqrt(fx*fx+fy*fy+fz*fz);fx/=n;fy/=n;fz/=n;
   n=Math.sqrt(fz*fz+fx*fx);rx=-fz/n;ry=0;rz=fx/n;
   ux=ry*fz-rz*fy;uy=rz*fx-rx*fz;uz=rx*fy-ry*fx;
