@@ -374,6 +374,10 @@ final class StudyLiveView extends FrameLayout {
             float t = motionEnabled ? (SystemClock.uptimeMillis()-motionOrigin)/1000f : 0;
             float w = glassBounds.width(), h = glassBounds.height();
             float cloud = cloudiness;
+            // The reference photograph already contains the sky. Its cloud cover
+            // is graded by RoomPlateView; generic cloud mattes would expose pane
+            // rectangles and draw flat ellipses over the photographed landscape.
+            if (!referencePhoto) {
             paint.setColor(daylight > .3f ? 0xff84969e : 0xff15243f);
             paint.setAlpha(Math.round(cloud*(daylight > .3f ? 110 : 115)));
             canvas.drawRect(glassBounds,paint);
@@ -384,6 +388,7 @@ final class StudyLiveView extends FrameLayout {
                 float x=glassBounds.left+(((i*.29f+t*.009f)%1.5f)-.25f)*w;
                 float y=glassBounds.top+h*(.08f+i*.13f);
                 canvas.drawOval(x-w*.24f,y,x+w*.30f,y+h*.12f,paint);
+            }
             }
             // Stars are part of the night artwork; do not paint them over tree silhouettes.
             for (int precipitation=1;precipitation<=2;precipitation++) {

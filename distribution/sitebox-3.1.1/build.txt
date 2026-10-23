@@ -32,8 +32,8 @@ Note: Recompile with -Xlint:deprecation for details.
 > Task :app:mergeDebugShaders UP-TO-DATE
 > Task :app:compileDebugShaders NO-SOURCE
 > Task :app:generateDebugAssets UP-TO-DATE
-> Task :app:bundleDebugClassesToCompileJar
 > Task :app:bundleDebugClassesToRuntimeJar
+> Task :app:bundleDebugClassesToCompileJar
 > Task :app:mergeDebugAssets UP-TO-DATE
 
 > Task :app:compileDebugUnitTestJavaWithJavac
@@ -80,7 +80,7 @@ Note: Recompile with -Xlint:deprecation for details.
 > Task :app:mergeProjectDexDebug
 
 > Task :app:compilePreviewJavaWithJavac
-Note: /workspace/Sitebox-Android/app/src/main/java/com/sitebox/app/MainActivity.java uses or overrides a deprecated API.
+Note: Some input files use or override a deprecated API.
 Note: Recompile with -Xlint:deprecation for details.
 
 > Task :app:mergePreviewShaders UP-TO-DATE
@@ -99,6 +99,9 @@ Note: Recompile with -Xlint:deprecation for details.
 > Task :app:mergePreviewJniLibFolders UP-TO-DATE
 > Task :app:mergePreviewNativeLibs NO-SOURCE
 > Task :app:stripPreviewDebugSymbols NO-SOURCE
+> Task :app:packageDebug
+> Task :app:createDebugApkListingFileRedirect UP-TO-DATE
+> Task :app:assembleDebug
 > Task :app:validateSigningPreview UP-TO-DATE
 > Task :app:writePreviewAppMetadata UP-TO-DATE
 > Task :app:writePreviewSigningConfigVersions UP-TO-DATE
@@ -109,9 +112,6 @@ Note: Recompile with -Xlint:deprecation for details.
 > Task :app:checkDebugAndroidTestAarMetadata UP-TO-DATE
 > Task :app:generateDebugAndroidTestResValues UP-TO-DATE
 > Task :app:mapDebugAndroidTestSourceSetPaths UP-TO-DATE
-> Task :app:packageDebug
-> Task :app:createDebugApkListingFileRedirect UP-TO-DATE
-> Task :app:assembleDebug
 > Task :app:generateDebugAndroidTestResources UP-TO-DATE
 > Task :app:mergeDebugAndroidTestResources UP-TO-DATE
 > Task :app:processDebugAndroidTestResources UP-TO-DATE
@@ -130,13 +130,10 @@ Note: Recompile with -Xlint:deprecation for details.
 > Task :app:checkDebugAndroidTestDuplicateClasses UP-TO-DATE
 > Task :app:mergeExtDexDebugAndroidTest UP-TO-DATE
 > Task :app:mergeLibDexDebugAndroidTest UP-TO-DATE
-> Task :app:mergeProjectDexDebugAndroidTest
-> Task :app:packagePreview
-> Task :app:createPreviewApkListingFileRedirect UP-TO-DATE
-> Task :app:assemblePreview
 > Task :app:mergeDebugAndroidTestJniLibFolders UP-TO-DATE
 > Task :app:mergeDebugAndroidTestNativeLibs NO-SOURCE
 > Task :app:stripDebugAndroidTestDebugSymbols NO-SOURCE
+> Task :app:mergeProjectDexDebugAndroidTest
 > Task :app:validateSigningDebugAndroidTest UP-TO-DATE
 > Task :app:writeDebugAndroidTestSigningConfigVersions UP-TO-DATE
 > Task :app:validateSiteboxReleaseSigning
@@ -144,6 +141,9 @@ Note: Recompile with -Xlint:deprecation for details.
 > Task :app:generateReleaseBuildConfig
 > Task :app:javaPreCompileRelease UP-TO-DATE
 > Task :app:checkReleaseAarMetadata UP-TO-DATE
+> Task :app:packagePreview
+> Task :app:createPreviewApkListingFileRedirect UP-TO-DATE
+> Task :app:assemblePreview
 > Task :app:generateReleaseResValues UP-TO-DATE
 > Task :app:mapReleaseSourceSetPaths UP-TO-DATE
 > Task :app:generateReleaseResources UP-TO-DATE
@@ -151,9 +151,6 @@ Note: Recompile with -Xlint:deprecation for details.
 > Task :app:packageReleaseResources UP-TO-DATE
 > Task :app:parseReleaseLocalResources UP-TO-DATE
 > Task :app:createReleaseCompatibleScreenManifests UP-TO-DATE
-> Task :app:packageDebugAndroidTest
-> Task :app:createDebugAndroidTestApkListingFileRedirect UP-TO-DATE
-> Task :app:assembleDebugAndroidTest
 > Task :app:extractDeepLinksRelease UP-TO-DATE
 > Task :app:processReleaseMainManifest UP-TO-DATE
 > Task :app:processReleaseManifest UP-TO-DATE
@@ -161,7 +158,7 @@ Note: Recompile with -Xlint:deprecation for details.
 > Task :app:processReleaseResources UP-TO-DATE
 
 > Task :app:compileReleaseJavaWithJavac
-Note: /workspace/Sitebox-Android/app/src/main/java/com/sitebox/app/MainActivity.java uses or overrides a deprecated API.
+Note: Some input files use or override a deprecated API.
 Note: Recompile with -Xlint:deprecation for details.
 
 > Task :app:extractProguardFiles UP-TO-DATE
@@ -173,6 +170,9 @@ Note: Recompile with -Xlint:deprecation for details.
 > Task :app:mergeReleaseNativeDebugMetadata NO-SOURCE
 > Task :app:checkReleaseDuplicateClasses UP-TO-DATE
 > Task :app:mergeReleaseArtProfile UP-TO-DATE
+> Task :app:packageDebugAndroidTest
+> Task :app:createDebugAndroidTestApkListingFileRedirect UP-TO-DATE
+> Task :app:assembleDebugAndroidTest
 > Task :app:mergeReleaseGeneratedProguardFiles UP-TO-DATE
 > Task :app:processReleaseJavaRes NO-SOURCE
 > Task :app:mergeReleaseJavaResource UP-TO-DATE
@@ -184,6 +184,7 @@ Note: Recompile with -Xlint:deprecation for details.
 > Task :app:compressReleaseAssets UP-TO-DATE
 > Task :app:extractReleaseVersionControlInfo
 > Task :app:convertLinkedResourcesToProtoRelease UP-TO-DATE
+> Task :app:expandReleaseArtProfileWildcards
 > Task :app:collectReleaseDependencies UP-TO-DATE
 > Task :app:sdkReleaseDependencyData UP-TO-DATE
 > Task :app:validateSigningRelease UP-TO-DATE
@@ -192,7 +193,6 @@ Note: Recompile with -Xlint:deprecation for details.
 > Task :app:generateDebugAndroidTestLintModel
 > Task :app:generateDebugLintReportModel
 > Task :app:generateDebugUnitTestLintModel
-> Task :app:expandReleaseArtProfileWildcards
 
 > Task :app:lintVitalAnalyzeRelease
 Warning: Unable to initialize metrics, ensure /home/agent/.android is writable, details: /home/agent/.android/analytics.settings (Read-only file system)
@@ -221,5 +221,5 @@ Warning: Unable to initialize metrics, ensure /home/agent/.android is writable, 
 > Task :app:createReleaseApkListingFileRedirect UP-TO-DATE
 > Task :app:assembleRelease
 
-BUILD SUCCESSFUL in 1m 30s
+BUILD SUCCESSFUL in 1m 36s
 158 actionable tasks: 43 executed, 115 up-to-date

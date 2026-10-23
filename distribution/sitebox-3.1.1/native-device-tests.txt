@@ -1,16 +1,16 @@
-PHASE startup and physical cabinet entry uptimeMs=46803
-PHASE accounts, backup and automatic sync uptimeMs=64950
-PHASE day, night, weather and decoder lifecycle uptimeMs=87380
-PHASE nine editor finish and book-style combinations uptimeMs=115749
-PHASE native book dialogs uptimeMs=143944
-PHASE native long-press drag uptimeMs=165972
-PHASE collapsed search and rotation uptimeMs=176138
-PHASE category rename uptimeMs=182346
-PHASE editor rotation uptimeMs=186506
-PHASE projected cabinet finishes uptimeMs=199683
-PHASE physical pinch and animated approach uptimeMs=210061
-PHASE reversal, repeated requests and native Back uptimeMs=227610
-PHASE background and rotated room lifecycle uptimeMs=229501
+PHASE startup and physical cabinet entry uptimeMs=36421
+PHASE accounts, backup and automatic sync uptimeMs=46722
+PHASE day, night, weather and decoder lifecycle uptimeMs=56726
+PHASE nine editor finish and book-style combinations uptimeMs=83104
+PHASE native book dialogs uptimeMs=99721
+PHASE native long-press drag uptimeMs=107777
+PHASE collapsed search and rotation uptimeMs=112598
+PHASE category rename uptimeMs=114407
+PHASE editor rotation uptimeMs=115901
+PHASE projected cabinet finishes uptimeMs=120222
+PHASE physical pinch and animated approach uptimeMs=125147
+PHASE reversal, repeated requests and native Back uptimeMs=136014
+PHASE background and rotated room lifecycle uptimeMs=137136
 PASS screenshot animation settled
 PASS collapsed screenshot is real visible miniature with controls hidden
 PASS fresh launch opens photographic room
@@ -56,13 +56,13 @@ LABEL 커뮤니티 scroll=524233,0 textSize=20.0 color=ff433019
 LABEL 생활 scroll=524233,0 textSize=20.0 color=ff433019
 LABEL 기타 scroll=524233,0 textSize=20.0 color=ff433019
 LABEL ink 0=150
-LABEL ink 1=170
+LABEL ink 1=169
 LABEL ink 2=89
-LABEL ink 3=160
+LABEL ink 3=161
 LABEL ink 4=168
 LABEL ink 5=158
 LABEL ink 6=300
-LABEL ink 7=156
+LABEL ink 7=155
 LABEL ink 8=147
 PASS all nine category names have visible on-screen lettering
 PASS codec rejects padded category labels and preserves valid fixture
@@ -106,7 +106,7 @@ PASS restored library persists through preferences reload
 PASS restore saves original atomic rollback copy
 PASS Google backup codec and local restore verified
 UNTESTED Google account consent and live Drive transfer: no configured cloud account in CI
-PASS system toast queue drained before photo comparison in 11805ms
+PASS system toast queue drained before photo comparison in 13279ms
 PASS screenshot animation settled
 PASS collapsed screenshot is real visible miniature with controls hidden
 PASS unmodified user photo is the room background
@@ -340,7 +340,7 @@ PASS same native cabinet at editor handoff 7
 PASS expanded cabinet remains frontal 2
 PASS outward pinch does not collapse cabinet
 PASS temporarily enable measured native projection animation
-ENV forward projection intermediate draw frames=4
+ENV forward projection intermediate draw frames=8
 PASS native pinch animates continuous intermediate projection
 PASS native pinch settles projection at room pose
 PASS inward two-finger gesture collapses cabinet
@@ -420,7 +420,7 @@ PASS contact shadow removed on expansion
 PASS full controls restored without overlay
 PASS screenshot animation settled
 PASS temporarily enable measured native projection animation
-ENV forward projection intermediate draw frames=10
+ENV forward projection intermediate draw frames=15
 PASS native pinch animates continuous intermediate projection
 PASS native pinch settles projection at room pose
 PASS landscape rotation
@@ -635,7 +635,7 @@ PASS collapsed screenshot is real visible miniature with controls hidden
 PASS classroom-only reveal preserved
 PASS classroom reveal returns to controls
 PASS missing artwork handled without crash
-MEMORY totalPssKiB=171828
+MEMORY totalPssKiB=193717
 PASS all nine theme combinations rendered
 
 ENV recoveredPixelLauncherAnrs=0

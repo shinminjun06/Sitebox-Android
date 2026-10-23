@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="com.sitebox.app.RoomExperienceTest" tests="4" skipped="0" failures="0" errors="0" timestamp="2026-10-23T10:30:43" hostname="4c0584c3ea85" time="0.858">
+<testsuite name="com.sitebox.app.RoomExperienceTest" tests="4" skipped="0" failures="0" errors="0" timestamp="2026-10-23T10:45:38" hostname="4c0584c3ea85" time="0.841">
   <properties/>
-  <testcase name="movingCameraDoesNotDeliverTouchesToHiddenToolbar" classname="com.sitebox.app.RoomExperienceTest" time="0.231"/>
-  <testcase name="backFromTheEditorReturnsToTheRoom" classname="com.sitebox.app.RoomExperienceTest" time="0.158"/>
-  <testcase name="pinchRequestCanReverseAnApproach" classname="com.sitebox.app.RoomExperienceTest" time="0.175"/>
-  <testcase name="latestRequestSurvivesUnmeasuredLibraryRebind" classname="com.sitebox.app.RoomExperienceTest" time="0.294"/>
+  <testcase name="movingCameraDoesNotDeliverTouchesToHiddenToolbar" classname="com.sitebox.app.RoomExperienceTest" time="0.219"/>
+  <testcase name="backFromTheEditorReturnsToTheRoom" classname="com.sitebox.app.RoomExperienceTest" time="0.187"/>
+  <testcase name="pinchRequestCanReverseAnApproach" classname="com.sitebox.app.RoomExperienceTest" time="0.189"/>
+  <testcase name="latestRequestSurvivesUnmeasuredLibraryRebind" classname="com.sitebox.app.RoomExperienceTest" time="0.246"/>
   <system-out><![CDATA[]]></system-out>
   <system-err><![CDATA[]]></system-err>
 </testsuite>

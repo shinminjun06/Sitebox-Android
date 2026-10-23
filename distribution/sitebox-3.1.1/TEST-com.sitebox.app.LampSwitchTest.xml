@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="com.sitebox.app.LampSwitchTest" tests="6" skipped="0" failures="0" errors="0" timestamp="2026-10-23T10:30:41" hostname="4c0584c3ea85" time="2.006">
+<testsuite name="com.sitebox.app.LampSwitchTest" tests="6" skipped="0" failures="0" errors="0" timestamp="2026-10-23T10:45:36" hostname="4c0584c3ea85" time="1.642">
   <properties/>
-  <testcase name="compactCabinetLeavesClearSpaceBesideLamp" classname="com.sitebox.app.LampSwitchTest" time="0.236"/>
+  <testcase name="compactCabinetLeavesClearSpaceBesideLamp" classname="com.sitebox.app.LampSwitchTest" time="0.207"/>
   <testcase name="collapsedLampTapTurnsOffAndSecondTapTurnsOn" classname="com.sitebox.app.LampSwitchTest" time="0.222"/>
-  <testcase name="landscapeLampRemainsTappableWithoutOpeningCabinet" classname="com.sitebox.app.LampSwitchTest" time="0.243"/>
-  <testcase name="turningOffLampSurvivesActivityRecreation" classname="com.sitebox.app.LampSwitchTest" time="0.824"/>
-  <testcase name="lampTargetIsHiddenAfterExpandingBookshelf" classname="com.sitebox.app.LampSwitchTest" time="0.255"/>
-  <testcase name="removedThemeFallsBackToStudyAndKeepsLampSwitch" classname="com.sitebox.app.LampSwitchTest" time="0.223"/>
+  <testcase name="landscapeLampRemainsTappableWithoutOpeningCabinet" classname="com.sitebox.app.LampSwitchTest" time="0.194"/>
+  <testcase name="turningOffLampSurvivesActivityRecreation" classname="com.sitebox.app.LampSwitchTest" time="0.601"/>
+  <testcase name="lampTargetIsHiddenAfterExpandingBookshelf" classname="com.sitebox.app.LampSwitchTest" time="0.213"/>
+  <testcase name="removedThemeFallsBackToStudyAndKeepsLampSwitch" classname="com.sitebox.app.LampSwitchTest" time="0.205"/>
   <system-out><![CDATA[]]></system-out>
   <system-err><![CDATA[]]></system-err>
 </testsuite>
