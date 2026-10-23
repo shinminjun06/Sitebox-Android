@@ -28,6 +28,11 @@ public class RoomModelTest {
  @Test public void roomCameraStaysInsideTheAuthoredRoomShell(){
   RoomCameraRig rig=new RoomCameraRig();rig.update(591,1206,40,100,550,1000,1);assertTrue("A camera outside the open front leaves blank borders",rig.eye[2]<2.3);assertTrue(rig.eye[2]>-.77);
  }
+ @Test public void lampHitAreaContainsTheActualGlbShadeOnEveryAspect(){
+  RoomCameraRig rig=new RoomCameraRig();float[] bounds=new float[4],p=new float[2];
+  for(int[] size:new int[][]{{591,1206},{1920,1080}}){rig.update(size[0],size[1],40,100,size[0]-40,size[1]-50,1);rig.lampBounds(bounds);
+   for(int i=0;i<8;i++){rig.project((i&1)==0?-.55:-.17,(i&2)==0?1.32:1.50,(i&4)==0?-1.35:-.97,p,0);assertTrue("Actual shade is tappable",p[0]>=bounds[0]-.02f&&p[0]<=bounds[2]+.02f&&p[1]>=bounds[1]-.02f&&p[1]<=bounds[3]+.02f);}}
+ }
  @Test public void nineActualModelOpeningsNeverTouchFrameOrOneAnother(){
   for(int i=0;i<9;i++){float[] r=RoomModelGeometry.cell(i);assertTrue(r[0]>0&&r[1]>0&&r[2]<1&&r[3]<1);assertTrue(r[0]<r[2]&&r[1]<r[3]);assertEquals(i,RoomModelGeometry.hit((r[0]+r[2])/2,(r[1]+r[3])/2));}
  }

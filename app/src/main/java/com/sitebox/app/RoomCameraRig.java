@@ -5,6 +5,7 @@ final class RoomCameraRig {
  final double[] eye=new double[3],target=new double[3];
  double tanY,aspect;
  private double width,height,rx,ry,rz,ux,uy,uz,fx,fy,fz;
+ private final float[] lampPoint=new float[2];
  void update(float w,float h,float left,float top,float right,float bottom,float room){
   width=Math.max(1,w);height=Math.max(1,h);aspect=width/height;
   double editorZ=1.05,d=editorZ-RoomModelGeometry.FRONT,editorTan=(RoomModelGeometry.TOP-RoomModelGeometry.BOTTOM)/(2*d*Math.max(.01,(bottom-top)/height));
@@ -31,6 +32,9 @@ final class RoomCameraRig {
   project(RoomModelGeometry.RIGHT,RoomModelGeometry.BOTTOM,RoomModelGeometry.FRONT,out,4);
   project(RoomModelGeometry.LEFT,RoomModelGeometry.BOTTOM,RoomModelGeometry.FRONT,out,6);
  }
- void lampBounds(float[] out){float[] p=new float[4];project(-.79f,1.43f,-1.75f,p,0);project(-.49f,1.1f,-1.4f,p,2);out[0]=Math.min(p[0],p[2]);out[1]=Math.min(p[1],p[3]);out[2]=Math.max(p[0],p[2]);out[3]=Math.max(p[1],p[3]);}
+ void lampBounds(float[] out){
+  out[0]=out[1]=Float.MAX_VALUE;out[2]=out[3]=-Float.MAX_VALUE;
+  for(int i=0;i<8;i++){project((i&1)==0?-.55:-.17,(i&2)==0?1.32:1.50,(i&4)==0?-1.35:-.97,lampPoint,0);out[0]=Math.min(out[0],lampPoint[0]);out[1]=Math.min(out[1],lampPoint[1]);out[2]=Math.max(out[2],lampPoint[0]);out[3]=Math.max(out[3],lampPoint[1]);}
+ }
  double fov(){return Math.toDegrees(2*Math.atan(tanY));}
 }

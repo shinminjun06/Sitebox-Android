@@ -27,7 +27,14 @@ public class OriginalPhotoRoomTest {
  @Test public void fullRoomReplacesPhotographicFurnitureWithoutChangingLibrary(){
   ActivityController<MainActivity> life=Robolectric.buildActivity(MainActivity.class).create();try{MainActivity a=life.get();RoomExperienceTest.layout(a,591,1206);String data=a.sites.toString();a.collapseToScene(false);assertEquals(View.GONE,a.backdrop.getVisibility());assertEquals(View.GONE,a.roomForeground.getVisibility());assertEquals(View.GONE,a.studyLive.getVisibility());assertSame(a.roomLayer,a.roomExperience.model.getParent());a.expandFromScene(false);assertEquals(data,a.sites.toString());assertTrue(a.currentCabinet.usesModelFrame());}finally{life.destroy();}
  }
+ @Test public void dryCloudsAndNightPrecipitationHaveTheirOwnWindowImages(){
+  ModelRoomView model=new ModelRoomView(RuntimeEnvironment.getApplication());
+  model.setAtmosphere(1,1,0,true);assertEquals("cloud",model.windowState());
+  model.setAtmosphere(0,1,1,true);assertEquals("night_rain",model.windowState());
+  model.setAtmosphere(0,1,2,true);assertEquals("night_snow",model.windowState());
+  model.setWeatherImages(false);assertEquals("night",model.windowState());model.dispose();
+ }
  @Test public void windowVariantsChangeActualImageContentAndKeepUvDimensions()throws Exception{
-  Bitmap day=null;for(String state:new String[]{"day","night","rain","snow"}){Bitmap image;try(java.io.InputStream in=RuntimeEnvironment.getApplication().getAssets().open("models/window_"+state+".png")){image=BitmapFactory.decodeStream(in);}assertNotNull(image);if(day==null)day=image;else{assertEquals(day.getWidth(),image.getWidth());assertEquals(day.getHeight(),image.getHeight());assertFalse("Actual landscape changes, not just room brightness",day.sameAs(image));image.recycle();}}day.recycle();
+  Bitmap day=null;for(String state:new String[]{"day","night","rain","snow","cloud","night_rain","night_snow"}){Bitmap image;try(java.io.InputStream in=RuntimeEnvironment.getApplication().getAssets().open("models/window_"+state+".png")){image=BitmapFactory.decodeStream(in);}assertNotNull(image);if(day==null)day=image;else{assertEquals(day.getWidth(),image.getWidth());assertEquals(day.getHeight(),image.getHeight());assertFalse("Actual landscape changes, not just room brightness",day.sameAs(image));image.recycle();}}day.recycle();
  }
 }
