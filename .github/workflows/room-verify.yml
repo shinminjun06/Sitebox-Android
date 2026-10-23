@@ -60,6 +60,7 @@ jobs:
             adb logcat -d -s AndroidRuntime:E > room-device-qa/crashes.txt
             adb shell dumpsys gfxinfo com.sitebox.app framestats > room-device-qa/emulator-frame-stats.txt
             grep -q 'PASS all nine theme combinations rendered' room-device-tests.txt
+            grep -q 'PASS all nine category names have visible on-screen lettering' room-device-tests.txt
             grep -q 'PASS automatic sync merges, deletions, conflicts, account persistence and automatic restore verified' room-device-tests.txt
             grep -q 'PASS study live ambient and decoder lifecycle verified' room-device-tests.txt
             grep -q 'PASS photographic room reverse continuity, repeated requests and native Back verified' room-device-tests.txt

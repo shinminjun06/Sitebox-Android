@@ -22,12 +22,12 @@ Java 17, Android 기본 View/Canvas/Matrix, minSdk 24·targetSdk 35를 유지했
 | 항목 | 결과 |
 | --- | --- |
 | Java 규칙·원근·이미지/알파·미디어 검사 | 통과 |
-| JUnit/Robolectric | 52개, 실패/오류 0 |
+| JUnit/Robolectric | 53개, 실패/오류 0 |
 | 화면 비율·창밖 여유 영역 | 8개 비율, 중간 카메라 진행도 포함 |
 | 책장 터치 | 같은 행렬/역행렬의 9칸, 화면 밖/투명 부분, 접근성 범위 검사 |
 | 많은 책·날씨 갱신·저장 | 71권 페이지, 실제 책 갱신, 날씨 시 책장 재생성 방지, 재생성 후 데이터 검사 |
 | 애니메이션 | 중간 반전 위치 유지, 반복 요청, 취소 콜백, 뒤로 가기, 데이터 갱신 직후 측정 전 요청 보존 검사 |
-| 실제 픽셀 렌더링 | 낮·밤·소등·중간 접근·편집·긴 화면·가로 화면, 분류 글자 잉크 검사 |
+| 실제 픽셀 렌더링 | 낮·밤·소등·중간 접근·편집·긴 화면·가로 화면, 분류 글자 잉크 검사·부모/원근 렌더링의 TextView 스크롤 좌표 회귀 검사 |
 | Android 빌드 | debug / preview / release 및 AndroidTest APK 컴파일 통과 |
 | lint | debug / release 오류·치명 오류 0; 경고 9개(프로그램 생성 View·접근성 lint·문자열 결합·기존 WebView 설정) |
 | 서명·권한 | APK Signature v2, 기존 검증 릴리스 키, INTERNET 권한만 사용 |
@@ -36,11 +36,11 @@ Java 17, Android 기본 View/Canvas/Matrix, minSdk 24·targetSdk 35를 유지했
 
 ## GitHub Actions
 
-Android 15 에뮬레이터 검증 결과와 실행 링크는 검증 완료 후 아래에 기록합니다.
+기존 전체 검사는 [Android 15 실행 39911787756](https://github.com/shinminjun06/Sitebox-Android/actions/runs/39911787756)에서 통과했습니다. 화면 검토로 발견한 분류 명패 글자 누락은 별도 [재현 실행](https://github.com/shinminjun06/Sitebox-Android/actions/runs/39913606425)에서 9개 모두 잉크 0, 내부 TextView scrollX=524233으로 확인했습니다. 이 좌표를 부모/원근 렌더링 모두에서 보정하고 실제 기기 캡처 픽셀 검사를 추가했습니다. 최종 수정본 실행 링크는 아래에 기록합니다.
 
 ## 검증 범위와 추가 에셋
 
-실제 Google 동의 화면·실계정 Drive 전송, 실물 휴대폰의 60fps·발열·GPU 메모리는 이번 자동 검사로 증명하지 않습니다. 계정/동기화 회귀 검사는 독립된 테스트 계정 상태와 저장소 대역을 사용합니다. 사진 전환 때문에 Google Cloud 설정을 새로 바꿀 필요는 없으며 기존 OAuth 설정은 [설정 문서](GOOGLE_DRIVE_SETUP_KO.md)를 따릅니다.
+실제 Google 동의 화면·실계정 Drive 전송, 실물 휴대폰의 60fps·발열·GPU 메모리는 이번 자동 검사로 증명하지 않습니다. Android 15 SwiftShader 소프트웨어 GPU의 기존 전체 검사 통계는 8,537프레임, 지연 프레임 98.20%, 중앙값 69ms였습니다. 화면 캡처·입력·대화상자·회전·초기 로딩을 모두 포함한 디버그 실행 값이며 실제 휴대폰의 애니메이션 성능으로 환산할 수 없습니다. 60fps 달성은 미확인입니다. 원본 통계와 최종 실행 통계를 배포 자료에 남깁니다. 계정/동기화 회귀 검사는 독립된 테스트 계정 상태와 저장소 대역을 사용합니다. 사진 전환 때문에 Google Cloud 설정을 새로 바꿀 필요는 없으며 기존 OAuth 설정은 [설정 문서](GOOGLE_DRIVE_SETUP_KO.md)를 따릅니다.
 
 필수 방·창밖·전경·책장 이미지는 모두 적용했습니다. 추가 개선용으로는 다음 이미지가 유용합니다.
 

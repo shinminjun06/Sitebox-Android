@@ -19,5 +19,10 @@ final class CategoryPlateView extends TextView {
  }
  @Override protected void onSizeChanged(int w,int h,int oldw,int oldh){super.onSizeChanged(w,h,oldw,oldh);prepare();}
  @Override protected void onTextChanged(CharSequence text,int start,int before,int count){super.onTextChanged(text,start,before,count);prepare();}
- @Override protected void onDraw(Canvas canvas){canvas.drawText(displayed,getWidth()*.5f,getHeight()*.5f-(lettering.ascent()+lettering.descent())*.5f,lettering);}
+ @Override protected void onDraw(Canvas canvas){
+  // TextView centers a single-line native Layout in a very wide scroll space.
+  // ViewGroup subtracts that scroll when drawing us; keep custom ink anchored
+  // to the visible plate rather than the native Layout's content coordinates.
+  canvas.drawText(displayed,getScrollX()+getWidth()*.5f,getScrollY()+getHeight()*.5f-(lettering.ascent()+lettering.descent())*.5f,lettering);
+ }
 }

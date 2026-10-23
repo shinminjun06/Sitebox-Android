@@ -637,7 +637,7 @@ public final class SmokeInstrumentation extends Instrumentation {
     View child=activity.currentCabinet.getChildAt(i);if(!(child instanceof TextView))continue;TextView label=(TextView)child;int[] at=new int[2];label.getLocationOnScreen(at);
     plates.add(new int[]{at[0],at[1],label.getWidth(),label.getHeight()});
     checks.append("LABEL ").append(label.getText()).append(" scroll=").append(label.getScrollX()).append(',').append(label.getScrollY()).append(" textSize=").append(label.getTextSize()).append(" color=").append(Integer.toHexString(label.getCurrentTextColor()));
-    try{java.lang.reflect.Field displayed=CategoryPlateView.class.getDeclaredField("displayed");displayed.setAccessible(true);checks.append(" prepared=").append(displayed.get(label));}catch(Exception error){throw new RuntimeException(error);}checks.append('\n');
+    checks.append('\n');
    }
   });
   Bitmap image=getUiAutomation().takeScreenshot();if(image==null)throw new AssertionError("category screenshot unavailable");

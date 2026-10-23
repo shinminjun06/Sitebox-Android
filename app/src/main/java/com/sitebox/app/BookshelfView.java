@@ -34,7 +34,7 @@ final class BookshelfView extends FrameLayout {
   int layer=canvas.saveLayerAlpha(0,0,getWidth(),getHeight(),Math.round(255*labels));
   for(int i=1;i<getChildCount();i++){
    View child=getChildAt(i);if(!(child.getTag() instanceof Integer)||(Integer)child.getTag()<9)continue;
-   int save=canvas.save();canvas.translate(child.getLeft(),child.getTop());child.draw(canvas);canvas.restoreToCount(save);
+   int save=canvas.save();canvas.translate(child.getLeft()-child.getScrollX(),child.getTop()-child.getScrollY());child.draw(canvas);canvas.restoreToCount(save);
   }
   canvas.restoreToCount(layer);
  }

@@ -65,14 +65,14 @@ Files: new room backdrop/foreground compositor; `StudyLiveView.java`, `MainActiv
 - [x] Test no cabinet/book reload on weather changes, lamp/day/night states, layer alignment and reduced-effects preference.
 - [x] Compose window/room/shadow/cabinet/foreground/light using common scene metadata; apply bounded depth-specific parallax from progress.
 - [x] Register existing weather/video effects to the new window; add relit plates and matching media loops; retain stable offline/static fallback.
-- [ ] Run native day/night/lamp/portrait/landscape renders and lifecycle tests; record performance measurement limits.
+- [x] Run native day/night/lamp/portrait/landscape renders and lifecycle tests; record performance measurement limits.
 
 
 ### Task 5: Review, build and delivery
 
 Files: version/build/workflow, docs/asset and layer reports, release artifacts.
 
-- [x] Self-review against every spec section; resolve geometry, touch, animation, lifecycle and persistence defects.
+- [x] Self-review against every spec section; resolve geometry, touch, animation, lifecycle and persistence defects. Native screenshot review additionally found a TextView scroll-space label bug; add parent/projected pixel regression and on-device visible-ink checks.
 - [x] Run Java/assets, full Android unit tests, debug/preview/release and instrumentation compilation, lint and release certificate verification.
 - [ ] Commit source/notes and signed APK to an authorized distribution branch, run GitHub Actions checks and artifact upload; download and compare the public APK.
 - [ ] Deliver APK and preview links, validation results and exact remaining artwork/device-test limitations.

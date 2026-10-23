@@ -78,6 +78,7 @@ jobs:
             adb logcat -d -s AndroidRuntime:E > device-qa/crashes.txt
             adb logcat -d -s MediaPlayer:V NuPlayer:V CCodec:V ACodec:V TextureView:V > device-qa/media.txt
             grep -q 'PASS all nine theme combinations rendered' device-tests.txt
+            grep -q 'PASS all nine category names have visible on-screen lettering' device-tests.txt
             grep -q 'PASS automatic sync merges, deletions, conflicts, account persistence and automatic restore verified' device-tests.txt
             grep -q 'PASS Google backup codec and local restore verified' device-tests.txt
             test -s device-qa/qa/backup-settings.png
