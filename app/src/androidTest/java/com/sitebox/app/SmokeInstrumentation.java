@@ -364,7 +364,12 @@ public final class SmokeInstrumentation extends Instrumentation {
     while(activity==before&&android.os.SystemClock.uptimeMillis()<deadline)android.os.SystemClock.sleep(50);
     check(activity!=before,theme.id+" rotation recreated activity");awaitScene(true);
     if(theme.id.equals("study")){
-     main(()->activity.setStudyMotion(true));awaitStudyVideo("study rotated video");
+     main(()->activity.setStudyMotion(true));
+     if(activity.studyLive.isReferencePhoto()){
+      final long[] frames={0,0};main(()->frames[0]=activity.studyLive.atmosphericFrames());long effectDeadline=android.os.SystemClock.uptimeMillis()+3000;
+      do{android.os.SystemClock.sleep(50);main(()->frames[1]=activity.studyLive.atmosphericFrames());}while(frames[1]<=frames[0]&&android.os.SystemClock.uptimeMillis()<effectDeadline);
+      main(()->{check(frames[1]>frames[0],"rotated photo resumes window weather frames");check(!activity.studyLive.isPlaying()&&!activity.studyLive.hasVideoFrame()&&activity.sceneBackdrop==activity.assets.get(RoomScene.REFERENCE),"rotation preserves original photo without a replacement video");});
+     }else awaitStudyVideo("study rotated video");
      main(()->check(!before.studyLive.isPlaying(),"study destroyed activity released decoder"));
     }
     main(()->{
