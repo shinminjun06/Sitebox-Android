@@ -83,7 +83,7 @@ final class ModelRoomView extends TextureView implements TextureView.SurfaceText
   catch(RuntimeException|LinkageError e){error=e.toString();android.util.Log.e("SiteBox3D","Native room initialization failed",e);status.accept("3D 방을 열지 못했어요.\n"+error);}
  }
  private void initializeModel(){
-  configureQuality();view.setPostProcessingEnabled(true);
+  configureQuality();view.setPostProcessingEnabled(false);
   materials=new UbershaderProvider(engine);loader=new AssetLoader(engine,materials,EntityManager.get());resources=new ResourceLoader(engine);
   try(InputStream input=getContext().getAssets().open(RoomModelGeometry.ASSET)){
    java.io.ByteArrayOutputStream output=new java.io.ByteArrayOutputStream();byte[] chunk=new byte[8192];int count;while((count=input.read(chunk))!=-1)output.write(chunk,0,count);byte[] bytes=output.toByteArray();ByteBuffer buffer=ByteBuffer.allocateDirect(bytes.length).order(ByteOrder.nativeOrder());buffer.put(bytes).flip();asset=loader.createAsset(buffer);
