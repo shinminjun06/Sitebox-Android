@@ -20,6 +20,8 @@ The app remains Java 17 with Android native View/Canvas (minSdk 24, target 35). 
 
 At the editor endpoint, the projected matrix equals the actual native BookshelfView bounds and its identical frame image hands off without replacing furniture. Books draw as real native children during movement, rather than enlarged text snapshots. Sidebar/header controls are inaccessible during motion; LibraryStage still accepts a pinch or a cabinet tap to reverse. Android Back (including API 33+ back callbacks) retreats from the editor to the room. The initial experience is the room; restored room/editor state, search and paging survive Activity recreation.
 
+If a library update has just replaced the native cabinet and Android has not measured it yet, the latest camera request is retained and applied after layout. Repeated pre-layout requests replace the pending intent instead of being silently dropped.
+
 ## Coordinate source of truth
 
 `RoomScene.java` contains normalized source-image coordinates and camera/overscan formulas. `CabinetGeometry.java` supplies identical book regions to native layout and projected hit tests. `ProjectedCabinetView` caches the draw Matrix and its inverse; touches map into canonical frame coordinates before cell and alpha-silhouette tests.

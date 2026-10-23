@@ -12,6 +12,18 @@ import static org.junit.Assert.*;
 @RunWith(RobolectricTestRunner.class)
 @Config(sdk=28)
 public class RoomExperienceTest {
+ @Test public void latestRequestSurvivesUnmeasuredLibraryRebind(){
+  ActivityController<MainActivity> life=Robolectric.buildActivity(MainActivity.class).create();
+  try{
+   MainActivity a=life.get();layout(a,428,926);a.collapseToScene(false);String books=a.sites.toString();
+   a.populate();assertEquals(0,a.currentCabinet.getWidth());
+   a.expandFromScene(false);a.collapseToScene(false);a.expandFromScene(false);layout(a,428,926);
+   assertFalse("Latest approach request must survive a just-rebuilt, unmeasured library",a.sceneCollapsed);
+   assertEquals(View.VISIBLE,a.currentCabinet.getVisibility());assertEquals(0,a.roomExperience.transition.progress(),0);
+   a.populate();a.collapseToScene(false);layout(a,428,926);
+   assertTrue("A queued retreat must apply after measurement",a.sceneCollapsed);assertEquals(1,a.roomExperience.transition.progress(),0);assertEquals(books,a.sites.toString());
+  }finally{life.destroy();}
+ }
  @Test public void pinchRequestCanReverseAnApproach(){
   ActivityController<MainActivity> life=Robolectric.buildActivity(MainActivity.class).create();
   try{

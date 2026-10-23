@@ -15,6 +15,7 @@ final class RoomExperience {
  private final Path panes=new Path();
  private final float[] room=new float[3],sky=new float[3],front=new float[3],quad=new float[8],mapped=new float[8],floor=new float[8];
  private boolean reduced,disposed;
+ private boolean pendingRequest,pendingRoom,pendingAnimate;
  private int sceneWidth,sceneHeight;
  private float clouds;
  RoomExperience(MainActivity activity){
@@ -49,9 +50,14 @@ final class RoomExperience {
    a.studyLive.setScene(day,night,false,room);a.studyLive.setReducedEffects(reduced);
   }
   render(transition.progress(),transition.running(),transition.target()==1);
+  if(pendingRequest&&a.currentCabinet!=null&&a.currentCabinet.getWidth()>0)request(pendingRoom,pendingAnimate);
  }
  void request(boolean room,boolean animate){
-  if(disposed||a.currentCabinet==null||a.currentCabinet.getWidth()==0||a.dragSource!=null)return;
+  if(disposed||a.currentCabinet==null||a.dragSource!=null)return;
+  // populate() replaces the live View before Android has measured it. Preserve
+  // the latest intent until bind()/layout can supply valid shared geometry.
+  if(a.currentCabinet.getWidth()==0||a.stage.getWidth()==0||a.stage.getHeight()==0){pendingRequest=true;pendingRoom=room;pendingAnimate=animate;return;}
+  pendingRequest=false;
   if(room)((android.view.inputmethod.InputMethodManager)a.getSystemService(Context.INPUT_METHOD_SERVICE)).hideSoftInputFromWindow(a.stage.getWindowToken(),0);
   a.backgroundOnly=false;a.revealOverlay.setVisibility(View.GONE);a.controls.setVisibility(View.VISIBLE);
   if(a.miniature.content()!=a.currentCabinet)bind();
