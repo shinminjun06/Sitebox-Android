@@ -22,6 +22,7 @@ final class ModelRoomView extends TextureView implements TextureView.SurfaceText
  private Engine engine;
  private DisplayHelper displayHelper;
  private int warmup;
+ private boolean surfacePresented,modelLoading;
  boolean presented(){return presented;}
  private Renderer renderer;
  private com.google.android.filament.View view;
@@ -74,7 +75,15 @@ final class ModelRoomView extends TextureView implements TextureView.SurfaceText
   Filament.init();Gltfio.init();engine=Engine.create(Engine.Backend.OPENGL);renderer=engine.createRenderer();view=engine.createView();scene=engine.createScene();
   cameraEntity=EntityManager.get().create();camera=engine.createCamera(cameraEntity);camera.setExposure(16,1f/125,100);view.setScene(scene);view.setCamera(camera);
   Renderer.ClearOptions clear=new Renderer.ClearOptions();clear.clear=true;clear.discard=false;clear.clearColor=new float[]{.055f,.065f,.08f,1};renderer.setClearOptions(clear);
-  configureQuality();
+  view.setPostProcessingEnabled(false);updateCamera();
+ }
+ private void loadModel(){
+  if(disposed||modelLoading||asset!=null||engine==null)return;modelLoading=true;
+  try{initializeModel();requestFrame();}
+  catch(RuntimeException|LinkageError e){error=e.toString();android.util.Log.e("SiteBox3D","Native room initialization failed",e);status.accept("3D 방을 열지 못했어요.\n"+error);}
+ }
+ private void initializeModel(){
+  configureQuality();view.setPostProcessingEnabled(true);
   materials=new UbershaderProvider(engine);loader=new AssetLoader(engine,materials,EntityManager.get());resources=new ResourceLoader(engine);
   try(InputStream input=getContext().getAssets().open(RoomModelGeometry.ASSET)){
    java.io.ByteArrayOutputStream output=new java.io.ByteArrayOutputStream();byte[] chunk=new byte[8192];int count;while((count=input.read(chunk))!=-1)output.write(chunk,0,count);byte[] bytes=output.toByteArray();ByteBuffer buffer=ByteBuffer.allocateDirect(bytes.length).order(ByteOrder.nativeOrder());buffer.put(bytes).flip();asset=loader.createAsset(buffer);
@@ -145,8 +154,8 @@ final class ModelRoomView extends TextureView implements TextureView.SurfaceText
  void requestFrame(){dirty=true;if(active&&!disposed&&!scheduled&&swap!=null){scheduled=true;Choreographer.getInstance().postFrameCallback(this);}}
  @Override public void doFrame(long time){
   scheduled=false;if(!active||disposed||swap==null||view==null)return;
-  if(dirty||!presented||warmup<8){dirty=false;if(renderer.beginFrame(swap,time)){renderer.render(view);renderer.endFrame();frames++;warmup++;invalidate();}else dirty=true;}
-  if(dirty||!presented||warmup<8)requestFrame();
+  if(dirty||(asset!=null&&(!presented||warmup<8))){dirty=false;if(renderer.beginFrame(swap,time)){renderer.render(view);renderer.endFrame();frames++;warmup++;invalidate();}else dirty=true;}
+  if(dirty||(asset!=null&&(!presented||warmup<8)))requestFrame();
  }
  @Override public void onSurfaceTextureAvailable(SurfaceTexture texture,int width,int height){
   try{texture.setDefaultBufferSize(width,height);initialize();surface=new Surface(texture);swap=engine.createSwapChain(surface);displayHelper=new DisplayHelper(getContext());displayHelper.attach(renderer,getDisplay());resize(width,height);requestFrame();}
@@ -155,10 +164,13 @@ final class ModelRoomView extends TextureView implements TextureView.SurfaceText
  private void resize(int width,int height){if(view!=null){view.setViewport(new Viewport(0,0,width,height));updateCamera();engine.flushAndWait();requestFrame();}}
  @Override public void onSurfaceTextureSizeChanged(SurfaceTexture texture,int width,int height){resize(width,height);}
  @Override public boolean onSurfaceTextureDestroyed(SurfaceTexture texture){
-  Choreographer.getInstance().removeFrameCallback(this);scheduled=false;presented=false;warmup=0;if(displayHelper!=null){displayHelper.detach();displayHelper=null;}
+  Choreographer.getInstance().removeFrameCallback(this);scheduled=false;presented=false;surfacePresented=false;warmup=0;if(displayHelper!=null){displayHelper.detach();displayHelper=null;}
   if(swap!=null){engine.destroySwapChain(swap);engine.flushAndWait();swap=null;}if(surface!=null){surface.release();surface=null;}return true;
  }
- @Override public void onSurfaceTextureUpdated(SurfaceTexture texture){if(!presented&&asset!=null&&frames>0){presented=true;status.accept(null);android.util.Log.i("SiteBox3D","room GPU frame presented");}}
+ @Override public void onSurfaceTextureUpdated(SurfaceTexture texture){
+  if(!surfacePresented){surfacePresented=true;android.util.Log.i("SiteBox3D","empty room surface GPU frame presented");if(asset==null)post(this::loadModel);}
+  else if(!presented&&asset!=null&&frames>1){presented=true;status.accept(null);android.util.Log.i("SiteBox3D","room GPU frame presented");}
+ }
  void dispose(){
   if(disposed)return;disposed=true;active=false;Choreographer.getInstance().removeFrameCallback(this);scheduled=false;
   if(engine==null)return;

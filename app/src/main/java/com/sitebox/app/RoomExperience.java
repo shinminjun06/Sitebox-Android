@@ -23,7 +23,7 @@ final class RoomExperience {
   transition=new RoomTransition(this::render);
   a.studyLive.setVisibility(View.GONE);a.studyLive.setActive(false);a.backdrop.setVisibility(View.GONE);a.outsideLayer.setVisibility(View.GONE);a.roomForeground.setVisibility(View.GONE);
   a.roomLayer.removeAllViews();model=new ModelRoomView(a);model.setReduced(reduced);a.roomLayer.addView(model,new FrameLayout.LayoutParams(-1,-1));
-  TextView status=a.label("3D 방을 준비하고 있어요…",15,0xffffedca);status.setGravity(android.view.Gravity.CENTER);status.setPadding(a.dp(24),a.dp(24),a.dp(24),a.dp(24));status.setBackgroundColor(0xff242a29);a.roomLayer.addView(status,new FrameLayout.LayoutParams(-1,-1));
+  TextView status=a.label("3D 방을 준비하고 있어요…",15,0xffffedca);status.setGravity(android.view.Gravity.CENTER);status.setPadding(a.dp(24),a.dp(24),a.dp(24),a.dp(24));status.setBackgroundColor(0xcc242a29);a.roomLayer.addView(status,new FrameLayout.LayoutParams(-1,-1));
   model.setStatusListener(message->{if(message==null)status.setVisibility(View.GONE);else{status.setText(message);status.setVisibility(View.VISIBLE);}relayout();});
   a.stage.addOnLayoutChangeListener((v,l,t,r,b,ol,ot,or,ob)->{if(r-l!=or-ol||b-t!=ob-ot)relayout();});
  }
