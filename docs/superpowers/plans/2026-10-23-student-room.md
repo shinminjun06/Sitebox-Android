@@ -72,7 +72,7 @@ Files: new room backdrop/foreground compositor; `StudyLiveView.java`, `MainActiv
 
 Files: version/build/workflow, docs/asset and layer reports, release artifacts.
 
-- [ ] Self-review against every spec section; resolve geometry, touch, animation, lifecycle and persistence defects.
-- [ ] Run Java/assets, full Android unit tests, debug/preview/release and instrumentation compilation, lint and release certificate verification.
+- [x] Self-review against every spec section; resolve geometry, touch, animation, lifecycle and persistence defects.
+- [x] Run Java/assets, full Android unit tests, debug/preview/release and instrumentation compilation, lint and release certificate verification.
 - [ ] Commit source/notes and signed APK to an authorized distribution branch, run GitHub Actions checks and artifact upload; download and compare the public APK.
 - [ ] Deliver APK and preview links, validation results and exact remaining artwork/device-test limitations.

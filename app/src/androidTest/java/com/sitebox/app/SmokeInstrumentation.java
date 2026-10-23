@@ -30,7 +30,8 @@ public final class SmokeInstrumentation extends Instrumentation {
    activity=(MainActivity)startActivitySync(new Intent(getTargetContext(),MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));waitForIdleSync();
    SharedPreferences prefs=activity.getPreferences(0);backupSites=prefs.getString("sites","[]");backupCategories=prefs.getString("categories","[]");backupShelf=prefs.getInt("shelfTheme",0);backupBook=prefs.getInt("bookTheme",0);hadGestureTip=prefs.contains("gestureTipSeen");backupGestureTip=prefs.getBoolean("gestureTipSeen",false);hadBackground=prefs.contains("backgroundTheme");backupBackground=prefs.getString("backgroundTheme","classroom");
    hadMotion=prefs.contains("studyMotion");backupMotion=prefs.getBoolean("studyMotion",true);main(()->activity.setStudyMotion(true));
-   snapshot("study-first-launch.png");main(()->{check(activity.sceneCollapsed&&activity.controls.getVisibility()==View.INVISIBLE,"fresh launch opens photographic room");activity.expandFromScene(false);});
+   snapshot("study-first-launch.png");main(()->check(activity.sceneCollapsed&&activity.controls.getVisibility()==View.INVISIBLE,"fresh launch opens photographic room"));
+   tapRoomCabinet();
    main(()->{
     check(activity.getPreferences(0).getBoolean("studyThemeIntroduced",false),"theme 1 introduction recorded once");
     activity.applyBackgroundTheme("classroom");activity.sites=new JSONArray();activity.filter="";activity.page=0;
@@ -59,6 +60,9 @@ public final class SmokeInstrumentation extends Instrumentation {
    snapshot("oak-classic.png");
    new BackupChecks(this).run();
    ambientScenes();
+   // Sync/atmosphere checks intentionally preserve the room pose. Enter through
+   // an actual screen tap before testing visible editor books and native drag.
+   if(activity.sceneCollapsed)tapRoomCabinet();
    final String fullFixture=activity.sites.toString();
    main(()->{try{JSONObject single=new JSONObject();single.put("name","naver");single.put("url","https://naver.com");single.put("category",activity.categories[5]);activity.sites=new JSONArray().put(single);activity.populate();}catch(Exception error){throw new RuntimeException(error);}});
    main(()->{check(activity.pagingBar.getVisibility()==View.GONE,"single page hides paging bar");check(activity.pageSummary.getText().toString().contains("1권"),"hidden page summary remains current");check(activity.shelves.getChildCount()==2,"populated shelf has no persistent bottom instructions");});
@@ -584,9 +588,20 @@ public final class SmokeInstrumentation extends Instrumentation {
   android.view.MotionEvent event=android.view.MotionEvent.obtain(down,android.os.SystemClock.uptimeMillis(),action,2,properties,coords,0,0,1,1,0,0,android.view.InputDevice.SOURCE_TOUCHSCREEN,0);
   if(!getUiAutomation().injectInputEvent(event,true))throw new AssertionError("two-finger input injection");event.recycle();
  }
+ void tapRoomCabinet(){
+  awaitScene(true);final float[] screen=new float[2];
+  main(()->{
+   float[] corners=new float[8];int[] location=new int[2];activity.miniature.copyRenderedCorners(corners);activity.miniature.getLocationOnScreen(location);
+   float x=0,y=0;for(int i=0;i<8;i+=2){x+=corners[i]/4;y+=corners[i+1]/4;}
+   check(activity.miniature.hitFrame(x,y),"physical room tap lies on opaque projected furniture");screen[0]=x+location[0];screen[1]=y+location[1];
+  });
+  long down=android.os.SystemClock.uptimeMillis();touch(down,android.view.MotionEvent.ACTION_DOWN,screen[0],screen[1]);android.os.SystemClock.sleep(70);touch(down,android.view.MotionEvent.ACTION_UP,screen[0],screen[1]);awaitScene(false);
+  main(()->check(activity.currentCabinet.isShown()&&activity.controls.getVisibility()==View.VISIBLE&&activity.roomExperience.transition.progress()==0,"physical room tap opens the same live native editor"));
+ }
  void nativeDrag(){
   final int[] start=new int[2],end=new int[2];
   main(()->{
+   check(!activity.sceneCollapsed&&activity.currentCabinet.isShown(),"native drag starts on visible editor books");
    BookshelfView furniture=activity.currentCabinet;
    View source=((ViewGroup)furniture.getChildAt(1)).getChildAt(0);
    View destination=((ViewGroup)furniture.getChildAt(3)).getChildAt(0);
