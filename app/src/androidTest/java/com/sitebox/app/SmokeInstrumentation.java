@@ -60,6 +60,7 @@ public final class SmokeInstrumentation extends Instrumentation {
     check(activity.pageSummary.getText().toString().contains("/ 2"),"eighth book starts second page after seven visible books");
    });
    snapshot("oak-classic.png");
+   categoryInk();
    phase("accounts, backup and automatic sync");new BackupChecks(this).run();
    phase("day, night, weather and decoder lifecycle");ambientScenes();
    // Sync/atmosphere checks intentionally preserve the room pose. Enter through
@@ -629,6 +630,23 @@ public final class SmokeInstrumentation extends Instrumentation {
   touch(down,android.view.MotionEvent.ACTION_UP,end[0],end[1]);android.os.SystemClock.sleep(350);waitForIdleSync();
  }
  void touch(long down,int action,float x,float y){android.view.MotionEvent event=android.view.MotionEvent.obtain(down,android.os.SystemClock.uptimeMillis(),action,x,y,0);event.setSource(android.view.InputDevice.SOURCE_TOUCHSCREEN);if(!getUiAutomation().injectInputEvent(event,true))throw new AssertionError("native touch injection");event.recycle();}
+ void categoryInk(){
+  final java.util.ArrayList<int[]> plates=new java.util.ArrayList<>();
+  main(()->{
+   for(int i=0;i<activity.currentCabinet.getChildCount();i++){
+    View child=activity.currentCabinet.getChildAt(i);if(!(child instanceof TextView))continue;TextView label=(TextView)child;int[] at=new int[2];label.getLocationOnScreen(at);
+    plates.add(new int[]{at[0],at[1],label.getWidth(),label.getHeight()});
+    checks.append("LABEL ").append(label.getText()).append(" scroll=").append(label.getScrollX()).append(',').append(label.getScrollY()).append(" textSize=").append(label.getTextSize()).append(" color=").append(Integer.toHexString(label.getCurrentTextColor()));
+    try{java.lang.reflect.Field displayed=CategoryPlateView.class.getDeclaredField("displayed");displayed.setAccessible(true);checks.append(" prepared=").append(displayed.get(label));}catch(Exception error){throw new RuntimeException(error);}checks.append('\n');
+   }
+  });
+  Bitmap image=getUiAutomation().takeScreenshot();if(image==null)throw new AssertionError("category screenshot unavailable");
+  try{
+   boolean allVisible=true;
+   for(int i=0;i<plates.size();i++){int[] r=plates.get(i);int ink=0;for(int y=r[1]+r[3]/4;y<r[1]+r[3]*3/4;y++)for(int x=r[0]+r[2]/8;x<r[0]+r[2]*7/8;x++){int p=image.getPixel(x,y);if(android.graphics.Color.red(p)+android.graphics.Color.green(p)+android.graphics.Color.blue(p)<300)ink++;}checks.append("LABEL ink ").append(i).append('=').append(ink).append('\n');allVisible&=ink>3;}
+   check(plates.size()==9&&allVisible,"all nine category names have visible on-screen lettering");
+  }finally{image.recycle();}
+ }
  void snapshot(String name){
   android.os.SystemClock.sleep(450);waitForIdleSync();
   java.util.concurrent.CountDownLatch drawn=new java.util.concurrent.CountDownLatch(1);
