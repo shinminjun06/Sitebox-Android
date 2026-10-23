@@ -1,0 +1,1 @@
+PASS shrunk release launch and Google backup settings on Android 15

@@ -15,3 +15,7 @@ APK는 클라우드 환경에서 R8 릴리스 빌드·서명하며, Actions는 �
 ![Android 15 원본 사진과 실제 책](device-room-day.png)
 ![Android 15 밤의 방](device-room-night.png)
 ![책 관리 화면](editor-day.png)
+
+[서명 APK 설치·실행 검사](https://github.com/shinminjun06/Sitebox-Android/actions/runs/39941931244) 통과. 공개 링크와 Actions 아티팩트를 다시 내려받아 동일 파일임을 확인했습니다.
+
+![배포 APK의 새 설치 화면](signed-release-room.png)
