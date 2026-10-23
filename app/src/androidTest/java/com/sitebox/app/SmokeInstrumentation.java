@@ -185,6 +185,10 @@ public final class SmokeInstrumentation extends Instrumentation {
  void referencePhotoScenes(){
   final boolean motion=activity.motionEnabled,collapsed=activity.sceneCollapsed;final String data=activity.sites.toString();long t=1700000000000L;
   try{
+   // The malformed-import checks intentionally emit a system LENGTH_LONG Toast.
+   // Its captured overlay hid the desk sample in the first native run. Let the
+   // 3.5s system toast expire before asserting the underlying photograph pixels.
+   android.os.SystemClock.sleep(4000);
    main(()->{activity.setStudyMotion(false);activity.setAmbientPreview(new WeatherState(20,0,0,0,t,0,0,t,true,0,1),t);activity.collapseToScene(false);});awaitScene(true);snapshot("ambient-day.png");
    final java.util.ArrayList<int[]> samples=new java.util.ArrayList<>();
    main(()->{
@@ -192,7 +196,7 @@ public final class SmokeInstrumentation extends Instrumentation {
     int[] origin=new int[2];activity.backdrop.getLocationOnScreen(origin);
     for(float[] sample:new float[][]{{.24f,.13f},{.24f,.37f},{.50f,.48f},{.48f,.90f},{.55f,.76f}}){float[] p={sample[0]*activity.sceneBackdrop.getWidth(),sample[1]*activity.sceneBackdrop.getHeight()};int color=activity.sceneBackdrop.getPixel((int)p[0],(int)p[1]);activity.backdrop.getImageMatrix().mapPoints(p);samples.add(new int[]{Math.round(p[0])+origin[0],Math.round(p[1])+origin[1],color});}
    });
-   Bitmap screen=getUiAutomation().takeScreenshot();try{for(int[] sample:samples){int actual=screen.getPixel(sample[0],sample[1]),expected=sample[2];check(Math.abs(android.graphics.Color.red(actual)-android.graphics.Color.red(expected))+Math.abs(android.graphics.Color.green(actual)-android.graphics.Color.green(expected))+Math.abs(android.graphics.Color.blue(actual)-android.graphics.Color.blue(expected))<45,"native screenshot preserves original desk, wall and floor pixels");}}finally{screen.recycle();}
+   Bitmap screen=getUiAutomation().takeScreenshot();try{for(int[] sample:samples){int actual=screen.getPixel(sample[0],sample[1]),expected=sample[2];check(Math.abs(android.graphics.Color.red(actual)-android.graphics.Color.red(expected))+Math.abs(android.graphics.Color.green(actual)-android.graphics.Color.green(expected))+Math.abs(android.graphics.Color.blue(actual)-android.graphics.Color.blue(expected))<45,"native screenshot preserves original desk, wall and floor pixels at "+sample[0]+","+sample[1]+" expected="+Integer.toHexString(expected)+" actual="+Integer.toHexString(actual));}}finally{screen.recycle();}
    try(java.io.InputStream input=getTargetContext().getAssets().open(RoomScene.REFERENCE)){java.security.MessageDigest hash=java.security.MessageDigest.getInstance("SHA-256");byte[] bytes=new byte[8192];int n;while((n=input.read(bytes))!=-1)hash.update(bytes,0,n);StringBuilder hex=new StringBuilder();for(byte b:hash.digest())hex.append(String.format(java.util.Locale.ROOT,"%02x",b&255));check(hex.toString().equals("275373adaff1581fa1d089ce74f21ff1dc9540ccf9a9eb5bd45f7bc19d0f6e18"),"reference photo bytes match the uploaded original");}catch(Exception error){throw new RuntimeException(error);}
    main(()->activity.setAmbientPreview(new WeatherState(20,0,0,0,t,0,0,t,true,0,0),t));snapshot("ambient-night.png");
    main(()->{activity.setStudyMotion(true);activity.setAmbientPreview(new WeatherState(15,12,63,95,t,t-21600000L,t+21600000L,t,true),t);});awaitDaylight(1);snapshot("ambient-rain.png");
