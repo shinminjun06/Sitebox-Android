@@ -53,7 +53,7 @@ final class BackupChecks {
     reject(invalid.toString());
    }
    test.check(BackupCodec.decode(original).sites.toString().equals(base.sites.toString()),"codec rejects padded category labels and preserves valid fixture");
-   test.check(controller.snapshot()!=null&&base.sites.length()==32,"backup codec validates native fixture and rejects malformed imports");
+   test.check(controller.snapshot()!=null&&base.sites.length()==activity.sites.length()&&base.sites.length()>0,"backup codec validates native fixture and rejects malformed imports");
    // Neither a stalled reader nor a stalled writer may wait for provider progress after cancellation.
    for(boolean writing:new boolean[]{false,true}){
     ParcelFileDescriptor[] pipe=ParcelFileDescriptor.createPipe();CancellationSignal cancel=new CancellationSignal();AtomicReference<Throwable> failure=new AtomicReference<>();

@@ -7,6 +7,7 @@ final class RoomModelGeometry {
  static final float ASPECT=(TOP-BOTTOM)/(RIGHT-LEFT);
  private static final float[] L={-2.165f,-1.817f,-1.477f},R={-1.883f,-1.543f,-1.195f};
  private static final float[] T={2.055f,1.36f,.67f},B={1.445f,.755f,.065f};
+ static int editorWidth(int width,int height,float density){return Math.max(Math.round(96*density),Math.round(Math.min(width*.87f,Math.max(180*density,height-100*density)/ASPECT)));}
  static float[] cell(int i){
   if(i<0||i>8)throw new IllegalArgumentException("cell");int c=i%3,r=i/3;
   return new float[]{(L[c]-LEFT)/(RIGHT-LEFT),(TOP-T[r])/(TOP-BOTTOM),(R[c]-LEFT)/(RIGHT-LEFT),(TOP-B[r])/(TOP-BOTTOM)};

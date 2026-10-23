@@ -54,5 +54,10 @@ public class RoomExperienceTest {
    for(View empty:new View[]{a.header,a.shelves,a.shelfScroll}){assertFalse("Empty long press must not reveal wallpaper",empty.performLongClick());assertFalse(a.backgroundOnly);assertEquals(View.VISIBLE,a.controls.getVisibility());assertFalse(a.sceneCollapsed);}
   }finally{life.destroy();}
  }
+ @Test public void cabinetFitsTheVisibleEditorAfterWideAndKeyboardResize(){
+  ActivityController<MainActivity> life=Robolectric.buildActivity(MainActivity.class).create();try{MainActivity a=life.get();
+   for(int[] size:new int[][]{{591,1206},{1920,1080},{720,720},{428,600}}){layout(a,size[0],size[1]);a.expandFromScene(false);layout(a,size[0],size[1]);assertTrue("Entire model cabinet fits visible editor at "+size[0]+"x"+size[1],a.currentCabinet.getHeight()+a.dp(30)<=a.shelfScroll.getHeight());}
+  }finally{life.destroy();}
+ }
  static void layout(MainActivity a,int w,int h){a.stage.measure(View.MeasureSpec.makeMeasureSpec(w,View.MeasureSpec.EXACTLY),View.MeasureSpec.makeMeasureSpec(h,View.MeasureSpec.EXACTLY));a.stage.layout(0,0,w,h);a.updateSceneBackdrop();}
 }

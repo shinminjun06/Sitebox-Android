@@ -9,6 +9,8 @@ import org.json.*;
 
 /** Exercises the real native GPU renderer; host tests cannot stand in for this. */
 public final class ModelSmokeInstrumentation extends SmokeInstrumentation {
+ int reportedChecks;
+ @Override void phase(String name){super.phase(name);if(checks.length()>reportedChecks){Bundle progress=new Bundle();progress.putString("stream",checks.substring(reportedChecks));sendStatus(1,progress);reportedChecks=checks.length();}}
  @Override public void onStart(){
   Bundle result=new Bundle();int code=Activity.RESULT_OK;String original=null;
   try{
@@ -20,7 +22,7 @@ public final class ModelSmokeInstrumentation extends SmokeInstrumentation {
     activity.sites=new JSONArray();for(int i=0;i<70;i++){JSONObject o=new JSONObject();try{o.put("name","실제 책 "+i);o.put("url","https://example.com/"+i);o.put("category",activity.categories[i%9]);o.put("sortOrder",i*1000L);}catch(JSONException e){throw new RuntimeException(e);}activity.sites.put(o);}activity.save();activity.populate();
    });waitForIdleSync();snapshot("3d-editor-books.png");
    main(()->{check(activity.pageSummary.getText().toString().contains("/ 2"),"overflow paginates without overlapping books");for(int i=1;i<activity.currentCabinet.getChildCount();i+=2){android.view.ViewGroup row=(android.view.ViewGroup)activity.currentCabinet.getChildAt(i);for(int b=0;b<row.getChildCount();b++)check(row.getChildAt(b).getRight()<=row.getWidth(),"book stays inside actual model opening");}});
-   phase("native book drag and sync regression");nativeDrag();main(()->check(activity.sites.optJSONObject(0).optString("category").equals(activity.categories[1]),"native long press moves the real book without retreating"));new BackupChecks(this).run();
+   phase("native book dialogs");crudDialogs();phase("native book drag and sync regression");nativeDrag();main(()->check(activity.sites.optJSONObject(0).optString("category").equals(activity.categories[1]),"native long press moves the real book without retreating"));new BackupChecks(this).run();awaitSystemToasts();
    phase("same model camera gestures");main(()->activity.expandFromScene(false));pinch(false);awaitScene(false);pinch(true);awaitScene(true);snapshot("3d-pinch-room.png");tapRoomCabinet();roomReversalAndBack();
    main(()->{activity.collapseToScene(false);check(activity.roomExperience.model.ready(),"same GLB survives editor and room transitions");});snapshot("3d-room-books.png");
    String data=activity.sites.toString();long t=1700000000000L;

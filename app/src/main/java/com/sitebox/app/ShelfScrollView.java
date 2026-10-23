@@ -9,7 +9,7 @@ import android.widget.ScrollView;
 final class ShelfScrollView extends ScrollView {
  ShelfScrollView(Context context){super(context);}
  @Override protected void onMeasure(int widthSpec,int heightSpec){
-  int width=Math.round((MeasureSpec.getSize(widthSpec)-getPaddingLeft()-getPaddingRight())*.87f);
+  int width=RoomModelGeometry.editorWidth(MeasureSpec.getSize(widthSpec)-getPaddingLeft()-getPaddingRight(),MeasureSpec.getSize(heightSpec),getResources().getDisplayMetrics().density);
   if(getChildCount()>0&&getChildAt(0) instanceof ViewGroup){
    ViewGroup content=(ViewGroup)getChildAt(0);
    for(int i=0;i<content.getChildCount();i++){View child=content.getChildAt(i);ViewGroup.LayoutParams lp=child.getLayoutParams();if(lp.width!=width){lp.width=width;child.forceLayout();}}

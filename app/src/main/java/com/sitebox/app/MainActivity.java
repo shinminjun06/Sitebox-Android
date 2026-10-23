@@ -178,7 +178,7 @@ public class MainActivity extends Activity {
  }
  void showThemes(){
  LinearLayout layout=new LinearLayout(this);layout.setOrientation(LinearLayout.VERTICAL);layout.setPadding(dp(22),dp(14),dp(22),dp(8));
- TextView shelfLabel=label("책장 색상 설정 · 3D 모델 원목 유지",16,0xFF3D291D);layout.addView(shelfLabel);
+ TextView shelfLabel=label("책장 색상",16,0xFF3D291D);layout.addView(shelfLabel);
  Spinner shelfPicker=new Spinner(this);shelfPicker.setAdapter(new ArrayAdapter<String>(this,android.R.layout.simple_spinner_dropdown_item,shelfThemeNames));shelfPicker.setSelection(shelfThemeIndex);layout.addView(shelfPicker);
  TextView bookLabel=label("책 테마",16,0xFF3D291D);bookLabel.setPadding(0,dp(18),0,0);layout.addView(bookLabel);
  Spinner bookPicker=new Spinner(this);bookPicker.setAdapter(new ArrayAdapter<String>(this,android.R.layout.simple_spinner_dropdown_item,bookThemeNames));bookPicker.setSelection(bookThemeIndex);layout.addView(bookPicker);
@@ -190,7 +190,7 @@ public class MainActivity extends Activity {
   if(!expanded){search.clearFocus();((android.view.inputmethod.InputMethodManager)getSystemService(INPUT_METHOD_SERVICE)).hideSoftInputFromWindow(search.getWindowToken(),0);}
  }
  void updateSearchIndicator(){searchToggle.setText(filter.isEmpty()?"검색":"검색 중");searchToggle.setContentDescription((searchExpanded?"검색 접기":"검색 펼치기")+(filter.isEmpty()?"":" · 현재 검색: "+filter));}
- int shelfContentWidth(){int available=shelfScroll.getWidth();if(available<=0)available=getResources().getDisplayMetrics().widthPixels;int height=shelfScroll.getHeight();if(height<=0)height=getResources().getDisplayMetrics().heightPixels-dp(110);return Math.max(dp(96),Math.round(Math.min(available*.87f,Math.max(dp(180),height-dp(100))/RoomModelGeometry.ASPECT)));}
+ int shelfContentWidth(){int available=shelfScroll.getWidth();if(available<=0)available=getResources().getDisplayMetrics().widthPixels;int height=shelfScroll.getHeight();if(height<=0)height=getResources().getDisplayMetrics().heightPixels-dp(110);return RoomModelGeometry.editorWidth(available,height,getResources().getDisplayMetrics().density);}
  void resizeShelfContents(){int width=shelfContentWidth();for(int i=0;i<shelves.getChildCount();i++){View child=shelves.getChildAt(i);ViewGroup.LayoutParams lp=child.getLayoutParams();if(lp.width!=width){lp.width=width;child.setLayoutParams(lp);}}}
  void populate(){
  shelves.removeAllViews();
