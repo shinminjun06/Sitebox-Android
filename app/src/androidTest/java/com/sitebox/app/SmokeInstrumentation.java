@@ -532,7 +532,8 @@ public final class SmokeInstrumentation extends Instrumentation {
   }};
   try{
    shell("settings put global animator_duration_scale 1");awaitAnimatorScaleOne();
-   main(()->{activity.collapseToScene(false);activity.shelfScroll.scrollTo(0,0);activity.stage.getViewTreeObserver().addOnPreDrawListener(observer);activity.expandFromScene(true);});
+   main(()->{activity.collapseToScene(false);activity.shelfScroll.scrollTo(0,0);});awaitScene(true);
+   main(()->{activity.stage.getViewTreeObserver().addOnPreDrawListener(observer);activity.expandFromScene(true);});
    try{if(!reversed.await(5,java.util.concurrent.TimeUnit.SECONDS))throw new AssertionError("No intermediate native frame for reversal");}catch(InterruptedException interrupted){throw new RuntimeException(interrupted);}
    if(reversalFailure[0]!=null)throw new AssertionError("Native reversal frame",reversalFailure[0]);
    awaitScene(true);main(()->{for(int i=0;i<8;i++){activity.expandFromScene(true);activity.collapseToScene(true);}activity.expandFromScene(false);});
