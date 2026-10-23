@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.sitebox.app.StudyRoomTest" tests="3" skipped="0" failures="0" errors="0" timestamp="2026-10-23T08:32:24" hostname="03a5b45366a0" time="0.671">
+  <properties/>
+  <testcase name="oldCloudRoomsRestoreBooksAndNotes" classname="com.sitebox.app.StudyRoomTest" time="0.023"/>
+  <testcase name="oldRoomPreferencesMigrateWithoutChangingLibrary" classname="com.sitebox.app.StudyRoomTest" time="0.609"/>
+  <testcase name="packagedRoomsContainOnlyStudyArtwork" classname="com.sitebox.app.StudyRoomTest" time="0.039"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

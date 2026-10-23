@@ -36,7 +36,7 @@ Java 17, Android 기본 View/Canvas/Matrix, minSdk 24·targetSdk 35를 유지했
 
 ## GitHub Actions
 
-기존 전체 검사는 [Android 15 실행 39911787756](https://github.com/shinminjun06/Sitebox-Android/actions/runs/39911787756)에서 통과했습니다. 화면 검토로 발견한 분류 명패 글자 누락은 별도 [재현 실행](https://github.com/shinminjun06/Sitebox-Android/actions/runs/39913606425)에서 9개 모두 잉크 0, 내부 TextView scrollX=524233으로 확인했습니다. 이 좌표를 부모/원근 렌더링 모두에서 보정하고 실제 기기 캡처 픽셀 검사를 추가했습니다. 최종 수정본 실행 링크는 아래에 기록합니다.
+기존 전체 검사는 [Android 15 실행 39911787756](https://github.com/shinminjun06/Sitebox-Android/actions/runs/39911787756)에서 통과했습니다. 화면 검토로 발견한 분류 명패 글자 누락은 별도 [재현 실행](https://github.com/shinminjun06/Sitebox-Android/actions/runs/39913606425)에서 9개 모두 잉크 0, 내부 TextView scrollX=524233으로 확인했습니다. 이 좌표를 부모/원근 렌더링 모두에서 보정하고 실제 기기 캡처 픽셀 검사를 추가했습니다. 최종 수정본은 [Android 15 실행 39925249890](https://github.com/shinminjun06/Sitebox-Android/actions/runs/39925249890)에서 전체 통과했습니다. 소스는 `84fb330994cc39ad6403a81da8ba69e441d01f8c`이며 APK에 같은 소스 SHA가 기록되어 있습니다. 실제 화면에서 9개 명패의 글자 잉크를 확인했고, 책 CRUD·드래그·검색·페이지·회전·원근 터치·핀치·반전·뒤로 가기·계정/동기화 회귀·동영상 생명주기 검사가 모두 통과했습니다.
 
 ## 검증 범위와 추가 에셋
 

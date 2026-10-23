@@ -1,0 +1,19 @@
+PASS: nine photo shelf baselines, eight aspect ratios, 160 parallax coverage points and reduced effects
+PASS: ordering, self-drop, cross-category, hidden-target, URLs, equal rows
+PASS: seven-book capacity, thin paper edge, scene anchors in portrait/landscape/small screens
+PASS: stable room IDs, fallback, shared crop/pose geometry and safe areas
+PASS: front, rear and depth edges share room vanishing points; floor slope follows artwork
+PASS: cabinet keeps reference floor placement and scale with wall-calibrated perspective
+SceneProjection: 576 bounded face checks plus two-point perspective and identity checks passed
+WeatherStateTest: 65 checks passed
+PASS: 15 raster assets, 6 theme manifests; dimensions, format, alpha, paths
+PASS: only theme 1 room artwork and video loops are bundled
+PASS: 3 square RGB wood surfaces decoded; bounded file size and full-grain contrast
+PASS: theme 1 portrait and landscape plates fit room cache and APK size budget
+PASS: cabinet-top decor has real transparent alpha and bounded decoded memory
+PASS: separate compact furniture sprite has alpha and bounded memory
+PASS: each active shelf/book combination fits the isolated 12 MiB artwork cache
+PASS: theme 1 silent six-second H264 loops and bounded night plates
+PASS: active day/night image pairs fit the 12 MiB room cache
+PASS: lamp-on/off day/night artwork bounded to 20 MiB active decoded room memory
+PASS: 10 photographic student-room images, exact registered canvases, real room/window/foreground alpha, bounded decode budget and two silent fallback loops

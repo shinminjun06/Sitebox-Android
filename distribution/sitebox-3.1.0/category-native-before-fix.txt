@@ -1,0 +1,58 @@
+PHASE startup and physical cabinet entry uptimeMs=30784
+PASS screenshot animation settled
+PASS collapsed screenshot is real visible miniature with controls hidden
+PASS fresh launch opens photographic room
+PASS physical room tap lies on opaque projected furniture
+PASS physical room tap opens the same live native editor
+PASS theme 1 introduction recorded once
+PASS fixture 32 books across 9 categories
+PASS seven actual book views fit one cubby
+PASS all seven spines stay inside cell
+PASS title centered on spine and paper side is thin
+PASS all seven spines stay inside cell
+PASS title centered on spine and paper side is thin
+PASS all seven spines stay inside cell
+PASS title centered on spine and paper side is thin
+PASS all seven spines stay inside cell
+PASS title centered on spine and paper side is thin
+PASS all seven spines stay inside cell
+PASS title centered on spine and paper side is thin
+PASS all seven spines stay inside cell
+PASS title centered on spine and paper side is thin
+PASS all seven spines stay inside cell
+PASS title centered on spine and paper side is thin
+PASS 9 live cells + 9 editable labels + furniture bitmap
+PASS cabinet starts below compact header
+PASS header is one 48dp row
+PASS header action minimum touch target
+PASS header action minimum touch target
+PASS header action minimum touch target
+PASS search initially collapsed
+PASS bookshelf occupies 87 percent of inset viewport
+PASS bookshelf has equal side margins
+PASS multiple pages show navigation
+PASS equal first/last row geometry
+PASS eighth book starts second page after seven visible books
+PASS screenshot animation settled
+LABEL 공부 scroll=524233,0 textSize=20.0 color=ff433019 prepared=공부
+LABEL 개발 scroll=524233,0 textSize=20.0 color=ff433019 prepared=개발
+LABEL AI scroll=524233,0 textSize=20.0 color=ff433019 prepared=AI
+LABEL 게임 scroll=524233,0 textSize=20.0 color=ff433019 prepared=게임
+LABEL 영상 scroll=524233,0 textSize=20.0 color=ff433019 prepared=영상
+LABEL 쇼핑 scroll=524233,0 textSize=20.0 color=ff433019 prepared=쇼핑
+LABEL 커뮤니티 scroll=524233,0 textSize=20.0 color=ff433019 prepared=커뮤니티
+LABEL 생활 scroll=524233,0 textSize=20.0 color=ff433019 prepared=생활
+LABEL 기타 scroll=524233,0 textSize=20.0 color=ff433019 prepared=기타
+LABEL ink 0=0
+LABEL ink 1=0
+LABEL ink 2=0
+LABEL ink 3=0
+LABEL ink 4=0
+LABEL ink 5=0
+LABEL ink 6=0
+LABEL ink 7=0
+LABEL ink 8=0
+PASS screenshot animation settled
+FAIL java.lang.AssertionError: all nine category names have visible on-screen lettering
+ENV recoveredPixelLauncherAnrs=0
+

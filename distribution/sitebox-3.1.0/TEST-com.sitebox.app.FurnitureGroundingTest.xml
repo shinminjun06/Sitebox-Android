@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.sitebox.app.FurnitureGroundingTest" tests="3" skipped="0" failures="0" errors="0" timestamp="2026-10-23T08:32:04" hostname="03a5b45366a0" time="1.593">
+  <properties/>
+  <testcase name="photographicCabinetFollowsTheMeasuredLeftWall" classname="com.sitebox.app.FurnitureGroundingTest" time="0.647"/>
+  <testcase name="groundOcclusionHasDepthBehindThePhotographedFeet" classname="com.sitebox.app.FurnitureGroundingTest" time="0.484"/>
+  <testcase name="contactShadowsTouchTheOpaqueFeetInsteadOfBitmapBounds" classname="com.sitebox.app.FurnitureGroundingTest" time="0.461"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

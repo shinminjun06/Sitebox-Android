@@ -1,0 +1,663 @@
+PHASE startup and physical cabinet entry uptimeMs=41187
+PHASE accounts, backup and automatic sync uptimeMs=69090
+PHASE day, night, weather and decoder lifecycle uptimeMs=215275
+PHASE nine editor finish and book-style combinations uptimeMs=266048
+PHASE native book dialogs uptimeMs=297350
+PHASE native long-press drag uptimeMs=338774
+PHASE collapsed search and rotation uptimeMs=355056
+PHASE category rename uptimeMs=364628
+PHASE editor rotation uptimeMs=369810
+PHASE projected cabinet finishes uptimeMs=390199
+PHASE physical pinch and animated approach uptimeMs=434956
+PHASE reversal, repeated requests and native Back uptimeMs=486563
+PHASE background and rotated room lifecycle uptimeMs=502493
+PASS screenshot animation settled
+PASS collapsed screenshot is real visible miniature with controls hidden
+PASS fresh launch opens photographic room
+PASS physical room tap lies on opaque projected furniture
+PASS physical room tap opens the same live native editor
+PASS theme 1 introduction recorded once
+PASS fixture 32 books across 9 categories
+PASS seven actual book views fit one cubby
+PASS all seven spines stay inside cell
+PASS title centered on spine and paper side is thin
+PASS all seven spines stay inside cell
+PASS title centered on spine and paper side is thin
+PASS all seven spines stay inside cell
+PASS title centered on spine and paper side is thin
+PASS all seven spines stay inside cell
+PASS title centered on spine and paper side is thin
+PASS all seven spines stay inside cell
+PASS title centered on spine and paper side is thin
+PASS all seven spines stay inside cell
+PASS title centered on spine and paper side is thin
+PASS all seven spines stay inside cell
+PASS title centered on spine and paper side is thin
+PASS 9 live cells + 9 editable labels + furniture bitmap
+PASS cabinet starts below compact header
+PASS header is one 48dp row
+PASS header action minimum touch target
+PASS header action minimum touch target
+PASS header action minimum touch target
+PASS search initially collapsed
+PASS bookshelf occupies 87 percent of inset viewport
+PASS bookshelf has equal side margins
+PASS multiple pages show navigation
+PASS equal first/last row geometry
+PASS eighth book starts second page after seven visible books
+PASS screenshot animation settled
+LABEL 공부 scroll=524233,0 textSize=20.0 color=ff433019
+LABEL 개발 scroll=524233,0 textSize=20.0 color=ff433019
+LABEL AI scroll=524233,0 textSize=20.0 color=ff433019
+LABEL 게임 scroll=524233,0 textSize=20.0 color=ff433019
+LABEL 영상 scroll=524233,0 textSize=20.0 color=ff433019
+LABEL 쇼핑 scroll=524233,0 textSize=20.0 color=ff433019
+LABEL 커뮤니티 scroll=524233,0 textSize=20.0 color=ff433019
+LABEL 생활 scroll=524233,0 textSize=20.0 color=ff433019
+LABEL 기타 scroll=524233,0 textSize=20.0 color=ff433019
+LABEL ink 0=150
+LABEL ink 1=170
+LABEL ink 2=89
+LABEL ink 3=160
+LABEL ink 4=168
+LABEL ink 5=158
+LABEL ink 6=300
+LABEL ink 7=156
+LABEL ink 8=147
+PASS all nine category names have visible on-screen lettering
+PASS codec rejects padded category labels and preserves valid fixture
+PASS backup codec validates native fixture and rejects malformed imports
+PASS stalled document read cancels through interruptible channel
+PASS stalled document write cancels through interruptible channel
+PASS active backup dialog before screenshot: Google 계정 · 자동 동기화
+PASS screenshot animation settled
+PASS active backup dialog after screenshot: Google 계정 · 자동 동기화
+PASS manual backup actions removed from account UI
+PASS backup settings closes through its visible button
+PASS first account connection automatically restores remote books
+PASS empty cloud retains existing local library
+PASS local deletion persists against unchanged remote
+PASS remote deletion persists against unchanged local
+PASS concurrent changes retain both book versions
+PASS independent addition and remote edit merge
+PASS timestamps do not create an upload loop
+PASS category rename and remote favorite merge without duplicate books
+PASS verified account persists despite later Drive HTTP failure
+PASS account label survives controller recreation
+PASS remote restore waits while an editing dialog is open
+PASS remote content automatically applies without restore button
+PASS automatic restore preserves active search and visibility
+PASS automatic restore persists parsed book URL (independent of JSON escaping)
+PASS automatic restore has no manual confirmation dialog
+PASS automatic restore preserves collapsed bookshelf mode
+PASS automatic sync merges, deletions, conflicts, account persistence and automatic restore verified
+UNTESTED live Google OAuth consent and Drive transfer: cloud credentials are owner-managed
+PASS cancelled picker preserves preferences
+PASS native document URI export round trip
+PASS malformed native import leaves preferences untouched
+PASS invalid UTF-8 native import is rejected without preview or library changes
+PASS backup retains Korean metadata and full sort order range
+PASS active backup dialog before screenshot: 백업 복원 확인
+PASS screenshot animation settled
+PASS active backup dialog after screenshot: 백업 복원 확인
+PASS cancelled restore preview closes and leaves data unchanged
+PASS confirmed restore updates every field
+PASS restored library persists through preferences reload
+PASS restore saves original atomic rollback copy
+PASS Google backup codec and local restore verified
+UNTESTED Google account consent and live Drive transfer: no configured cloud account in CI
+PASS study portrait video prepared and rendered first native video frame
+PASS study portrait video decoder advances at least two actual video frames within one second
+PASS study daylight settles to 1.0 within 1.3 seconds
+PASS study daylight video prepared and rendered first native video frame
+PASS study daylight video decoder advances at least two actual video frames within one second
+PASS study daylight decoder uses visible day video
+PASS screenshot animation settled
+PASS collapsed screenshot is real visible miniature with controls hidden
+PASS study ambient effects preserve bookmarks and categories
+PASS study ambient effects preserve filter page and independent styles
+PASS study daylight settles to 0.0 within 1.3 seconds
+PASS study night video prepared and rendered first native video frame
+PASS study night video decoder advances at least two actual video frames within one second
+PASS study night decoder uses visible night video
+PASS screenshot animation settled
+PASS collapsed screenshot is real visible miniature with controls hidden
+PASS study ambient effects preserve bookmarks and categories
+PASS study ambient effects preserve filter page and independent styles
+PASS study daylight settles to 1.0 within 1.3 seconds
+PASS screenshot animation settled
+PASS collapsed screenshot is real visible miniature with controls hidden
+PASS study ambient effects preserve bookmarks and categories
+PASS study ambient effects preserve filter page and independent styles
+PASS screenshot animation settled
+PASS collapsed screenshot is real visible miniature with controls hidden
+PASS study ambient effects preserve bookmarks and categories
+PASS study ambient effects preserve filter page and independent styles
+PASS study activity pause releases decoder
+PASS study activity pause stops video frames
+PASS study activity resume video prepared and rendered first native video frame
+PASS study activity resume video decoder advances at least two actual video frames within one second
+PASS study motion off releases decoder
+PASS study motion off freezes actual video frames
+PASS study motion restored video prepared and rendered first native video frame
+PASS study motion restored video decoder advances at least two actual video frames within one second
+PASS study decoder error keeps static artwork fallback
+PASS retired room safely falls back to study
+PASS study motion restart resets failed decoder prepared and rendered first native video frame
+PASS study motion restart resets failed decoder decoder advances at least two actual video frames within one second
+PASS study daylight settles to 1.0 within 1.3 seconds
+PASS missing weather retains offline day and video fallback
+PASS study ambient effects preserve bookmarks and categories
+PASS study ambient effects preserve filter page and independent styles
+PASS study live ambient and decoder lifecycle verified
+PASS single page hides paging bar
+PASS hidden page summary remains current
+PASS populated shelf has no persistent bottom instructions
+PASS screenshot animation settled
+PASS screenshot animation settled
+PASS screenshot animation settled
+PASS screenshot animation settled
+PASS screenshot animation settled
+PASS screenshot animation settled
+PASS screenshot animation settled
+PASS screenshot animation settled
+PASS screenshot animation settled
+PASS screenshot animation settled
+PASS add dialog title and URL fields
+PASS text field accepts edit
+PASS text field accepts edit
+PASS bookmark add through real dialog
+PASS edit dialog title and URL fields
+PASS text field accepts edit
+PASS bookmark edit through real dialog
+PASS favorite toggle through book info
+PASS screenshot animation settled
+PASS bookmark delete through confirmation
+PASS native drag starts on visible editor books
+PASS long-press native drag delivered cross-cell drop
+PASS drag source opacity restored
+PASS move does not lose books
+PASS cross-category native-drop operation
+PASS self-drop preserves order
+PASS search expands to 48dp row
+PASS collapsing search retains query
+PASS URL search
+PASS category search
+PASS title search
+PASS preferences data reload
+PASS independent nonmatching theme persistence
+PASS real raster assets decode
+PASS filtered self-drop keeps visible page
+PASS filtered reorder derives filtered page
+PASS screenshot animation settled
+PASS screenshot animation settled
+PASS collapsed search rotation recreates activity
+PASS collapsed query and second page survive rotation
+PASS collapsed search stays collapsed after rotation
+PASS collapsed search has active filter indicator
+PASS search action announces current query
+PASS second filtered page remains selected
+PASS collapsed search rotation recreates activity
+PASS collapsed query and second page survive rotation
+PASS collapsed search stays collapsed after rotation
+PASS collapsed search has active filter indicator
+PASS search action announces current query
+PASS second filtered page remains selected
+PASS clearing filter resets search indicator
+PASS clearing filter resets search description
+PASS nine editable category fields
+PASS text field accepts edit
+PASS category name edited
+PASS book category references renamed
+PASS book category references renamed
+PASS book category references renamed
+PASS book category references renamed
+PASS book category references renamed
+PASS book category references renamed
+PASS book category references renamed
+PASS book category references renamed
+PASS book category references renamed
+PASS book category references renamed
+PASS book category references renamed
+PASS book category references renamed
+PASS book category references renamed
+PASS book category references renamed
+PASS book category references renamed
+PASS book category references renamed
+PASS book category references renamed
+PASS book category references renamed
+PASS book category references renamed
+PASS book category references renamed
+PASS book category references renamed
+PASS book category references renamed
+PASS book category references renamed
+PASS book category references renamed
+PASS book category references renamed
+PASS book category references renamed
+PASS book category references renamed
+PASS book category references renamed
+PASS book category references renamed
+PASS book category references renamed
+PASS book category references renamed
+PASS book category references renamed
+PASS landscape rotation
+PASS filter survives Activity recreation
+PASS expanded search survives rotation
+PASS landscape shelf respects inset viewport width
+PASS screenshot animation settled
+PASS screenshot animation settled
+PASS portrait restored
+PASS screenshot animation settled
+PASS study live native book children shared with projection
+PASS study identical photographic frame in both modes
+PASS study single room timeline settled
+PASS study photograph-registered furniture corner 0
+PASS study photograph-registered furniture corner 1
+PASS study photograph-registered furniture corner 2
+PASS study photograph-registered furniture corner 3
+PASS study photograph-registered furniture corner 4
+PASS study photograph-registered furniture corner 5
+PASS study photograph-registered furniture corner 6
+PASS study photograph-registered furniture corner 7
+PASS study upright cabinet posts
+PASS study native projected touch cell 0
+PASS study native projected touch cell 1
+PASS study native projected touch cell 2
+PASS study native projected touch cell 3
+PASS study native projected touch cell 4
+PASS study native projected touch cell 5
+PASS study native projected touch cell 6
+PASS study native projected touch cell 7
+PASS study native projected touch cell 8
+PASS study shadows meet photographed feet
+PASS projected cabinet finish persists 0
+PASS projected cabinet finish independent of book and room 0
+PASS projected cabinet finish preserves live library 0
+PASS screenshot animation settled
+PASS collapsed screenshot is real visible miniature with controls hidden
+PASS editor endpoint has zero room progress
+PASS same native cabinet at editor handoff 0
+PASS same native cabinet at editor handoff 1
+PASS same native cabinet at editor handoff 2
+PASS same native cabinet at editor handoff 3
+PASS same native cabinet at editor handoff 4
+PASS same native cabinet at editor handoff 5
+PASS same native cabinet at editor handoff 6
+PASS same native cabinet at editor handoff 7
+PASS expanded cabinet remains frontal 0
+PASS study live native book children shared with projection
+PASS study identical photographic frame in both modes
+PASS study single room timeline settled
+PASS study photograph-registered furniture corner 0
+PASS study photograph-registered furniture corner 1
+PASS study photograph-registered furniture corner 2
+PASS study photograph-registered furniture corner 3
+PASS study photograph-registered furniture corner 4
+PASS study photograph-registered furniture corner 5
+PASS study photograph-registered furniture corner 6
+PASS study photograph-registered furniture corner 7
+PASS study upright cabinet posts
+PASS study native projected touch cell 0
+PASS study native projected touch cell 1
+PASS study native projected touch cell 2
+PASS study native projected touch cell 3
+PASS study native projected touch cell 4
+PASS study native projected touch cell 5
+PASS study native projected touch cell 6
+PASS study native projected touch cell 7
+PASS study native projected touch cell 8
+PASS study shadows meet photographed feet
+PASS projected cabinet finish persists 1
+PASS projected cabinet finish independent of book and room 1
+PASS projected cabinet finish preserves live library 1
+PASS screenshot animation settled
+PASS collapsed screenshot is real visible miniature with controls hidden
+PASS editor endpoint has zero room progress
+PASS same native cabinet at editor handoff 0
+PASS same native cabinet at editor handoff 1
+PASS same native cabinet at editor handoff 2
+PASS same native cabinet at editor handoff 3
+PASS same native cabinet at editor handoff 4
+PASS same native cabinet at editor handoff 5
+PASS same native cabinet at editor handoff 6
+PASS same native cabinet at editor handoff 7
+PASS expanded cabinet remains frontal 1
+PASS study live native book children shared with projection
+PASS study identical photographic frame in both modes
+PASS study single room timeline settled
+PASS study photograph-registered furniture corner 0
+PASS study photograph-registered furniture corner 1
+PASS study photograph-registered furniture corner 2
+PASS study photograph-registered furniture corner 3
+PASS study photograph-registered furniture corner 4
+PASS study photograph-registered furniture corner 5
+PASS study photograph-registered furniture corner 6
+PASS study photograph-registered furniture corner 7
+PASS study upright cabinet posts
+PASS study native projected touch cell 0
+PASS study native projected touch cell 1
+PASS study native projected touch cell 2
+PASS study native projected touch cell 3
+PASS study native projected touch cell 4
+PASS study native projected touch cell 5
+PASS study native projected touch cell 6
+PASS study native projected touch cell 7
+PASS study native projected touch cell 8
+PASS study shadows meet photographed feet
+PASS projected cabinet finish persists 2
+PASS projected cabinet finish independent of book and room 2
+PASS projected cabinet finish preserves live library 2
+PASS screenshot animation settled
+PASS collapsed screenshot is real visible miniature with controls hidden
+PASS editor endpoint has zero room progress
+PASS same native cabinet at editor handoff 0
+PASS same native cabinet at editor handoff 1
+PASS same native cabinet at editor handoff 2
+PASS same native cabinet at editor handoff 3
+PASS same native cabinet at editor handoff 4
+PASS same native cabinet at editor handoff 5
+PASS same native cabinet at editor handoff 6
+PASS same native cabinet at editor handoff 7
+PASS expanded cabinet remains frontal 2
+PASS outward pinch does not collapse cabinet
+PASS temporarily enable measured native projection animation
+ENV forward projection intermediate draw frames=2
+PASS native pinch animates continuous intermediate projection
+PASS native pinch settles projection at room pose
+PASS inward two-finger gesture collapses cabinet
+PASS study live native book children shared with projection
+PASS study identical photographic frame in both modes
+PASS study single room timeline settled
+PASS study photograph-registered furniture corner 0
+PASS study photograph-registered furniture corner 1
+PASS study photograph-registered furniture corner 2
+PASS study photograph-registered furniture corner 3
+PASS study photograph-registered furniture corner 4
+PASS study photograph-registered furniture corner 5
+PASS study photograph-registered furniture corner 6
+PASS study photograph-registered furniture corner 7
+PASS study upright cabinet posts
+PASS study native projected touch cell 0
+PASS study native projected touch cell 1
+PASS study native projected touch cell 2
+PASS study native projected touch cell 3
+PASS study native projected touch cell 4
+PASS study native projected touch cell 5
+PASS study native projected touch cell 6
+PASS study native projected touch cell 7
+PASS study native projected touch cell 8
+PASS study shadows meet photographed feet
+PASS study photographic room decoded at device resolution
+PASS study room compositor retains the selected plate
+PASS study room state remains selected
+PASS study live native book children shared with projection
+PASS study identical photographic frame in both modes
+PASS study single room timeline settled
+PASS study photograph-registered furniture corner 0
+PASS study photograph-registered furniture corner 1
+PASS study photograph-registered furniture corner 2
+PASS study photograph-registered furniture corner 3
+PASS study photograph-registered furniture corner 4
+PASS study photograph-registered furniture corner 5
+PASS study photograph-registered furniture corner 6
+PASS study photograph-registered furniture corner 7
+PASS study upright cabinet posts
+PASS study native projected touch cell 0
+PASS study native projected touch cell 1
+PASS study native projected touch cell 2
+PASS study native projected touch cell 3
+PASS study native projected touch cell 4
+PASS study native projected touch cell 5
+PASS study native projected touch cell 6
+PASS study native projected touch cell 7
+PASS study native projected touch cell 8
+PASS study shadows meet photographed feet
+PASS study independent artwork/room caches bounded
+PASS study actual furniture corner 0 stays in viewport
+PASS study actual furniture corner 2 stays in viewport
+PASS study actual furniture corner 4 stays in viewport
+PASS study actual furniture corner 6 stays in viewport
+PASS study contact shadow visible
+PASS header and full-size library hidden in scene
+PASS shared live cabinet projects into room
+PASS miniature remains inside screen
+PASS pinch preserves bookmarks page and search
+PASS screenshot animation settled
+PASS collapsed screenshot is real visible miniature with controls hidden
+PASS temporarily enable measured reverse projection animation
+PASS native accessible tap animates decreasing intermediate projection
+PASS native accessible tap settles projection at identity
+PASS tap miniature restores full-size cabinet
+PASS editor endpoint has zero room progress
+PASS same native cabinet at editor handoff 0
+PASS same native cabinet at editor handoff 1
+PASS same native cabinet at editor handoff 2
+PASS same native cabinet at editor handoff 3
+PASS same native cabinet at editor handoff 4
+PASS same native cabinet at editor handoff 5
+PASS same native cabinet at editor handoff 6
+PASS same native cabinet at editor handoff 7
+PASS contact shadow removed on expansion
+PASS full controls restored without overlay
+PASS screenshot animation settled
+PASS temporarily enable measured native projection animation
+ENV forward projection intermediate draw frames=6
+PASS native pinch animates continuous intermediate projection
+PASS native pinch settles projection at room pose
+PASS landscape rotation
+PASS filter survives Activity recreation
+PASS expanded search survives rotation
+PASS landscape shelf respects inset viewport width
+PASS collapsed cabinet survives landscape recreation
+PASS study photographic room decoded at device resolution
+PASS study room compositor retains the selected plate
+PASS study room state remains selected
+PASS study live native book children shared with projection
+PASS study identical photographic frame in both modes
+PASS study single room timeline settled
+PASS study photograph-registered furniture corner 0
+PASS study photograph-registered furniture corner 1
+PASS study photograph-registered furniture corner 2
+PASS study photograph-registered furniture corner 3
+PASS study photograph-registered furniture corner 4
+PASS study photograph-registered furniture corner 5
+PASS study photograph-registered furniture corner 6
+PASS study photograph-registered furniture corner 7
+PASS study upright cabinet posts
+PASS study native projected touch cell 0
+PASS study native projected touch cell 1
+PASS study native projected touch cell 2
+PASS study native projected touch cell 3
+PASS study native projected touch cell 4
+PASS study native projected touch cell 5
+PASS study native projected touch cell 6
+PASS study native projected touch cell 7
+PASS study native projected touch cell 8
+PASS study shadows meet photographed feet
+PASS study independent artwork/room caches bounded
+PASS study actual furniture corner 0 stays in viewport
+PASS study actual furniture corner 2 stays in viewport
+PASS study actual furniture corner 4 stays in viewport
+PASS study actual furniture corner 6 stays in viewport
+PASS study contact shadow visible
+PASS screenshot animation settled
+PASS collapsed screenshot is real visible miniature with controls hidden
+PASS screenshot animation settled
+PASS collapsed screenshot is real visible miniature with controls hidden
+PASS portrait restored
+PASS collapsed cabinet survives portrait recreation
+PASS study photographic room decoded at device resolution
+PASS study room compositor retains the selected plate
+PASS study room state remains selected
+PASS study live native book children shared with projection
+PASS study identical photographic frame in both modes
+PASS study single room timeline settled
+PASS study photograph-registered furniture corner 0
+PASS study photograph-registered furniture corner 1
+PASS study photograph-registered furniture corner 2
+PASS study photograph-registered furniture corner 3
+PASS study photograph-registered furniture corner 4
+PASS study photograph-registered furniture corner 5
+PASS study photograph-registered furniture corner 6
+PASS study photograph-registered furniture corner 7
+PASS study upright cabinet posts
+PASS study native projected touch cell 0
+PASS study native projected touch cell 1
+PASS study native projected touch cell 2
+PASS study native projected touch cell 3
+PASS study native projected touch cell 4
+PASS study native projected touch cell 5
+PASS study native projected touch cell 6
+PASS study native projected touch cell 7
+PASS study native projected touch cell 8
+PASS study shadows meet photographed feet
+PASS study independent artwork/room caches bounded
+PASS study actual furniture corner 0 stays in viewport
+PASS study actual furniture corner 2 stays in viewport
+PASS study actual furniture corner 4 stays in viewport
+PASS study actual furniture corner 6 stays in viewport
+PASS study contact shadow visible
+PASS screenshot animation settled
+PASS collapsed screenshot is real visible miniature with controls hidden
+PASS screenshot animation settled
+PASS approach reaches an intermediate room pose
+PASS reverse keeps current timeline progress
+PASS reverse keeps rendered corner 0
+PASS reverse keeps rendered corner 1
+PASS reverse keeps rendered corner 2
+PASS reverse keeps rendered corner 3
+PASS reverse keeps rendered corner 4
+PASS reverse keeps rendered corner 5
+PASS reverse keeps rendered corner 6
+PASS reverse keeps rendered corner 7
+PASS rapid alternating requests settle in editor
+PASS native Back and reversal preserve the library
+PASS photographic room reverse continuity, repeated requests and native Back verified
+PASS only the study background remains
+PASS study selected through native background dialog
+PASS study selection persisted immediately
+PASS study background independent of cabinet and book themes
+PASS study selection preserves data page and filter
+PASS study selection survives settings reload
+PASS study photographic room decoded at device resolution
+PASS study room compositor retains the selected plate
+PASS study room state remains selected
+PASS study live native book children shared with projection
+PASS study identical photographic frame in both modes
+PASS study single room timeline settled
+PASS study photograph-registered furniture corner 0
+PASS study photograph-registered furniture corner 1
+PASS study photograph-registered furniture corner 2
+PASS study photograph-registered furniture corner 3
+PASS study photograph-registered furniture corner 4
+PASS study photograph-registered furniture corner 5
+PASS study photograph-registered furniture corner 6
+PASS study photograph-registered furniture corner 7
+PASS study upright cabinet posts
+PASS study native projected touch cell 0
+PASS study native projected touch cell 1
+PASS study native projected touch cell 2
+PASS study native projected touch cell 3
+PASS study native projected touch cell 4
+PASS study native projected touch cell 5
+PASS study native projected touch cell 6
+PASS study native projected touch cell 7
+PASS study native projected touch cell 8
+PASS study shadows meet photographed feet
+PASS study independent artwork/room caches bounded
+PASS study actual furniture corner 0 stays in viewport
+PASS study actual furniture corner 2 stays in viewport
+PASS study actual furniture corner 4 stays in viewport
+PASS study actual furniture corner 6 stays in viewport
+PASS study contact shadow visible
+PASS screenshot animation settled
+PASS collapsed screenshot is real visible miniature with controls hidden
+PASS study miniature tap restores library
+PASS study collapse and tap preserve library state
+PASS screenshot animation settled
+PASS study rotation recreated activity
+PASS study rotated video prepared and rendered first native video frame
+PASS study rotated video decoder advances at least two actual video frames within one second
+PASS study destroyed activity released decoder
+PASS study requested orientation active
+PASS study photographic room decoded at device resolution
+PASS study room compositor retains the selected plate
+PASS study room state remains selected
+PASS study live native book children shared with projection
+PASS study identical photographic frame in both modes
+PASS study single room timeline settled
+PASS study photograph-registered furniture corner 0
+PASS study photograph-registered furniture corner 1
+PASS study photograph-registered furniture corner 2
+PASS study photograph-registered furniture corner 3
+PASS study photograph-registered furniture corner 4
+PASS study photograph-registered furniture corner 5
+PASS study photograph-registered furniture corner 6
+PASS study photograph-registered furniture corner 7
+PASS study upright cabinet posts
+PASS study native projected touch cell 0
+PASS study native projected touch cell 1
+PASS study native projected touch cell 2
+PASS study native projected touch cell 3
+PASS study native projected touch cell 4
+PASS study native projected touch cell 5
+PASS study native projected touch cell 6
+PASS study native projected touch cell 7
+PASS study native projected touch cell 8
+PASS study shadows meet photographed feet
+PASS study independent artwork/room caches bounded
+PASS study actual furniture corner 0 stays in viewport
+PASS study actual furniture corner 2 stays in viewport
+PASS study actual furniture corner 4 stays in viewport
+PASS study actual furniture corner 6 stays in viewport
+PASS study contact shadow visible
+PASS study rotation preserves library state
+PASS screenshot animation settled
+PASS collapsed screenshot is real visible miniature with controls hidden
+PASS study rotation recreated activity
+PASS study rotated video prepared and rendered first native video frame
+PASS study rotated video decoder advances at least two actual video frames within one second
+PASS study destroyed activity released decoder
+PASS study requested orientation active
+PASS study photographic room decoded at device resolution
+PASS study room compositor retains the selected plate
+PASS study room state remains selected
+PASS study live native book children shared with projection
+PASS study identical photographic frame in both modes
+PASS study single room timeline settled
+PASS study photograph-registered furniture corner 0
+PASS study photograph-registered furniture corner 1
+PASS study photograph-registered furniture corner 2
+PASS study photograph-registered furniture corner 3
+PASS study photograph-registered furniture corner 4
+PASS study photograph-registered furniture corner 5
+PASS study photograph-registered furniture corner 6
+PASS study photograph-registered furniture corner 7
+PASS study upright cabinet posts
+PASS study native projected touch cell 0
+PASS study native projected touch cell 1
+PASS study native projected touch cell 2
+PASS study native projected touch cell 3
+PASS study native projected touch cell 4
+PASS study native projected touch cell 5
+PASS study native projected touch cell 6
+PASS study native projected touch cell 7
+PASS study native projected touch cell 8
+PASS study shadows meet photographed feet
+PASS study independent artwork/room caches bounded
+PASS study actual furniture corner 0 stays in viewport
+PASS study actual furniture corner 2 stays in viewport
+PASS study actual furniture corner 4 stays in viewport
+PASS study actual furniture corner 6 stays in viewport
+PASS study contact shadow visible
+PASS study rotation preserves library state
+PASS screenshot animation settled
+PASS collapsed screenshot is real visible miniature with controls hidden
+PASS classroom-only reveal preserved
+PASS classroom reveal returns to controls
+PASS missing artwork handled without crash
+MEMORY totalPssKiB=305151
+PASS all nine theme combinations rendered
+
+ENV recoveredPixelLauncherAnrs=0
+

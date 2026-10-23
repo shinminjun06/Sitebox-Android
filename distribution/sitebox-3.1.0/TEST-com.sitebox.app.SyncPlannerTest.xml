@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.sitebox.app.SyncPlannerTest" tests="6" skipped="0" failures="0" errors="0" timestamp="2026-10-23T08:32:25" hostname="03a5b45366a0" time="0.156">
+  <properties/>
+  <testcase name="emptyCloudKeepsOfflineLibrary" classname="com.sitebox.app.SyncPlannerTest" time="0.025"/>
+  <testcase name="initialConnectionMergesLocalAndCloudBooks" classname="com.sitebox.app.SyncPlannerTest" time="0.021"/>
+  <testcase name="offlineDeletionIsNotResurrected" classname="com.sitebox.app.SyncPlannerTest" time="0.032"/>
+  <testcase name="simultaneousEditsKeepBothVersions" classname="com.sitebox.app.SyncPlannerTest" time="0.024"/>
+  <testcase name="remoteDeletionIsNotResurrected" classname="com.sitebox.app.SyncPlannerTest" time="0.025"/>
+  <testcase name="timestampsDoNotCauseRepeatedUploads" classname="com.sitebox.app.SyncPlannerTest" time="0.027"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

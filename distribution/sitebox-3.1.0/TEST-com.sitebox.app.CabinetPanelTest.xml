@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.sitebox.app.CabinetPanelTest" tests="1" skipped="0" failures="0" errors="0" timestamp="2026-10-23T08:31:57" hostname="03a5b45366a0" time="5.641">
+  <properties/>
+  <testcase name="photographicFrameHasClosedStilesAndNineSolidBacks" classname="com.sitebox.app.CabinetPanelTest" time="5.641"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

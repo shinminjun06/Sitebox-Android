@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.sitebox.app.RoomExperienceTest" tests="4" skipped="0" failures="0" errors="0" timestamp="2026-10-23T08:32:14" hostname="03a5b45366a0" time="0.545">
+  <properties/>
+  <testcase name="movingCameraDoesNotDeliverTouchesToHiddenToolbar" classname="com.sitebox.app.RoomExperienceTest" time="0.188"/>
+  <testcase name="backFromTheEditorReturnsToTheRoom" classname="com.sitebox.app.RoomExperienceTest" time="0.093"/>
+  <testcase name="pinchRequestCanReverseAnApproach" classname="com.sitebox.app.RoomExperienceTest" time="0.1"/>
+  <testcase name="latestRequestSurvivesUnmeasuredLibraryRebind" classname="com.sitebox.app.RoomExperienceTest" time="0.161"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>
