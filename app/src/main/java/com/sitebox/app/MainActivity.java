@@ -105,7 +105,7 @@ public class MainActivity extends Activity {
  TextView title=label("SiteBox",24,0xFFFFF4DD);title.setTypeface(Typeface.SERIF,Typeface.BOLD);title.setSingleLine(true);title.setEllipsize(TextUtils.TruncateAt.END);branding.addView(title);
  headline.addView(branding,new LinearLayout.LayoutParams(0,-2,1));
  TextView settings=label("설정",13,0xFFFFF1D5);settings.setGravity(Gravity.CENTER);settings.setContentDescription("카테고리와 테마 설정");headline.addView(settings,new LinearLayout.LayoutParams(dp(48),dp(48)));
- settings.setOnClickListener(v->new AlertDialog.Builder(this).setTitle("나의 서재").setItems(new String[]{"배경 테마","책장 · 책 테마","카테고리 이름 수정","시간 · 날씨 · 영상","Google 계정 · 자동 동기화","앱 정보"},(d,w)->{if(w==0)showBackgroundThemes();else if(w==1)showThemes();else if(w==2)manageCategories();else if(w==3)showAmbientSettings();else if(w==4)backups.show();else new AlertDialog.Builder(this).setTitle("SiteBox "+BuildConfig.VERSION_NAME).setMessage("소스 버전: "+BuildConfig.SOURCE_REVISION+"\n책을 길게 눌러 칸 사이로 이동하세요.\n명패를 누르면 해당 칸에 책을 추가합니다.").setPositiveButton("닫기",null).show();}).show());
+ settings.setOnClickListener(v->new AlertDialog.Builder(this).setTitle("나의 서재").setItems(new String[]{"배경 테마","책장 · 책 테마","카테고리 이름 수정","시간 · 날씨","Google 계정 · 자동 동기화","앱 정보"},(d,w)->{if(w==0)showBackgroundThemes();else if(w==1)showThemes();else if(w==2)manageCategories();else if(w==3)showAmbientSettings();else if(w==4)backups.show();else new AlertDialog.Builder(this).setTitle("SiteBox "+BuildConfig.VERSION_NAME).setMessage("소스 버전: "+BuildConfig.SOURCE_REVISION+"\n책을 길게 눌러 칸 사이로 이동하세요.\n명패를 누르면 해당 칸에 책을 추가합니다.").setPositiveButton("닫기",null).show();}).show());
  TextView add=label("＋",28,0xFF263B30);add.setGravity(Gravity.CENTER);add.setContentDescription("북마크 추가");add.setBackground(bg(0xFFE5C28A,14));headline.addView(add,new LinearLayout.LayoutParams(dp(48),dp(48)));add.setOnClickListener(v->edit(-1));searchToggle=label("검색",13,0xFFFFF1D5);searchToggle.setGravity(Gravity.CENTER);searchToggle.setContentDescription("검색 펼치기");headline.addView(searchToggle,new LinearLayout.LayoutParams(dp(48),dp(48)));searchToggle.setOnClickListener(v->setSearchExpanded(!searchExpanded));header.addView(headline);
  search=new EditText(this);search.setSingleLine(true);search.setTextSize(13);search.setTextColor(0xFF243E32);search.setHintTextColor(0xFF667568);search.setHint("검색 · 제목, 주소, 카테고리");search.setPadding(dp(14),0,dp(12),0);search.setBackground(bg(0xF2FFF9EB,12));search.setText(filter);
  search.setImeOptions(android.view.inputmethod.EditorInfo.IME_ACTION_SEARCH);
@@ -119,7 +119,7 @@ public class MainActivity extends Activity {
  View.OnLongClickListener reveal=v->{backgroundOnly=true;root.setVisibility(View.INVISIBLE);revealOverlay.setVisibility(View.VISIBLE);return true;};
  header.setOnLongClickListener(reveal);shelves.setOnLongClickListener(reveal);shelfScroll.setOnLongClickListener(reveal);
  sceneShadow=new FurnitureShadow(this);sceneShadow.setVisibility(View.GONE);stage.addView(sceneShadow,new FrameLayout.LayoutParams(1,1));
- miniature=new ProjectedCabinetView(this);miniature.setRoomDecor(assets.get("themes/study/cabinet_decor.webp"));miniature.setContentDescription("작아진 책장 열기");miniature.setVisibility(View.GONE);stage.addView(miniature,new FrameLayout.LayoutParams(-1,-1));miniature.setOnClickListener(v->expandFromScene(true));
+ miniature=new ProjectedCabinetView(this);miniature.setContentDescription("작아진 책장 열기");miniature.setVisibility(View.GONE);stage.addView(miniature,new FrameLayout.LayoutParams(-1,-1));miniature.setOnClickListener(v->expandFromScene(true));
  roomForeground=new RoomPlateView(this,true);stage.addView(roomForeground,new FrameLayout.LayoutParams(-1,-1));
  lampSwitch=new View(this);lampSwitch.setFocusable(true);lampSwitch.setVisibility(View.GONE);
  lampSwitch.setOnClickListener(v->{if(sceneCollapsed&&!sceneAnimating&&renderedSceneTheme.id.equals("study")){studyLampOn=!studyLampOn;getPreferences(0).edit().putBoolean("studyLampOn",studyLampOn).apply();updateLampArtwork();updateLampSwitch();}});
@@ -279,14 +279,14 @@ public class MainActivity extends Activity {
  void showAmbientSettings(){
   LinearLayout content=new LinearLayout(this);content.setOrientation(LinearLayout.VERTICAL);content.setPadding(dp(22),dp(8),dp(22),dp(12));
   TextView info=label("테마 1에만 적용됩니다. 선택한 도시의 낮·밤과 날씨를 반영하며 위치 권한은 사용하지 않습니다.",13,0xFF574532);content.addView(info);
-  Switch motion=new Switch(this);motion.setText("움직이는 영상 · 날씨 효과");motion.setMinHeight(dp(48));motion.setChecked(motionEnabled);content.addView(motion);motion.setOnCheckedChangeListener((v,checked)->setStudyMotion(checked));
+  Switch motion=new Switch(this);motion.setText("창문 날씨 효과");motion.setMinHeight(dp(48));motion.setChecked(motionEnabled);content.addView(motion);motion.setOnCheckedChangeListener((v,checked)->setStudyMotion(checked));
   Switch quality=new Switch(this);quality.setText("효과 줄이기 · 저사양 기기");quality.setMinHeight(dp(48));quality.setChecked(roomExperience.reduced());content.addView(quality);quality.setOnCheckedChangeListener((v,checked)->roomExperience.setReduced(checked));
   ambientStatus=label("",13,0xFF574532);ambientStatus.setPadding(0,dp(12),0,dp(12));content.addView(ambientStatus);
   Button city=new Button(this);city.setText("날씨 지역 변경");content.addView(city);city.setOnClickListener(v->searchWeatherCity());
   Button refresh=new Button(this);refresh.setText("날씨 새로고침");content.addView(refresh);refresh.setOnClickListener(v->{weather.refresh(true);updateAmbient();});
   TextView credit=label("날씨: Open-Meteo · 도시: GeoNames· 인터넷 연결이 필요합니다. 연결되지 않으면 저장된 정보 또는 시간 기준 조명을 사용합니다.",12,0xFF746650);credit.setPadding(0,dp(10),0,0);content.addView(credit);
   ScrollView scrolling=new ScrollView(this);scrolling.addView(content);
-  AlertDialog dialog=new AlertDialog.Builder(this).setTitle("시간 · 날씨 · 영상").setView(scrolling).setPositiveButton("닫기",null).create();dialog.setOnDismissListener(v->ambientStatus=null);updateAmbient();dialog.show();
+  AlertDialog dialog=new AlertDialog.Builder(this).setTitle("시간 · 날씨").setView(scrolling).setPositiveButton("닫기",null).create();dialog.setOnDismissListener(v->ambientStatus=null);updateAmbient();dialog.show();
  }
  void searchWeatherCity(){
   EditText query=new EditText(this);query.setSingleLine(true);query.setHint("도시 이름 · 예: 서울, 부산, Tokyo");query.setMaxEms(80);

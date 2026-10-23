@@ -21,18 +21,18 @@ public class CabinetPanelTest {
   try{
    MainActivity a=lifecycle.get();a.setStudyMotion(false);
    for(int[] size:new int[][]{{591,1206},{926,428}}){
-    if(a.sceneCollapsed)a.expandFromScene(false);layout(a,size[0],size[1]);a.collapseToScene(false);layout(a,size[0],size[1]);
-    ProjectedCabinetView v=a.miniature;Bitmap b=Bitmap.createBitmap(v.getWidth(),v.getHeight(),Bitmap.Config.ARGB_8888);v.draw(new Canvas(b));
+    a.expandFromScene(false);layout(a,size[0],size[1]);a.expandFromScene(false);layout(a,size[0],size[1]);
+    BookshelfView v=a.currentCabinet;Bitmap b=Bitmap.createBitmap(v.getWidth(),v.getHeight(),Bitmap.Config.ARGB_8888);v.draw(new Canvas(b));
     File folder=new File("build/reports/cabinet-panel");folder.mkdirs();try(FileOutputStream out=new FileOutputStream(new File(folder,size[0]+"-panel.png"))){b.compress(Bitmap.CompressFormat.PNG,100,out);}
-    float[] front=new float[8];v.copyRenderedCorners(front);Matrix m=new Matrix();float[] source={0,0,v.content().getWidth(),0,v.content().getWidth(),v.content().getHeight(),0,v.content().getHeight()};m.setPolyToPoly(source,0,front,0,4);
+    Matrix m=new Matrix();
     // The final design is a photographed alpha frame, with closed wooden backs.
     // Inspect native rendered pixels in every cubby and both outer stiles.
     for(int cell=0;cell<9;cell++){
-     float[] r=CabinetGeometry.cell(cell),point={(r[0]+r[2])*.5f*v.content().getWidth(),(r[1]+r[3])*.5f*v.content().getHeight()};
+     float[] r=CabinetGeometry.cell(cell),point={(r[0]+r[2])*.5f*v.getWidth(),(r[1]+r[3])*.5f*v.getHeight()};
      m.mapPoints(point);assertTrue("Photographic cubby backs must be opaque",Color.alpha(b.getPixel((int)point[0],(int)point[1]))>=250);
     }
     for(float x:new float[]{.035f,.965f})for(float y:new float[]{.15f,.45f,.75f}){
-     float[] point={v.content().getWidth()*x,v.content().getHeight()*y};m.mapPoints(point);
+     float[] point={v.getWidth()*x,v.getHeight()*y};m.mapPoints(point);
      assertTrue("Photographic outer stiles must be closed",Color.alpha(b.getPixel((int)point[0],(int)point[1]))>=250);
     }
     b.recycle();

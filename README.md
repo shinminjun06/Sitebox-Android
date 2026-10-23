@@ -1,4 +1,4 @@
-> **3.1 사진 기반 2.5D 학생 방:** 같은 고해상도 책장과 실제 책 UI를 공유하며, 터치 접근·두 손가락 축소·뒤로 가기·전경 패럴랙스를 지원합니다. [구조·이미지 규격·검증 범위](docs/STUDENT_ROOM_ASSETS_AND_LAYERS.md)를 참고하세요.
+> **3.1.1 원본 사진 방:** 보내주신 사진의 책상·벽·모서리를 그대로 유지하고, 책장 영역만 실제 책 데이터로 표시합니다. [구조와 변경점](docs/REFERENCE_PHOTO_ROOM_KO.md).
 
 # SiteBox Android · 학교 서재
 
@@ -11,9 +11,9 @@
 - 제목·주소·카테고리 검색, 즐겨찾기, 메모, 사이트 미리보기, 페이지 전환
 - 책을 길게 눌러 같은 칸 순서 변경 또는 다른 칸 이동 (한 칸 7권)
 - 방 속 책장을 누르면 같은 책장의 정면 편집 화면으로 접근합니다. 두 손가락 오므리기 또는 뒤로 가기로 방에 돌아옵니다.
-- 550ms 전환을 현재 위치에서 반전할 수 있고, 창밖·방·전경은 깊이에 따라 다르게 움직입니다.
-- 방 화면에서 책상 스탠드를 누르면 조명을 끄고 켭니다. 낮·밤 전용 사진으로 반사광과 그림자도 전환합니다.
-- 사진에 맞춘 책장 원근과 바닥 접촉 그림자, 가로·정사각 화면의 안전한 구성과 효과 줄이기 옵션을 제공합니다.
+- 550ms 접근/복귀를 현재 위치에서 반전합니다. 원본 사진의 책상·벽은 한 장으로 유지합니다.
+- 방 화면에서 책상 스탠드를 누르면 조명을 끄고 켭니다. 지역 시간에 맞춰 같은 원본 사진의 색감과 국소 조명을 조정합니다. 물리적인 그림자 재계산은 제공하지 않습니다.
+- 원본 책장에 맞춘 실제 책 좌표, 가로·정사각 화면의 안전한 구성과 효과 줄이기 옵션을 제공합니다.
 - 명패를 눌러 해당 칸에 추가, 설정에서 카테고리 이름·테마 변경
 - 빈 배경이나 헤더를 길게 누르면 배경만 표시, 화면을 누르면 서재 복원
 
@@ -31,8 +31,8 @@ gradle :app:testDebugUnitTest :app:assembleDebug :app:assemblePreview :app:assem
 `SiteBox-debug-apk`와 실제 에뮬레이터 스크린샷 `SiteBox-device-qa`를 받을 수 있습니다.
 APK의 앱 정보와 `SOURCE_COMMIT.txt`에 빌드 소스 SHA가 기록됩니다.
 
-3.1 학생 방의 별도 검증은 `Verify photographic student room` 워크플로를 사용합니다.
-[서명 APK 직접 다운로드](https://raw.githubusercontent.com/shinminjun06/Sitebox-Android/c929663bdbdc3143c77879df4777ab0d7a7f5217/distribution/sitebox-3.1.0/SiteBox-3.1.0.apk) · [Actions 다운로드](https://github.com/shinminjun06/Sitebox-Android/actions/runs/39926760328) (`SiteBox-3.1.0-installable-apk`).
+3.1.1 원본 사진 방의 별도 검증은 `Verify photographic student room` 워크플로를 사용합니다.
+이전 3.1.0: [서명 APK 직접 다운로드](https://raw.githubusercontent.com/shinminjun06/Sitebox-Android/c929663bdbdc3143c77879df4777ab0d7a7f5217/distribution/sitebox-3.1.0/SiteBox-3.1.0.apk) · [Actions 다운로드](https://github.com/shinminjun06/Sitebox-Android/actions/runs/39926760328) (`SiteBox-3.1.0-installable-apk`).
 [에셋·레이어·좌표 명세](docs/STUDENT_ROOM_ASSETS_AND_LAYERS.md)와
 [검증 결과](docs/STUDENT_ROOM_VERIFICATION_KO.md)를 함께 제공합니다.
 

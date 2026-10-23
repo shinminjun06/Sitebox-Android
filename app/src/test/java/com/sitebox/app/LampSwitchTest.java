@@ -64,7 +64,7 @@ public class LampSwitchTest {
         // rendered cabinet rather than treating that transparent margin as furniture.
         float[] front=new float[8],side=new float[8],roof=new float[8];activity.miniature.copyRenderedCorners(front);activity.miniature.copyRenderedBodyCorners(side,roof);
         float top=Math.min(Math.min(front[1],front[3]),Math.min(roof[1],roof[3]));
-        assertTrue("The room needs more breathing space",(Math.max(front[5],front[7])-top)*activity.miniature.getScaleY()<activity.stage.getHeight()*.36f);
+        assertTrue("The original shelf hotspot must leave the ceiling unobstructed",top>activity.stage.getHeight()*.10f);
     }
     @Test public void landscapeLampRemainsTappableWithoutOpeningCabinet(){
         layout(1920,1080);activity.collapseToScene(false);View lamp=target("조명 끄기");

@@ -83,7 +83,7 @@ jobs:
             grep -q 'PASS Google backup codec and local restore verified' device-tests.txt
             test -s device-qa/qa/backup-settings.png
             test -s device-qa/qa/backup-preview.png
-            grep -q 'PASS study live ambient and decoder lifecycle verified' device-tests.txt
+            grep -q 'PASS original photo, weather and lifecycle verified' device-tests.txt
             for scene in day night rain snow; do test -s "device-qa/qa/ambient-$scene.png"; done
             ! grep -q 'FAIL ' device-tests.txt
             adb install -r app/build/outputs/apk/preview/app-preview.apk

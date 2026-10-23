@@ -117,3 +117,12 @@ for phase in ['day','night']:
  assert len(m['streams'])==1 and m['streams'][0]['codec_name']=='h264' and m['streams'][0]['width']==480 and m['streams'][0]['height']==480
  assert 5.8<float(m['format']['duration'])<6.2 and p.stat().st_size<1000000
 print('PASS: 10 photographic student-room images, exact registered canvases, real room/window/foreground alpha, bounded decode budget and two silent fallback loops')
+
+# The active room must preserve the actual uploaded reference byte-for-byte.
+import hashlib
+reference=student/"room_reference.jpg"
+assert hashlib.sha256(reference.read_bytes()).hexdigest()=="275373adaff1581fa1d089ce74f21ff1dc9540ccf9a9eb5bd45f7bc19d0f6e18"
+assert Image.open(reference).size==(720,1280)
+photo_shelf=Image.open(student/"reference_cabinet.webp")
+assert photo_shelf.size==(941,1672) and photo_shelf.mode=="RGB"
+print("PASS: unchanged uploaded reference photo and shelf-only 3x3 photographic patch")

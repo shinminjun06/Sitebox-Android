@@ -3,15 +3,20 @@ package com.sitebox.app;
 /** Photographic registration in normalized source coordinates, independent of device pixels. */
 final class RoomScene {
  static final String ROOT="themes/rooms/student/";
- static final float[] CABINET={.035f,.385f,.225f,.384f,.225f,.590f,.035f,.670f};
+ static final String REFERENCE=ROOT+"room_reference.jpg";
+ // Hotspot on the actual bookshelf in the unmodified user photograph.
+ static final float[] CABINET={0,.170f,.216f,.235f,.216f,.598f,0,.670f};
+ // Source corners of the edited bookshelf photograph. Only this polygon is used;
+ // every desk, wall and window pixel continues to come from the original JPEG.
+ static final float[] PHOTO_FRAME={0,.170f,.216f,.235f,.216f,.598f,0,.670f};
  private static final float CABINET_X=(CABINET[0]+CABINET[2]+CABINET[4]+CABINET[6])*.25f;
  private static final float CABINET_Y=(CABINET[1]+CABINET[3]+CABINET[5]+CABINET[7])*.25f;
  private static final float CABINET_HEIGHT=(CABINET[7]-CABINET[1]+CABINET[5]-CABINET[3])*.5f;
  static final float[] LAMP={.340f,.350f,.470f,.407f};
- static final float[] SKY={.360f,.115f,.940f,.455f};
+ static final float[] SKY={.390f,.140f,.900f,.410f};
  // Effect coverage is deliberately generous; room_shell alpha preserves the exact
  // mullions, lace, lamp and plant silhouettes above the outdoor layer.
- static final float[][] GLASS={{.350f,.130f,.920f,.130f,.920f,.440f,.350f,.440f}};
+ static final float[][] GLASS={{.400f,.160f,.650f,.155f,.650f,.345f,.400f,.345f},{.680f,.155f,.890f,.150f,.890f,.345f,.680f,.345f}};
  static final int OUTSIDE=0,ROOM=1,FOREGROUND=2;
  private RoomScene(){}
  /** Fit the complete photographic composition. Extreme ratios use an ambient surround. */
@@ -20,7 +25,7 @@ final class RoomScene {
  }
  static void camera(float w,float h,float iw,float ih,float progress,int layer,boolean reduced,float left,float top,float right,float bottom,float[] out){
   float base=w>=h*.8f?Math.min(w/iw,h/ih):Math.min(Math.max(w/iw,h/ih),w/(iw*.89f)),q=1-clamp(progress);
-  float bx=iw*base>w?-(iw*base-w)*.22f:(w-iw*base)*.5f,by=(h-ih*base)*.5f;
+  float bx=iw*base>w?0:(w-iw*base)*.5f,by=(h-ih*base)*.5f;
   float anchorX=iw*base*CABINET_X,anchorY=ih*base*CABINET_Y;
   float zoomTo=Math.max(1,Math.min(3,(bottom-top)/(ih*base*CABINET_HEIGHT)));
   float depth=reduced?0:layer==OUTSIDE?.12f:layer==ROOM?1:1.18f;

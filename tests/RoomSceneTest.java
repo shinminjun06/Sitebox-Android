@@ -18,7 +18,7 @@ public class RoomSceneTest {
     check(outside[0]<=room[0]+.001,"Outside coverage must not exaggerate the room camera zoom");
     RoomScene.map(RoomScene.SKY,941,1672,outside,sky);
     for(float[] glass:RoomScene.GLASS){RoomScene.map(glass,941,1672,room,pane);for(int i=0;i<8;i+=2){check(pane[i]>=sky[0]-.1f&&pane[i]<=sky[2]+.1f&&pane[i+1]>=sky[1]-.1f&&pane[i+1]<=sky[3]+.1f,"Frame-free sky overscan covers moving window at "+w+"x"+h+" p="+progress);points++;}}
-    if(progress==1){RoomScene.map(RoomScene.CABINET,941,1672,room,cabinet);for(int i=0;i<8;i+=2)check(cabinet[i]>0&&cabinet[i]<w&&cabinet[i+1]>0&&cabinet[i+1]<h,"Whole cabinet stays visible in room mode");}
+    if(progress==1){RoomScene.map(RoomScene.CABINET,941,1672,room,cabinet);for(int i=0;i<8;i+=2)check(cabinet[i]>=0&&cabinet[i]<w&&cabinet[i+1]>0&&cabinet[i+1]<h,"Visible photographed shelf stays inside the room viewport");}
    }
    RoomScene.transform(w,h,941,1672,0,RoomScene.FOREGROUND,true,foreground);RoomScene.transform(w,h,941,1672,1,RoomScene.ROOM,true,room);
    for(int i=0;i<3;i++)check(Math.abs(foreground[i]-room[i])<.001,"Reduced effects disable plane movement");

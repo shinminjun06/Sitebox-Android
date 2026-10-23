@@ -12,8 +12,9 @@ import android.widget.TextView;
 final class BookshelfView extends FrameLayout {
  private final ImageView cabinet;
  private final Bitmap artwork;
+ private final RectF[] roomCells=new RectF[9];
  BookshelfView(Context context,Bitmap bitmap){
-  super(context);artwork=bitmap;setClipChildren(false);setClipToPadding(false);
+  super(context);artwork=bitmap;setClipChildren(false);setClipToPadding(false);for(int i=0;i<9;i++)roomCells[i]=new RectF();
   cabinet=new ImageView(context);cabinet.setScaleType(ImageView.ScaleType.FIT_XY);
   if(bitmap!=null)cabinet.setImageBitmap(bitmap);
   else {setBackgroundColor(0xffad8056);}
@@ -29,7 +30,10 @@ final class BookshelfView extends FrameLayout {
  }
  /** Draw the same actual frame/books at full canvas resolution, including during travel. */
  void drawProjected(Canvas canvas,float labels){
-  cabinet.draw(canvas);drawRoomBooks(canvas);
+  drawFrame(canvas);drawRoomBooks(canvas);drawCategoryLabels(canvas,labels);
+ }
+ void drawFrame(Canvas canvas){cabinet.draw(canvas);}
+ void drawCategoryLabels(Canvas canvas,float labels){
   if(labels<=0)return;
   int layer=canvas.saveLayerAlpha(0,0,getWidth(),getHeight(),Math.round(255*labels));
   for(int i=1;i<getChildCount();i++){
@@ -43,6 +47,15 @@ final class BookshelfView extends FrameLayout {
   for(int i=1;i<getChildCount();i++){
    View child=getChildAt(i);if(!(child.getTag() instanceof Integer)||(Integer)child.getTag()>=9)continue;
    int save=canvas.save();canvas.translate(child.getLeft(),child.getTop());child.draw(canvas);canvas.restoreToCount(save);
+  }
+ }
+ /** Real book children fitted to the measured openings in the reference photograph. */
+ void drawPhotoBooks(Canvas canvas,float progress){
+  for(int i=1;i<getChildCount();i++){
+   View child=getChildAt(i);if(!(child.getTag() instanceof Integer)||(Integer)child.getTag()>=9)continue;RectF room=roomCells[(Integer)child.getTag()];
+   float left=child.getLeft()+(room.left-child.getLeft())*progress,top=child.getTop()+(room.top-child.getTop())*progress;
+   float width=child.getWidth()+(room.width()-child.getWidth())*progress,height=child.getHeight()+(room.height()-child.getHeight())*progress;
+   if(child.getWidth()==0||child.getHeight()==0)continue;int save=canvas.save();canvas.translate(left,top);canvas.scale(width/child.getWidth(),height/child.getHeight());child.draw(canvas);canvas.restoreToCount(save);
   }
  }
  @Override protected void onMeasure(int widthSpec,int heightSpec){
@@ -60,6 +73,7 @@ final class BookshelfView extends FrameLayout {
  }
  @Override protected void onLayout(boolean changed,int left,int top,int right,int bottom){
   int w=right-left,h=bottom-top;cabinet.layout(0,0,w,h);
+  for(int cell=0;cell<9;cell++){float[] r=CabinetGeometry.photoCell(cell);roomCells[cell].set(w*r[0],h*r[1],w*r[2],h*r[3]);}
   for(int i=1;i<getChildCount();i++){
    View child=getChildAt(i);int tag=(Integer)child.getTag();int cell=tag%9;
    float[] r=LibraryRules.cell(cell);

@@ -24,6 +24,9 @@ final class RoomExperience {
   reduced=a.getPreferences(0).getBoolean("roomReducedEffects",manager!=null&&manager.isLowRamDevice());
   transition=new RoomTransition(this::render);
   a.studyLive.setStudentRoom(true);a.studyLive.setVisibility(View.VISIBLE);a.studyLive.setFrameListener(this::updateLighting);
+  a.studyLive.setReferencePhoto(true);a.studyLive.bringToFront();
+  a.backdrop.setReferencePhoto(true);a.miniature.setPhotoBackdrop(true);
+  a.outsideLayer.setVisibility(View.GONE);a.roomForeground.setVisibility(View.GONE);
  }
  boolean reduced(){return reduced;}
  void setReduced(boolean value){reduced=value;a.getPreferences(0).edit().putBoolean("roomReducedEffects",value).apply();a.studyLive.setReducedEffects(value);relayout();}
@@ -36,12 +39,11 @@ final class RoomExperience {
  void relayout(){
   if(disposed||a.stage.getWidth()==0||a.stage.getHeight()==0)return;
   if(day==null){
-   day=a.assets.get(RoomScene.ROOT+"room_day.webp");night=a.assets.get(RoomScene.ROOT+"room_night.webp");nightOff=a.assets.get(RoomScene.ROOT+"room_night_off.webp");
-   foregroundDay=a.assets.get(RoomScene.ROOT+"foreground_day.webp");foregroundNight=a.assets.get(RoomScene.ROOT+"foreground_night.webp");
+   day=a.assets.get(RoomScene.REFERENCE);night=null;nightOff=null;
    if(day==null){day=a.assets.scene(false);night=a.assets.get("scenes/study_night_portrait.webp");}
-   outsideDay=a.assets.get(RoomScene.ROOT+"outside_day.webp");outsideNight=a.assets.get(RoomScene.ROOT+"outside_night.webp");
-   a.backdrop.setPlates(day,night,nightOff);a.backdrop.setShell(a.assets.get(RoomScene.ROOT+"room_shell.webp"));a.backdrop.setDayOff(a.assets.get(RoomScene.ROOT+"room_day_off.webp"));a.outsideLayer.setPlates(outsideDay,null,null);a.studyLive.setWindowTextures(outsideDay,outsideNight);a.roomForeground.setPlates(foregroundDay,foregroundNight,null);
+   a.backdrop.setPlates(day,null,null);a.backdrop.setShell(null);a.studyLive.setWindowTextures(null,null);
    a.sceneBackdrop=day;
+   a.miniature.setPhotoFrame(a.assets.get(RoomScene.ROOT+"reference_cabinet.webp"));
   }
   if(day==null)return;
   if(sceneWidth!=a.stage.getWidth()||sceneHeight!=a.stage.getHeight()){
@@ -82,19 +84,20 @@ final class RoomExperience {
   // Foreground may have its own decode resolution, but retains the same normalized canvas.
   if(foregroundDay!=null){foregroundMatrix.setScale(iw*front[0]/foregroundDay.getWidth(),ih*front[0]/foregroundDay.getHeight());foregroundMatrix.postTranslate(front[1],front[2]);}
   a.roomForeground.setGeometry(foregroundMatrix,skyMatrix,panes);
-  a.studyLive.setRoomTransforms(room,sky);
+  a.studyLive.setRoomTransforms(room,room);
   RoomScene.transform(w,h,iw,ih,1,RoomScene.ROOM,reduced,mapped);RoomScene.map(RoomScene.CABINET,iw,ih,mapped,quad);
   a.miniature.setPose(editorBounds,quad);a.miniature.setProjectionFraction(p);
   boolean editor=p<.0001f&&!running;
   a.currentCabinet.setVisibility(editor?View.VISIBLE:View.INVISIBLE);
   a.controls.setVisibility(p>=.9999f&&!running?View.INVISIBLE:View.VISIBLE);
   a.controls.setAlpha(Math.max(0,1-p*2));
+  a.controls.setBackgroundColor(Color.argb(Math.round(240*(1-p)),29,30,28));
   a.controls.setImportantForAccessibility(editor?View.IMPORTANT_FOR_ACCESSIBILITY_AUTO:View.IMPORTANT_FOR_ACCESSIBILITY_NO_HIDE_DESCENDANTS);
   a.miniature.setVisibility(editor?View.GONE:View.VISIBLE);a.miniature.setEnabled(!editor);
   a.miniature.setImportantForAccessibility(editor?View.IMPORTANT_FOR_ACCESSIBILITY_NO:View.IMPORTANT_FOR_ACCESSIBILITY_YES);
-  a.roomForeground.setAlpha(p);
-  a.roomLayer.setAlpha(.72f+.28f*p);
-  positionShadow();a.sceneShadow.setAlpha(p*p);a.sceneShadow.setVisibility(p>0?View.VISIBLE:View.GONE);
+  a.roomForeground.setVisibility(View.GONE);
+  a.roomLayer.setAlpha(1);
+  a.sceneShadow.setVisibility(View.GONE);
   a.updateLampSwitch();updateLighting();
  }
  private static void matrix(Matrix m,float[] t){m.setScale(t[0],t[0]);m.postTranslate(t[1],t[2]);}
@@ -114,6 +117,7 @@ final class RoomExperience {
   a.roomLayer.setBackgroundColor(Color.rgb(Math.round(17+(84-17)*daylight),Math.round(24+(75-24)*daylight),Math.round(36+(60-36)*daylight)));
   a.backdrop.setLighting(daylight,clouds,a.studyLampOn);a.roomForeground.setLighting(daylight,clouds,a.studyLampOn);
   a.miniature.setAmbientLight(daylight*(1-.35f*clouds));a.sceneShadow.setAmbientLight(daylight*(1-.35f*clouds));
+  a.miniature.setPhotoLighting(daylight,clouds);
  }
  void setClouds(float value){clouds=value;updateLighting();}
  void lampBounds(float[] out){

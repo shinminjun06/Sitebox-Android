@@ -30,6 +30,9 @@ final class StudyLiveView extends FrameLayout {
     private final Matrix outsideNightMatrix=new Matrix();
     private Bitmap outsideDay,outsideNight;
     private boolean studentRoom,reducedEffects;
+    private boolean referencePhoto;
+    void setReferencePhoto(boolean value){referencePhoto=value;if(value){stopVideo();videoClip.setVisibility(GONE);}else videoClip.setVisibility(VISIBLE);reconcile();}
+    boolean isReferencePhoto(){return referencePhoto;}
     private Runnable frameListener;
     void setStudentRoom(boolean value){studentRoom=value;updateGeometry();}
     void setFrameListener(Runnable listener){frameListener=listener;}
@@ -175,7 +178,7 @@ final class StudyLiveView extends FrameLayout {
         // Prime the texture with one opacity level even before player creation;
         // release/failure/inactivity still hide it completely. The opaque still
         // underneath remains the visible fallback until a decoder frame arrives.
-        texture.setAlpha(canRunMotion() && day != null && !decoderFailed && !(studentRoom&&reducedEffects)
+        texture.setAlpha(!referencePhoto && canRunMotion() && day != null && !decoderFailed && !(studentRoom&&reducedEffects)
                 ? Math.max(1f/255f,visible) : 0);
     }
     private void settleAtmosphere() {
@@ -258,7 +261,7 @@ final class StudyLiveView extends FrameLayout {
     }
 
     private void startVideoIfReady() {
-        if (!canRunMotion() || studentRoom&&reducedEffects || decoderFailed || player != null || day == null || day.isRecycled()
+        if (referencePhoto || !canRunMotion() || studentRoom&&reducedEffects || decoderFailed || player != null || day == null || day.isRecycled()
                 || !texture.isAvailable() || getWidth() == 0 || getHeight() == 0) return;
         firstFrame = false; renderingStarted = false; texture.setAlpha(0);
         videoNight = targetDaylight < .5f;
@@ -323,7 +326,7 @@ final class StudyLiveView extends FrameLayout {
             warmMask.setAlpha(strength);int save=canvas.save();canvas.translate(offsetX+day.getWidth()*scale*x,offsetY+day.getHeight()*scale*y);canvas.scale(day.getWidth()*scale*rx,day.getHeight()*scale*ry);canvas.drawCircle(0,0,1,warmMask);canvas.restoreToCount(save);
         }
         @Override protected void onDraw(Canvas canvas) {
-            if (day == null || day.isRecycled()) return;
+            if (referencePhoto || day == null || day.isRecycled()) return;
             int windowSave=canvas.save();if(studentRoom)canvas.clipPath(glass);
             Bitmap moon=studentRoom&&outsideNight!=null?outsideNight:night;
             if (moon != null && !moon.isRecycled() && daylight < 1) {

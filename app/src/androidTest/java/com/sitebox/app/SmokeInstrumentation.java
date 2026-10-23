@@ -133,6 +133,7 @@ public final class SmokeInstrumentation extends Instrumentation {
  }
  // Deterministic weather previews isolate native rendering from the live provider.
  void ambientScenes(){
+  if(activity.studyLive.isReferencePhoto()){referencePhotoScenes();return;}
   final String data=activity.sites.toString(),categories=new JSONArray(java.util.Arrays.asList(activity.categories)).toString();
   final String filter=activity.filter,room=activity.backgroundThemeId;
   final int shelf=activity.shelfThemeIndex,book=activity.bookThemeIndex,page=activity.page;
@@ -180,6 +181,26 @@ public final class SmokeInstrumentation extends Instrumentation {
   }finally{
    main(()->{activity.clearAmbientPreview();activity.setStudyMotion(motion);activity.applyBackgroundTheme(room);activity.shelfThemeIndex=shelf;activity.bookThemeIndex=book;try{activity.sites=new JSONArray(data);}catch(JSONException error){throw new RuntimeException(error);}activity.search.setText(filter);activity.page=page;activity.save();activity.populate();if(collapsed)activity.collapseToScene(false);else if(activity.sceneCollapsed)activity.expandFromScene(false);});
   }
+ }
+ void referencePhotoScenes(){
+  final boolean motion=activity.motionEnabled,collapsed=activity.sceneCollapsed;final String data=activity.sites.toString();long t=1700000000000L;
+  try{
+   main(()->{activity.setStudyMotion(false);activity.setAmbientPreview(new WeatherState(20,0,0,0,t,0,0,t,true,0,1),t);activity.collapseToScene(false);});awaitScene(true);snapshot("ambient-day.png");
+   final java.util.ArrayList<int[]> samples=new java.util.ArrayList<>();
+   main(()->{
+    check(activity.sceneBackdrop==activity.assets.get(RoomScene.REFERENCE),"unmodified user photo is the room background");check(activity.roomForeground.getVisibility()==View.GONE&&activity.sceneShadow.getVisibility()==View.GONE,"no independently composited desk, furniture or floor shadow");check(!activity.studyLive.isPlaying()&&!activity.studyLive.hasVideoFrame(),"original photo does not decode replacement scenery");
+    int[] origin=new int[2];activity.backdrop.getLocationOnScreen(origin);
+    for(float[] sample:new float[][]{{.24f,.13f},{.24f,.37f},{.50f,.48f},{.48f,.90f},{.55f,.76f}}){float[] p={sample[0]*activity.sceneBackdrop.getWidth(),sample[1]*activity.sceneBackdrop.getHeight()};int color=activity.sceneBackdrop.getPixel((int)p[0],(int)p[1]);activity.backdrop.getImageMatrix().mapPoints(p);samples.add(new int[]{Math.round(p[0])+origin[0],Math.round(p[1])+origin[1],color});}
+   });
+   Bitmap screen=getUiAutomation().takeScreenshot();try{for(int[] sample:samples){int actual=screen.getPixel(sample[0],sample[1]),expected=sample[2];check(Math.abs(android.graphics.Color.red(actual)-android.graphics.Color.red(expected))+Math.abs(android.graphics.Color.green(actual)-android.graphics.Color.green(expected))+Math.abs(android.graphics.Color.blue(actual)-android.graphics.Color.blue(expected))<45,"native screenshot preserves original desk, wall and floor pixels");}}finally{screen.recycle();}
+   try(java.io.InputStream input=getTargetContext().getAssets().open(RoomScene.REFERENCE)){java.security.MessageDigest hash=java.security.MessageDigest.getInstance("SHA-256");byte[] bytes=new byte[8192];int n;while((n=input.read(bytes))!=-1)hash.update(bytes,0,n);StringBuilder hex=new StringBuilder();for(byte b:hash.digest())hex.append(String.format(java.util.Locale.ROOT,"%02x",b&255));check(hex.toString().equals("275373adaff1581fa1d089ce74f21ff1dc9540ccf9a9eb5bd45f7bc19d0f6e18"),"reference photo bytes match the uploaded original");}catch(Exception error){throw new RuntimeException(error);}
+   main(()->activity.setAmbientPreview(new WeatherState(20,0,0,0,t,0,0,t,true,0,0),t));snapshot("ambient-night.png");
+   main(()->{activity.setStudyMotion(true);activity.setAmbientPreview(new WeatherState(15,12,63,95,t,t-21600000L,t+21600000L,t,true),t);});awaitDaylight(1);snapshot("ambient-rain.png");
+   main(()->activity.setAmbientPreview(new WeatherState(-3,8,73,100,t,t-21600000L,t+21600000L,t,true),t));snapshot("ambient-snow.png");
+   try{main(()->callActivityOnPause(activity));android.os.SystemClock.sleep(350);final long[] paused={0};main(()->paused[0]=activity.studyLive.atmosphericFrames());android.os.SystemClock.sleep(250);main(()->check(activity.studyLive.atmosphericFrames()==paused[0],"photo weather pauses with activity"));}finally{main(()->callActivityOnResume(activity));}
+   main(()->{check(activity.sites.toString().equals(data),"original photo atmosphere preserves actual book data");activity.setStudyMotion(false);check(!activity.studyLive.isPlaying(),"photo mode keeps decoder stopped");});
+   checks.append("PASS original photo, weather and lifecycle verified\n");
+  }finally{main(()->{activity.clearAmbientPreview();activity.setStudyMotion(motion);if(collapsed)activity.collapseToScene(false);else activity.expandFromScene(false);});}
  }
  void assertAmbientLibrary(String data,String categories,String filter,int page,int shelf,int book){
   main(()->{
@@ -299,7 +320,7 @@ public final class SmokeInstrumentation extends Instrumentation {
   check(activity.assets.cachedRoomBytes()<=12*1024*1024&&activity.assets.cachedArtworkBytes()<=12*1024*1024&&activity.assets.cachedStudentBytes()<=24*1024*1024,theme.id+" independent artwork/room caches bounded");
   float[] q=new float[8];activity.miniature.copyRenderedCorners(q);
   for(int i=0;i<8;i+=2)check(q[i]>=0&&q[i]<activity.stage.getWidth()&&q[i+1]>=0&&q[i+1]<activity.stage.getHeight(),theme.id+" actual furniture corner "+i+" stays in viewport");
-  check(activity.sceneShadow.getVisibility()==View.VISIBLE&&activity.sceneShadow.getAlpha()>.99f,theme.id+" contact shadow visible");
+  check(activity.sceneShadow.getVisibility()==View.GONE,theme.id+" original photo retains its own contact shadows");
  }
  void checkEditorPose(){
   float[] q=new float[8];activity.miniature.copyRenderedCorners(q);android.graphics.RectF r=activity.cabinetBounds();float[] expected={r.left,r.top,r.right,r.top,r.right,r.bottom,r.left,r.bottom};
@@ -309,7 +330,7 @@ public final class SmokeInstrumentation extends Instrumentation {
  void checkProjection(SceneTheme theme){
   ProjectedCabinetView view=activity.miniature;
   check(view.content()==activity.currentCabinet,theme.id+" live native book children shared with projection");
-  check(((android.graphics.drawable.BitmapDrawable)view.getDrawable()).getBitmap()==activity.currentCabinet.artwork(),theme.id+" identical photographic frame in both modes");
+  check(((android.graphics.drawable.BitmapDrawable)view.getDrawable()).getBitmap()==activity.currentCabinet.artwork(),theme.id+" native editor frame remains available during approach");
   check(Math.abs(view.getProjectionFraction()-1)<.0001f,theme.id+" single room timeline settled");
   float[] actual=new float[8],expected=new float[8];view.copyRenderedCorners(actual);
   for(int i=0;i<8;i+=2){expected[i]=RoomScene.CABINET[i]*activity.sceneBackdrop.getWidth();expected[i+1]=RoomScene.CABINET[i+1]*activity.sceneBackdrop.getHeight();}
@@ -317,10 +338,9 @@ public final class SmokeInstrumentation extends Instrumentation {
   for(int i=0;i<8;i++)check(Math.abs(actual[i]-expected[i])<.5f,theme.id+" photograph-registered furniture corner "+i);
   check(Math.abs(actual[0]-actual[6])<.1f&&Math.abs(actual[2]-actual[4])<.1f,theme.id+" upright cabinet posts");
   android.graphics.Matrix m=new android.graphics.Matrix();float w=activity.currentCabinet.getWidth(),h=activity.currentCabinet.getHeight();float[] source={0,0,w,0,w,h,0,h};m.setPolyToPoly(source,0,actual,0,4);
-  for(int cell=0;cell<9;cell++){float[] b=CabinetGeometry.cell(cell),p={(b[0]+b[2])*.5f*w,(b[1]+b[3])*.5f*h};m.mapPoints(p);check(view.hitCell(p[0],p[1])==cell,theme.id+" native projected touch cell "+cell);}
-  float[] contacts=new float[4],floor=new float[8];activity.sceneShadow.contactCenters(contacts);view.groundedFootprint(floor);
-  check(Math.abs(contacts[0]-floor[6])<1&&Math.abs(contacts[1]-floor[4])<1&&Math.abs(contacts[2]-floor[7])<1&&Math.abs(contacts[3]-floor[5])<1,theme.id+" shadows meet photographed feet");
-  try{JSONObject pose=new JSONObject();JSONArray coordinates=new JSONArray();for(float v:actual)coordinates.put(v);pose.put("front",coordinates);pose.put("liveBooks",true);pose.put("frame","themes/rooms/student/cabinet_front.webp");File dir=new File(getTargetContext().getExternalFilesDir(null),"qa");dir.mkdirs();try(FileOutputStream out=new FileOutputStream(new File(dir,"room-pose.json"))){out.write(pose.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8));}}catch(Exception e){throw new RuntimeException(e);}
+  for(int cell=0;cell<9;cell++){float[] b=CabinetGeometry.photoCell(cell),p={(b[0]+b[2])*.5f*w,(b[1]+b[3])*.5f*h};m.mapPoints(p);check(view.hitCell(p[0],p[1])==cell,theme.id+" native projected touch cell "+cell);}
+  check(activity.sceneShadow.getVisibility()==View.GONE,theme.id+" no synthetic shadow over the reference photo");
+  try{JSONObject pose=new JSONObject();JSONArray coordinates=new JSONArray();for(float v:actual)coordinates.put(v);pose.put("front",coordinates);pose.put("roomPhoto",RoomScene.REFERENCE);pose.put("liveBooks",true);pose.put("editorLiveBooks",true);pose.put("roomFrame",RoomScene.ROOT+"reference_cabinet.webp");File dir=new File(getTargetContext().getExternalFilesDir(null),"qa");dir.mkdirs();try(FileOutputStream out=new FileOutputStream(new File(dir,"room-pose.json"))){out.write(pose.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8));}}catch(Exception e){throw new RuntimeException(e);}
  }
  void rotateBackground(SceneTheme theme){
   final String data=activity.sites.toString(),filter=activity.filter;final int page=activity.page;

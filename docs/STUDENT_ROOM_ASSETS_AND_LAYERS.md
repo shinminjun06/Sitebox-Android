@@ -1,3 +1,5 @@
+> **현재 3.1.1:** 원본 사진과 책장 영역만 사용하는 [최신 구조·검증 범위](REFERENCE_PHOTO_ROOM_KO.md)를 따릅니다. 아래는 이전 3.1.0의 구현 기록입니다.
+
 # SiteBox 3.1 · photographed room, assets and transforms
 
 ## Implemented architecture

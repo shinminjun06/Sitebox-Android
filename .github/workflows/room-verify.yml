@@ -62,7 +62,7 @@ jobs:
             grep -q 'PASS all nine theme combinations rendered' room-device-tests.txt
             grep -q 'PASS all nine category names have visible on-screen lettering' room-device-tests.txt
             grep -q 'PASS automatic sync merges, deletions, conflicts, account persistence and automatic restore verified' room-device-tests.txt
-            grep -q 'PASS study live ambient and decoder lifecycle verified' room-device-tests.txt
+            grep -q 'PASS original photo, weather and lifecycle verified' room-device-tests.txt
             grep -q 'PASS photographic room reverse continuity, repeated requests and native Back verified' room-device-tests.txt
             ! grep -q 'FAIL ' room-device-tests.txt
       - uses: actions/upload-artifact@v4

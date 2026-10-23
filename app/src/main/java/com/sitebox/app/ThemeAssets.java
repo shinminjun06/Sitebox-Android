@@ -54,7 +54,7 @@ final class ThemeAssets {
   Bitmap room=get(theme.assetPath(landscape));return room!=null?room:scene(landscape);
  }
  Bitmap scenePreview(SceneTheme theme){
-  String path=RoomScene.ROOT+"room_day.webp";Bitmap existing=previews.get(path);if(existing!=null)return existing;
+  String path=RoomScene.REFERENCE;Bitmap existing=previews.get(path);if(existing!=null)return existing;
   try(InputStream stream=context.getAssets().open(path)){
    BitmapFactory.Options options=new BitmapFactory.Options();options.inScaled=false;options.inSampleSize=8;
    Bitmap decoded=BitmapFactory.decodeStream(stream,null,options);if(decoded!=null)previews.put(path,decoded);return decoded;
