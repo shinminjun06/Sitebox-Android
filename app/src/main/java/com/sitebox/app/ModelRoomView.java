@@ -127,6 +127,8 @@ final class ModelRoomView extends TextureView implements TextureView.SurfaceText
   lamp=EntityManager.get().create();new LightManager.Builder(LightManager.Type.POINT).position(-.36f,1.31f,-1.16f).color(1,.66f,.32f).intensity(2400).falloff(3.8f).castShadows(false).build(engine,lamp);scene.addEntity(lamp);
   ambient=new IndirectLight.Builder().irradiance(1,new float[]{1,1,1}).intensity(18000).build(engine);scene.setIndirectLight(ambient);
   android.util.Log.i("SiteBox3D","Loaded supplied room GLB: "+asset.getRenderableEntities().length+" renderables, scene="+scene.getRenderableCount()+", surface="+getWidth()+"x"+getHeight());asset.releaseSourceData();applyFinish();updateCamera();updateLights();updateWindow();
+  android.util.Log.i("SiteBox3D","Camera eye="+java.util.Arrays.toString(rig==null?null:rig.eye)+", target="+java.util.Arrays.toString(rig==null?null:rig.target)+", model="+java.util.Arrays.toString(camera.getModelMatrix(new double[16]))+", projection="+java.util.Arrays.toString(camera.getProjectionMatrix(new double[16])));
+  for(int entity:asset.getRenderableEntities())if("Bookshelf_3x3_Back_063".equals(asset.getName(entity)))android.util.Log.i("SiteBox3D","Shelf world transform="+java.util.Arrays.toString(tm.getWorldTransform(tm.getInstance(entity),new float[16])));
  }
  private void configureQuality(){
   view.setAntiAliasing(com.google.android.filament.View.AntiAliasing.FXAA);
