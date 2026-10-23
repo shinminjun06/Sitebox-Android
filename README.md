@@ -32,7 +32,7 @@ gradle :app:testDebugUnitTest :app:assembleDebug :app:assemblePreview :app:assem
 APK의 앱 정보와 `SOURCE_COMMIT.txt`에 빌드 소스 SHA가 기록됩니다.
 
 3.1 학생 방의 별도 검증은 `Verify photographic student room` 워크플로를 사용합니다.
-서명된 설치본은 `Download SiteBox 3.1.0 APK`의 `SiteBox-3.1.0-installable-apk`에 있습니다.
+[서명 APK 직접 다운로드](https://raw.githubusercontent.com/shinminjun06/Sitebox-Android/c929663bdbdc3143c77879df4777ab0d7a7f5217/distribution/sitebox-3.1.0/SiteBox-3.1.0.apk) · [Actions 다운로드](https://github.com/shinminjun06/Sitebox-Android/actions/runs/39926760328) (`SiteBox-3.1.0-installable-apk`).
 [에셋·레이어·좌표 명세](docs/STUDENT_ROOM_ASSETS_AND_LAYERS.md)와
 [검증 결과](docs/STUDENT_ROOM_VERIFICATION_KO.md)를 함께 제공합니다.
 

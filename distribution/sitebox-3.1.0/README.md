@@ -24,3 +24,5 @@ APK는 이 클라우드 환경에서 빌드·서명했습니다. Actions는 같�
 ![밤의 방](room-night.png)
 
 ![같은 책장의 편집 화면](editor-day.png)
+
+[배포용 서명 APK 설치·실행 검증](https://github.com/shinminjun06/Sitebox-Android/actions/runs/39926760328) 통과. 직접 다운로드와 Actions 아티팩트를 각각 내려받아 원본과 동일함을 확인했습니다. `signed-release-*.png`는 배포 APK의 실제 Android 15 화면입니다.

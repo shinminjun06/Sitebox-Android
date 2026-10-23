@@ -4,7 +4,7 @@
   "package": "com.sitebox.app",
   "builtSource": "84fb330994cc39ad6403a81da8ba69e441d01f8c",
   "verifiedSource": "84fb330994cc39ad6403a81da8ba69e441d01f8c",
-  "sourceDifference": "CI workflow, test sequencing and documentation only; shipped application source/assets are identical",
+  "sourceDifference": "none; built and verified application source are identical",
   "qaRun": "https://github.com/shinminjun06/Sitebox-Android/actions/runs/39925249890",
   "sha256": "a618a088351ab393a4a4d6c0e1439e21247caeb71cdc7577ecfd3fd0de922d5e",
   "bytes": 10194675,
@@ -14,5 +14,9 @@
   "limitations": [
     "No physical-device 60 fps measurement",
     "No real Google consent or live Drive account test"
-  ]
+  ],
+  "signedReleaseInstallationRun": "https://github.com/shinminjun06/Sitebox-Android/actions/runs/39926760328",
+  "signedReleaseInstallation": "passed",
+  "publicDownloadSHA256": "a618a088351ab393a4a4d6c0e1439e21247caeb71cdc7577ecfd3fd0de922d5e",
+  "actionsDownloadSHA256": "a618a088351ab393a4a4d6c0e1439e21247caeb71cdc7577ecfd3fd0de922d5e"
 }

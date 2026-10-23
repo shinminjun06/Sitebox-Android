@@ -38,9 +38,15 @@ Java 17, Android 기본 View/Canvas/Matrix, minSdk 24·targetSdk 35를 유지했
 
 기존 전체 검사는 [Android 15 실행 39911787756](https://github.com/shinminjun06/Sitebox-Android/actions/runs/39911787756)에서 통과했습니다. 화면 검토로 발견한 분류 명패 글자 누락은 별도 [재현 실행](https://github.com/shinminjun06/Sitebox-Android/actions/runs/39913606425)에서 9개 모두 잉크 0, 내부 TextView scrollX=524233으로 확인했습니다. 이 좌표를 부모/원근 렌더링 모두에서 보정하고 실제 기기 캡처 픽셀 검사를 추가했습니다. 최종 수정본은 [Android 15 실행 39925249890](https://github.com/shinminjun06/Sitebox-Android/actions/runs/39925249890)에서 전체 통과했습니다. 소스는 `84fb330994cc39ad6403a81da8ba69e441d01f8c`이며 APK에 같은 소스 SHA가 기록되어 있습니다. 실제 화면에서 9개 명패의 글자 잉크를 확인했고, 책 CRUD·드래그·검색·페이지·회전·원근 터치·핀치·반전·뒤로 가기·계정/동기화 회귀·동영상 생명주기 검사가 모두 통과했습니다.
 
+서명 APK 자체도 [설치·실행 검사](https://github.com/shinminjun06/Sitebox-Android/actions/runs/39926760328)를 통과했습니다. 새 Android 15 환경에 R8 릴리스를 설치하고 실제 화면 터치로 방→편집→설정→Google 계정 자동 동기화 화면을 열어 로그인 버튼·미연결 초기 상태·수동 백업 버튼 제거·치명 오류 없음을 확인했습니다. Google 동의 절차를 수행한 검사는 아닙니다.
+
+[설치 APK 직접 다운로드](https://raw.githubusercontent.com/shinminjun06/Sitebox-Android/c929663bdbdc3143c77879df4777ab0d7a7f5217/distribution/sitebox-3.1.0/SiteBox-3.1.0.apk) · [Actions 다운로드](https://github.com/shinminjun06/Sitebox-Android/actions/runs/39926760328)의 `SiteBox-3.1.0-installable-apk`.
+
+파일 크기: **10,194,675 bytes**. SHA-256: `a618a088351ab393a4a4d6c0e1439e21247caeb71cdc7577ecfd3fd0de922d5e`. 공개 직접 링크와 Actions 아티팩트를 각각 다시 내려받아 원본과 바이트 단위로 일치함을 확인했습니다. APK 코드·이미지 변경에 따른 추가 Google 콘솔 설정은 없습니다. 기존 OAuth의 Android 패키지/인증서는 그대로 사용합니다.
+
 ## 검증 범위와 추가 에셋
 
-실제 Google 동의 화면·실계정 Drive 전송, 실물 휴대폰의 60fps·발열·GPU 메모리는 이번 자동 검사로 증명하지 않습니다. Android 15 SwiftShader 소프트웨어 GPU의 기존 전체 검사 통계는 8,537프레임, 지연 프레임 98.20%, 중앙값 69ms였습니다. 화면 캡처·입력·대화상자·회전·초기 로딩을 모두 포함한 디버그 실행 값이며 실제 휴대폰의 애니메이션 성능으로 환산할 수 없습니다. 60fps 달성은 미확인입니다. 원본 통계와 최종 실행 통계를 배포 자료에 남깁니다. 계정/동기화 회귀 검사는 독립된 테스트 계정 상태와 저장소 대역을 사용합니다. 사진 전환 때문에 Google Cloud 설정을 새로 바꿀 필요는 없으며 기존 OAuth 설정은 [설정 문서](GOOGLE_DRIVE_SETUP_KO.md)를 따릅니다.
+실제 Google 동의 화면·실계정 Drive 전송, 실물 휴대폰의 60fps·발열·GPU 메모리는 이번 자동 검사로 증명하지 않습니다. Android 15 SwiftShader 소프트웨어 GPU의 최종 전체 검사 통계는 7,804프레임, 지연 프레임 97.87%, 중앙값 69ms였습니다. 화면 캡처·입력·대화상자·회전·초기 로딩을 모두 포함한 디버그 실행 값이며 실제 휴대폰의 애니메이션 성능으로 환산할 수 없습니다. 60fps 달성은 미확인입니다. 최종 실행 통계를 배포 자료에 남깁니다. 계정/동기화 회귀 검사는 독립된 테스트 계정 상태와 저장소 대역을 사용합니다. 사진 전환 때문에 Google Cloud 설정을 새로 바꿀 필요는 없으며 기존 OAuth 설정은 [설정 문서](GOOGLE_DRIVE_SETUP_KO.md)를 따릅니다.
 
 필수 방·창밖·전경·책장 이미지는 모두 적용했습니다. 추가 개선용으로는 다음 이미지가 유용합니다.
 
