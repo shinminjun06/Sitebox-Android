@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.sitebox.app.LampRenderingTest" tests="4" skipped="0" failures="0" errors="0" timestamp="2026-10-23T10:30:38" hostname="4c0584c3ea85" time="2.263">
+  <properties/>
+  <testcase name="litNightKeepsCoolMoonlightAwayFromTheDeskLamp" classname="com.sitebox.app.LampRenderingTest" time="0.112"/>
+  <testcase name="nightSwitchRemovesWarmReflectionsAndLampShadows" classname="com.sitebox.app.LampRenderingTest" time="0.62"/>
+  <testcase name="switchingOffReplacesIndoorLightingButPreservesSunlight" classname="com.sitebox.app.LampRenderingTest" time="0.561"/>
+  <testcase name="renderCompactRoomWithCabinetAndChangedContactShadow" classname="com.sitebox.app.LampRenderingTest" time="0.967"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

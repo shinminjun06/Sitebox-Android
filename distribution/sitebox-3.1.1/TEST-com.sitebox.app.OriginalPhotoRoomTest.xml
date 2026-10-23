@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.sitebox.app.OriginalPhotoRoomTest" tests="1" skipped="0" failures="0" errors="0" timestamp="2026-10-23T10:30:43" hostname="4c0584c3ea85" time="0.251">
+  <properties/>
+  <testcase name="originalPhotoKeepsItsDeskAndWallWithoutFurnitureOverlays" classname="com.sitebox.app.OriginalPhotoRoomTest" time="0.251"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

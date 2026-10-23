@@ -1,0 +1,18 @@
+{
+  "version": "3.1.1-photo",
+  "versionCode": 27,
+  "package": "com.sitebox.app",
+  "builtSource": "5937bdd370ebc71d16914521e6e7c0b38d01679a",
+  "verifiedSource": "5937bdd370ebc71d16914521e6e7c0b38d01679a",
+  "qaRun": "https://github.com/shinminjun06/Sitebox-Android/actions/runs/39939532786",
+  "sha256": "8f608fc82ac06dba9606179e178f24145829c413126f08748f473308adbfa3b2",
+  "bytes": 12019371,
+  "releaseSigningSHA1": "CD:84:36:B7:75:DA:5A:45:9F:76:26:8F:D5:65:C6:E5:8E:1A:D1:9C",
+  "unitTests": 53,
+  "unitFailures": 0,
+  "limitations": [
+    "Night is a color grade of the unchanged original photo",
+    "No physical-device 60 fps measurement",
+    "No real Google consent or live Drive account test"
+  ]
+}
