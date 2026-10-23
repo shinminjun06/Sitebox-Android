@@ -22,9 +22,12 @@ jobs:
         with:
           gradle-version: '8.9'
       - name: Install SDK and artwork validation tools
+        timeout-minutes: 6
         run: |
-          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null || true
-          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" 'platforms;android-35' 'build-tools;35.0.0'
+          if [ ! -f "$ANDROID_HOME/platforms/android-35/android.jar" ] || [ ! -x "$ANDROID_HOME/build-tools/35.0.0/aapt2" ]; then
+            timeout 90s bash -c 'yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null' || true
+            timeout 180s "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" 'platforms;android-35' 'build-tools;35.0.0'
+          fi
           python3 -m pip install Pillow
           command -v ffprobe || (sudo apt-get update && sudo apt-get install -y ffmpeg)
       - name: Verify photo assets, geometry, unit tests and Android builds
