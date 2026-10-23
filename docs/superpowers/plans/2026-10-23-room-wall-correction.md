@@ -7,5 +7,7 @@ Use the uploaded JPEG byte-for-byte as the room. Do not render a separately gene
 - [x] Investigate old clipping/projection and reproduce original-photo and live-book regressions.
 - [x] Copy exact uploaded photo and remove independent foreground/furniture/shadow compositing.
 - [x] Prepare a shelf-only photographic crop, live cells and common lighting/transition geometry.
-- [ ] Inspect empty/filled/day/night/approach renders; run tests, build and lint.
-- [ ] Run Android 15 and signed APK installation checks, publish verified download links.
+- [x] Inspect empty/filled/day/night/approach renders; run tests, build and lint.
+- [x] Run Android 15 and signed APK installation checks, publish verified download links.
+
+Verified source efbcd0547a8c7e0fe41a379516abdb2f0164c6b7, native QA https://github.com/shinminjun06/Sitebox-Android/actions/runs/39941276513, signed R8 install https://github.com/shinminjun06/Sitebox-Android/actions/runs/39941931244, 53 unit tests. Read-only independent code review found no critical/important issues. Public and Actions APK downloads are byte-identical. No physical60fps or live Google claim.

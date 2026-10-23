@@ -37,3 +37,11 @@ Java/Android 기본 View·Canvas·Matrix를 유지합니다. 계정/Drive 자동
 ## 한계
 
 원본 사진의 구조와 질감을 보존하기 위해 밤에는 동일 사진을 색감 보정합니다. 별도 야간 촬영이나 물리적인 그림자 재계산을 제공하는 것은 아닙니다. 실물 휴대폰 60fps·발열·실계정 Google 동의/Drive 전송은 자동 테스트로 증명하지 않습니다. 이 화면 수정 때문에 Google Cloud의 패키지/서명 인증서 설정을 추가할 필요는 없습니다.
+
+## 최종 검증 및 설치본
+
+- 소스 `efbcd0547a8c7e0fe41a379516abdb2f0164c6b7`: [Android 15 전체 앱 검사](https://github.com/shinminjun06/Sitebox-Android/actions/runs/39941276513) 통과. 실제 터치·핀치·Back·반전·회전·책 CRUD/드래그·명패 픽셀·사진 동일성·날씨 생명주기·계정/자동 동기화 회귀를 검사했습니다.
+- JUnit/Robolectric 53개 통과. debug/preview/release/AndroidTest 빌드 성공. debug/release lint 오류 0.
+- [서명 APK 설치 검사](https://github.com/shinminjun06/Sitebox-Android/actions/runs/39941931244) 통과. 새 Android 15 에뮬레이터에 배포용 R8 APK를 설치하고 실제 화면 터치로 방→편집→Google 계정 설정을 확인했습니다. 실계정 Google 동의 절차 검사는 아닙니다.
+- [APK 직접 다운로드](https://raw.githubusercontent.com/shinminjun06/Sitebox-Android/4292502e41b9b4031982e1d7218d2a9189435c52/distribution/sitebox-3.1.1/SiteBox-3.1.1.apk) · Actions의 `SiteBox-3.1.1-installable-apk`. 기존 검증판과 같은 서명입니다.
+- 파일 크기 12,019,371 bytes. SHA-256 `0d27a7074759e11b91858245c91e3087c8818c9575a313badb6e3a1f4843a147`. 공개 링크와 Actions에서 각각 다시 내려받아 원본과 동일한 파일임을 확인했습니다.
