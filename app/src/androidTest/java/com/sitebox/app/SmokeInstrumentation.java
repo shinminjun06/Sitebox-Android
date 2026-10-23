@@ -182,13 +182,25 @@ public final class SmokeInstrumentation extends Instrumentation {
    main(()->{activity.clearAmbientPreview();activity.setStudyMotion(motion);activity.applyBackgroundTheme(room);activity.shelfThemeIndex=shelf;activity.bookThemeIndex=book;try{activity.sites=new JSONArray(data);}catch(JSONException error){throw new RuntimeException(error);}activity.search.setText(filter);activity.page=page;activity.save();activity.populate();if(collapsed)activity.collapseToScene(false);else if(activity.sceneCollapsed)activity.expandFromScene(false);});
   }
  }
+ void awaitSystemToasts(){
+  long start=android.os.SystemClock.uptimeMillis(),deadline=start+45000;
+  do{
+   String state=shell("dumpsys notification");
+   if(!state.contains("Current Notification Manager state"))throw new AssertionError("Cannot inspect system toast queue");
+   if(!state.contains("Toast Queue:")){
+    // Queue removal precedes SystemUI's final hide animation.
+    android.os.SystemClock.sleep(500);check(true,"system toast queue drained before photo comparison in "+(android.os.SystemClock.uptimeMillis()-start)+"ms");return;
+   }
+   android.os.SystemClock.sleep(250);
+  }while(android.os.SystemClock.uptimeMillis()<deadline);
+  throw new AssertionError("System toast queue did not drain before photograph comparison");
+ }
  void referencePhotoScenes(){
   final boolean motion=activity.motionEnabled,collapsed=activity.sceneCollapsed;final String data=activity.sites.toString();long t=1700000000000L;
   try{
-   // The malformed-import checks intentionally emit a system LENGTH_LONG Toast.
-   // Its captured overlay hid the desk sample in the first native run. Let the
-   // 3.5s system toast expire before asserting the underlying photograph pixels.
-   android.os.SystemClock.sleep(4000);
+   // Backup checks enqueue several system toasts. Observe the real system
+   // queue, rather than guessing the lifetime of a single message.
+   awaitSystemToasts();
    main(()->{activity.setStudyMotion(false);activity.setAmbientPreview(new WeatherState(20,0,0,0,t,0,0,t,true,0,1),t);activity.collapseToScene(false);});awaitScene(true);snapshot("ambient-day.png");
    final java.util.ArrayList<int[]> samples=new java.util.ArrayList<>();
    main(()->{
