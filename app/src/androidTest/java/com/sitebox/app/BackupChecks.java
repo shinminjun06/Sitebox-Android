@@ -15,8 +15,10 @@ final class BackupChecks {
  final SmokeInstrumentation test;final MainActivity activity;
  BackupChecks(SmokeInstrumentation test){this.test=test;activity=test.activity;}
  interface Ready{boolean get()throws Exception;}
- void waitFor(Ready ready)throws Exception{long end=SystemClock.elapsedRealtime()+5000;while(!ready.get()){if(SystemClock.elapsedRealtime()>end)throw new AssertionError("Backup UI timeout");SystemClock.sleep(30);}test.waitForIdleSync();}
- void idle()throws Exception{Field f=BackupController.class.getDeclaredField("storageBusy");f.setAccessible(true);waitFor(()->{boolean[] busy={true};test.main(()->{try{busy[0]=f.getBoolean(activity.backups);}catch(Exception e){throw new RuntimeException(e);}});return !busy[0];});}
+ // Production allows 45 seconds for provider I/O. Include cold provider startup
+ // and UI dispatch without treating a stale pre-idle observation as a timeout.
+ void waitFor(Ready ready)throws Exception{long end=SystemClock.elapsedRealtime()+60000;while(!ready.get()){if(SystemClock.elapsedRealtime()>end)throw new AssertionError("Backup storage still busy after its 45-second operation budget and UI grace period");SystemClock.sleep(30);}test.waitForIdleSync();}
+ void idle()throws Exception{Field f=BackupController.class.getDeclaredField("storageBusy");f.setAccessible(true);waitFor(()->{boolean[] busy={true};test.runOnMainSync(()->{try{busy[0]=f.getBoolean(activity.backups);}catch(Exception e){throw new RuntimeException(e);}});return !busy[0];});}
  View find(View v,String text){if(v instanceof TextView&&text.contentEquals(((TextView)v).getText()))return v;if(v instanceof ViewGroup)for(int i=0;i<((ViewGroup)v).getChildCount();i++){View hit=find(((ViewGroup)v).getChildAt(i),text);if(hit!=null)return hit;}return null;}
  void prefs(Map<String,?> state){SharedPreferences.Editor e=activity.getPreferences(0).edit().clear();for(Map.Entry<String,?> x:state.entrySet()){Object v=x.getValue();String k=x.getKey();if(v instanceof String)e.putString(k,(String)v);else if(v instanceof Integer)e.putInt(k,(Integer)v);else if(v instanceof Long)e.putLong(k,(Long)v);else if(v instanceof Boolean)e.putBoolean(k,(Boolean)v);else if(v instanceof Float)e.putFloat(k,(Float)v);}if(!e.commit())throw new AssertionError("Test cleanup prefs");}
  void reject(String json)throws Exception{try{BackupCodec.decode(json);throw new AssertionError("Invalid backup accepted");}catch(JSONException expected){}}
