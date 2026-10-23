@@ -1,7 +1,7 @@
 plugins { id 'com.android.application' }
 
 def revision = providers.environmentVariable('GITHUB_SHA').getOrElse(
-    providers.exec { commandLine 'git', 'rev-parse', 'HEAD' }.standardOutput.asText.get().trim())
+    providers.exec { commandLine 'git', 'describe', '--always', '--dirty', '--abbrev=40' }.standardOutput.asText.get().trim())
 
 // Environment variables take precedence over private user Gradle properties.
 // Keep secrets in ~/.gradle/gradle.properties or the CI secret store, never this repository.
@@ -28,8 +28,8 @@ android {
         minSdk 24
         targetSdk 35
         testInstrumentationRunner 'com.sitebox.app.SmokeInstrumentation'
-        versionCode 12
-        versionName '3.0-school'
+        versionCode 26
+        versionName '3.1.0-room'
         buildConfigField 'String', 'SOURCE_REVISION', '"' + revision + '"'
     }
     signingConfigs {
@@ -68,6 +68,7 @@ android {
         targetCompatibility JavaVersion.VERSION_17
     }
     lint { abortOnError true }
+    testOptions { unitTests.includeAndroidResources = true }
 }
 
 // Debug builds remain usable without release credentials. Release builds never
@@ -90,4 +91,17 @@ tasks.matching { it.name == 'preReleaseBuild' }.configureEach {
     dependsOn validateReleaseCredentials
 }
 
-dependencies { implementation 'com.google.android.gms:play-services-auth:22.0.0' }
+dependencies {
+    implementation 'com.google.android.gms:play-services-auth:22.0.0'
+    testImplementation 'junit:junit:4.13.2'
+    testImplementation 'org.robolectric:robolectric:4.14.1'
+}
+tasks.withType(Test).configureEach {
+    systemProperty 'robolectric.dependency.repo.url', 'https://repo.maven.apache.org/maven2'
+    def testHome = layout.buildDirectory.dir('test-home').get().asFile
+    systemProperty 'user.home', testHome.absolutePath
+    doFirst { testHome.mkdirs() }
+    ['http.proxyHost', 'http.proxyPort', 'https.proxyHost', 'https.proxyPort'].each { key ->
+        if (System.getProperty(key)) systemProperty key, System.getProperty(key)
+    }
+}

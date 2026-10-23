@@ -30,7 +30,7 @@ public final class SmokeInstrumentation extends Instrumentation {
    activity=(MainActivity)startActivitySync(new Intent(getTargetContext(),MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));waitForIdleSync();
    SharedPreferences prefs=activity.getPreferences(0);backupSites=prefs.getString("sites","[]");backupCategories=prefs.getString("categories","[]");backupShelf=prefs.getInt("shelfTheme",0);backupBook=prefs.getInt("bookTheme",0);hadGestureTip=prefs.contains("gestureTipSeen");backupGestureTip=prefs.getBoolean("gestureTipSeen",false);hadBackground=prefs.contains("backgroundTheme");backupBackground=prefs.getString("backgroundTheme","classroom");
    hadMotion=prefs.contains("studyMotion");backupMotion=prefs.getBoolean("studyMotion",true);main(()->activity.setStudyMotion(true));
-   snapshot("study-first-launch.png");
+   snapshot("study-first-launch.png");main(()->{check(activity.sceneCollapsed&&activity.controls.getVisibility()==View.INVISIBLE,"fresh launch opens photographic room");activity.expandFromScene(false);});
    main(()->{
     check(activity.getPreferences(0).getBoolean("studyThemeIntroduced",false),"theme 1 introduction recorded once");
     activity.applyBackgroundTheme("classroom");activity.sites=new JSONArray();activity.filter="";activity.page=0;
@@ -103,6 +103,7 @@ public final class SmokeInstrumentation extends Instrumentation {
    rotateScreens();
    projectedCabinetThemes();
    pinchCollapseRestore();
+   roomReversalAndBack();
    backgroundCollection();
    main(()->{
     View root=((ViewGroup)activity.stage).getChildAt(1);View header=((ViewGroup)root).getChildAt(0);
@@ -157,8 +158,8 @@ public final class SmokeInstrumentation extends Instrumentation {
    main(()->activity.studyLive.failVideoForTest());android.os.SystemClock.sleep(300);
    main(()->check(!activity.studyLive.isPlaying()&&!activity.studyLive.hasVideoFrame()&&activity.backdrop.getDrawable()!=null,"study decoder error keeps static artwork fallback"));
    main(()->activity.applyBackgroundTheme("classroom"));
-   main(()->check(!activity.studyLive.isPlaying()&&activity.studyLive.getVisibility()==View.GONE,"other room hides live study and releases decoder"));
-   main(()->activity.applyBackgroundTheme("study"));awaitStudyVideo("study reentry resets failed decoder");
+   main(()->check(activity.backgroundThemeId.equals("study")&&activity.studyLive.getVisibility()==View.VISIBLE,"retired room safely falls back to study"));
+   main(()->activity.setStudyMotion(false));main(()->activity.setStudyMotion(true));awaitStudyVideo("study motion restart resets failed decoder");
    java.util.Calendar fallbackNoon=java.util.Calendar.getInstance();fallbackNoon.setTimeInMillis(noon);fallbackNoon.set(java.util.Calendar.HOUR_OF_DAY,12);
    final long fallbackTime=fallbackNoon.getTimeInMillis();
    main(()->activity.setAmbientPreview(WeatherState.empty(),fallbackTime));awaitDaylight(1);
@@ -224,7 +225,7 @@ public final class SmokeInstrumentation extends Instrumentation {
      check(activity.sites.toString().equals(data)&&activity.filter.equals(filter)&&activity.page==page,"projected cabinet finish preserves live library "+selected);
     });
     snapshot("projected-cabinet-"+ThemeAssets.SHELVES[index]+".png");
-    main(()->{activity.expandFromScene(false);float[] identity=new float[8];activity.miniature.copyRenderedCorners(identity);check(activity.miniature.getProjectionFraction()==0&&Math.abs(identity[0])<.1f&&Math.abs(identity[2]-activity.miniature.getWidth())<.1f,"projected finish restores identity "+selected);check(activity.currentCabinet.getScaleX()==1&&activity.currentCabinet.getScaleY()==1&&activity.currentCabinet.getRotation()==0,"expanded cabinet remains frontal "+selected);});
+    main(()->{activity.expandFromScene(false);float[] identity=new float[8];activity.miniature.copyRenderedCorners(identity);checkEditorPose();check(activity.currentCabinet.getScaleX()==1&&activity.currentCabinet.getScaleY()==1&&activity.currentCabinet.getRotation()==0,"expanded cabinet remains frontal "+selected);});
    }
   }finally{main(()->{if(activity.sceneCollapsed)activity.expandFromScene(false);activity.shelfThemeIndex=shelf;activity.bookThemeIndex=book;activity.save();activity.populate();});}
  }
@@ -232,7 +233,7 @@ public final class SmokeInstrumentation extends Instrumentation {
   final String data=activity.sites.toString();final int shelf=activity.shelfThemeIndex,book=activity.bookThemeIndex;
   main(()->{activity.search.setText("example.com/");activity.page=1;activity.populate();});
   final int page=activity.page;final String filter=activity.filter;
-  check(SceneTheme.ALL.length==12,"study theme plus eleven existing background concepts");
+  check(SceneTheme.ALL.length==1,"only the study background remains");
   for(SceneTheme theme:SceneTheme.ALL){
    main(()->activity.showBackgroundThemes());
    clickBackgroundChoice(theme.name);waitForIdleSync();
@@ -279,52 +280,36 @@ public final class SmokeInstrumentation extends Instrumentation {
   return false;
  }
  void checkSelectedScene(SceneTheme theme){
-  boolean wide=BookLayout.wideScene(activity.stage.getWidth(),activity.stage.getHeight());
-  Bitmap expected=activity.assets.get(theme.assetPath(wide));
-  check(expected!=null&&activity.sceneBackdrop==expected,theme.id+" correct selected artwork decoded without fallback");
-  check(((android.graphics.drawable.BitmapDrawable)activity.backdrop.getDrawable()).getBitmap()==expected,theme.id+" selected artwork displayed");
-  check(activity.backgroundThemeId.equals(theme.id)&&activity.sceneCollapsed&&!activity.sceneAnimating,theme.id+" scene state remains selected");
+  Bitmap expected=activity.sceneBackdrop;
+  check(expected!=null&&expected.getHeight()>500,theme.id+" photographic room decoded at device resolution");
+  check(((android.graphics.drawable.BitmapDrawable)activity.backdrop.getDrawable()).getBitmap()==expected,theme.id+" room compositor retains the selected plate");
+  check(activity.backgroundThemeId.equals(theme.id)&&activity.sceneCollapsed&&!activity.sceneAnimating,theme.id+" room state remains selected");
   checkProjection(theme);
-  check(activity.assets.get(theme.assetPath(wide))==expected,theme.id+" current room bitmap reused");
-  check(activity.assets.cachedRoomBytes()<=12*1024*1024&&activity.assets.cachedArtworkBytes()<=12*1024*1024,theme.id+" room and artwork caches bounded independently");
-  if(theme.id.equals("classroom")){checkRoomGrounding();return;}
-  float x=activity.miniature.getX(),y=activity.miniature.getY(),w=activity.miniature.getWidth()*activity.miniature.getScaleX(),h=activity.miniature.getHeight()*activity.miniature.getScaleY();
-  float vw=activity.stage.getWidth(),vh=activity.stage.getHeight();
-  check(w>vw*.12f&&h>vh*.12f&&x>=0&&y>=0&&x+w<=vw+1&&y+h<=vh+1,theme.id+" readable compact cabinet fits viewport");
-  // Read the rendered ImageView matrix, rather than calling the geometry method under test.
-  float[] sourceAnchor={expected.getWidth()*theme.anchorX(wide),expected.getHeight()*theme.anchorFeet(wide)};
-  activity.backdrop.getImageMatrix().mapPoints(sourceAnchor);
-  check(Math.abs(y+h-sourceAnchor[1])<vh*.045f,theme.id+" cabinet feet contact the visible artwork floor anchor");
-  check(Math.abs(x+w*.5f-sourceAnchor[0])<vw*.045f,theme.id+" cabinet aligns with reserved left or right artwork space");
-  check(y>=0&&y+h>vh*.45f&&y+h<vh*.98f,theme.id+" cabinet floor pose remains visible for room camera angle");
-  check(activity.sceneShadow.getVisibility()==View.VISIBLE&&activity.sceneShadow.getAlpha()>.99f,theme.id+" visible contact shadow");
+  check(activity.assets.cachedRoomBytes()<=12*1024*1024&&activity.assets.cachedArtworkBytes()<=12*1024*1024&&activity.assets.cachedStudentBytes()<=24*1024*1024,theme.id+" independent artwork/room caches bounded");
+  float[] q=new float[8];activity.miniature.copyRenderedCorners(q);
+  for(int i=0;i<8;i+=2)check(q[i]>=0&&q[i]<activity.stage.getWidth()&&q[i+1]>=0&&q[i+1]<activity.stage.getHeight(),theme.id+" actual furniture corner "+i+" stays in viewport");
+  check(activity.sceneShadow.getVisibility()==View.VISIBLE&&activity.sceneShadow.getAlpha()>.99f,theme.id+" contact shadow visible");
+ }
+ void checkEditorPose(){
+  float[] q=new float[8];activity.miniature.copyRenderedCorners(q);android.graphics.RectF r=activity.cabinetBounds();float[] expected={r.left,r.top,r.right,r.top,r.right,r.bottom,r.left,r.bottom};
+  check(activity.miniature.getProjectionFraction()==0,"editor endpoint has zero room progress");
+  for(int i=0;i<8;i++)check(Math.abs(q[i]-expected[i])<.5f,"same native cabinet at editor handoff "+i);
  }
  void checkProjection(SceneTheme theme){
   ProjectedCabinetView view=activity.miniature;
-  check(view.room()==SceneProjection.find(theme.id),theme.id+" room projection profile applied");
-  check(view.sideTexture()!=activity.assets.shelf(activity.shelfThemeIndex),theme.id+" dedicated full-grain surface loaded without fallback");
-  check(view.sideTexture()==activity.assets.surface(activity.shelfThemeIndex),theme.id+" physical side uses current theme cabinet bitmap");
-  check(Math.abs(view.getProjectionFraction()-1)<.0001f,theme.id+" projection animation settled");
-  float[] actual=new float[8],expected=new float[8];view.copyRenderedCorners(actual);view.expectedCorners(expected);
-  for(int i=0;i<8;i++)check(Math.abs(actual[i]-expected[i])<.1f,theme.id+" rendered homography corner "+i);
-  check(Math.max(actual[5],actual[7])>=view.getHeight()-.1f,theme.id+" projected feet retain floor contact");
-  check(Math.abs((actual[5]-actual[1])/(actual[2]-actual[0])-(float)view.getHeight()/view.getWidth())<.001f,theme.id+" physical front preserves snapshot aspect ratio");
-  check(Math.abs(actual[1]-actual[3])<.1f,theme.id+" frontal cabinet crown stays level");
-  try{
-   JSONObject pose=new JSONObject();JSONArray corners=new JSONArray();int[] stageLocation=new int[2];activity.stage.getLocationOnScreen(stageLocation);
-   for(int i=0;i<8;i++)corners.put((i%2==0?stageLocation[0]+view.getX():stageLocation[1]+view.getY())+actual[i]*(i%2==0?view.getScaleX():view.getScaleY()));
-   pose.put("front",corners);pose.put("depth",view.room().depth);pose.put("sideVisible",view.sideVisible());pose.put("topVisible",view.topVisible());
-   float[] side=new float[8],roof=new float[8];view.copyRenderedBodyCorners(side,roof);
-   float[] camera=new float[2];view.roomCamera(camera);float k=1/(1+view.room().depth);
-   check(Math.abs(roof[0]-(camera[0]+k*(actual[0]-camera[0])))<.1f&&Math.abs(roof[1]-(camera[1]+k*(actual[1]-camera[1])))<.1f,theme.id+" rear rays use fixed cropped room camera");
-   float[] contacts=new float[2];activity.sceneShadow.contactCenters(contacts);
-   float projectedLeft=view.getX()+(actual[0]+.05f*(actual[2]-actual[0]))*view.getScaleX(),projectedRight=view.getX()+(actual[0]+.95f*(actual[2]-actual[0]))*view.getScaleX();
-   check(Math.abs(contacts[0]-projectedLeft)<2&&Math.abs(contacts[1]-projectedRight)<2,theme.id+" narrow contact shadows align with actual sprite feet");
-   for(int face=0;face<2;face++){float[] points=face==0?side:roof;JSONArray coordinates=new JSONArray();for(int i=0;i<8;i++)coordinates.put((i%2==0?stageLocation[0]+view.getX():stageLocation[1]+view.getY())+points[i]*(i%2==0?view.getScaleX():view.getScaleY()));pose.put(face==0?"side":"top",coordinates);}
-   File directory=new File(getTargetContext().getExternalFilesDir(null),"qa");directory.mkdirs();
-   String orientation=activity.getResources().getConfiguration().orientation==2?"landscape":"portrait";
-   try(FileOutputStream out=new FileOutputStream(new File(directory,"projection-"+theme.id+"-"+orientation+".json"))){out.write(pose.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8));}
-  }catch(Exception e){throw new RuntimeException(e);}
+  check(view.content()==activity.currentCabinet,theme.id+" live native book children shared with projection");
+  check(((android.graphics.drawable.BitmapDrawable)view.getDrawable()).getBitmap()==activity.currentCabinet.artwork(),theme.id+" identical photographic frame in both modes");
+  check(Math.abs(view.getProjectionFraction()-1)<.0001f,theme.id+" single room timeline settled");
+  float[] actual=new float[8],expected=new float[8];view.copyRenderedCorners(actual);
+  for(int i=0;i<8;i+=2){expected[i]=RoomScene.CABINET[i]*activity.sceneBackdrop.getWidth();expected[i+1]=RoomScene.CABINET[i+1]*activity.sceneBackdrop.getHeight();}
+  activity.backdrop.getImageMatrix().mapPoints(expected);
+  for(int i=0;i<8;i++)check(Math.abs(actual[i]-expected[i])<.5f,theme.id+" photograph-registered furniture corner "+i);
+  check(Math.abs(actual[0]-actual[6])<.1f&&Math.abs(actual[2]-actual[4])<.1f,theme.id+" upright cabinet posts");
+  android.graphics.Matrix m=new android.graphics.Matrix();float w=activity.currentCabinet.getWidth(),h=activity.currentCabinet.getHeight();float[] source={0,0,w,0,w,h,0,h};m.setPolyToPoly(source,0,actual,0,4);
+  for(int cell=0;cell<9;cell++){float[] b=CabinetGeometry.cell(cell),p={(b[0]+b[2])*.5f*w,(b[1]+b[3])*.5f*h};m.mapPoints(p);check(view.hitCell(p[0],p[1])==cell,theme.id+" native projected touch cell "+cell);}
+  float[] contacts=new float[4],floor=new float[8];activity.sceneShadow.contactCenters(contacts);view.groundedFootprint(floor);
+  check(Math.abs(contacts[0]-floor[6])<1&&Math.abs(contacts[1]-floor[4])<1&&Math.abs(contacts[2]-floor[7])<1&&Math.abs(contacts[3]-floor[5])<1,theme.id+" shadows meet photographed feet");
+  try{JSONObject pose=new JSONObject();JSONArray coordinates=new JSONArray();for(float v:actual)coordinates.put(v);pose.put("front",coordinates);pose.put("liveBooks",true);pose.put("frame","themes/rooms/student/cabinet_front.webp");File dir=new File(getTargetContext().getExternalFilesDir(null),"qa");dir.mkdirs();try(FileOutputStream out=new FileOutputStream(new File(dir,"room-pose.json"))){out.write(pose.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8));}}catch(Exception e){throw new RuntimeException(e);}
  }
  void rotateBackground(SceneTheme theme){
   final String data=activity.sites.toString(),filter=activity.filter;final int page=activity.page;
@@ -485,16 +470,8 @@ public final class SmokeInstrumentation extends Instrumentation {
   do {main(()->ready[0]=activity.sceneCollapsed==collapsed&&!activity.sceneAnimating&&activity.stage.getWidth()>0&&activity.stage.getHeight()>0);if(ready[0])return;android.os.SystemClock.sleep(50);}while(android.os.SystemClock.uptimeMillis()<deadline);
   throw new AssertionError("scene transition timed out: collapsed="+collapsed);
  }
- void checkRoomGrounding(){
-  Bitmap room=activity.sceneBackdrop;android.util.DisplayMetrics viewport=activity.getResources().getDisplayMetrics();boolean landscape=BookLayout.wideScene(viewport.widthPixels,viewport.heightPixels);
-  check(room!=null&&(room.getWidth()>room.getHeight())==landscape,"orientation-specific classroom artwork loaded");
-  float scale=Math.max((float)activity.stage.getWidth()/room.getWidth(),(float)activity.stage.getHeight()/room.getHeight());
-  float offset=(activity.stage.getHeight()-room.getHeight()*scale)*.5f;
-  float sill=offset+room.getHeight()*scale*(landscape?.45f:.43f),floor=offset+room.getHeight()*scale*(landscape?.72f:.665f);
-  float top=activity.miniature.getY(),feet=top+activity.miniature.getHeight()*activity.miniature.getScaleY();
-  check(top>sill&&feet>floor&&feet<floor+room.getHeight()*scale*.06f,"live cabinet stands beneath sill on classroom floor");
-  check(activity.sceneShadow.getVisibility()==View.VISIBLE&&activity.sceneShadow.getAlpha()>.99f,"contact shadow visible beneath compact cabinet");
- }
+ void checkRoomGrounding(){checkSelectedScene(SceneTheme.find("study"));}
+
  void pinchCollapseRestore(){
   final int count=activity.sites.length(),oldPage=activity.page;final String oldFilter=activity.filter;
   pinch(false);awaitScene(false);
@@ -505,13 +482,13 @@ public final class SmokeInstrumentation extends Instrumentation {
    checkProjection(SceneTheme.find(activity.backgroundThemeId));
    checkRoomGrounding();
    check(activity.controls.getVisibility()==View.INVISIBLE,"header and full-size library hidden in scene");
-   check(activity.miniature.getVisibility()==View.VISIBLE&&activity.miniature.getScaleX()<.75f,"live cabinet snapshot shrinks into background");
+   check(activity.miniature.getVisibility()==View.VISIBLE&&activity.miniature.content()==activity.currentCabinet,"shared live cabinet projects into room");
    float x=activity.miniature.getX(),y=activity.miniature.getY();
    check(x>=0&&y>=0&&x+activity.miniature.getWidth()*activity.miniature.getScaleX()<=activity.stage.getWidth()+1&&y+activity.miniature.getHeight()*activity.miniature.getScaleY()<=activity.stage.getHeight()+1,"miniature remains inside screen");
    check(activity.sites.length()==count&&activity.page==oldPage&&activity.filter.equals(oldFilter),"pinch preserves bookmarks page and search");
   });
   snapshot("pinch-collapsed.png");measuredExpand();
-  main(()->{check(!activity.sceneCollapsed&&!activity.sceneAnimating,"tap miniature restores full-size cabinet");float[] restored=new float[8];activity.miniature.copyRenderedCorners(restored);check(activity.miniature.getProjectionFraction()==0&&Math.abs(restored[0])<.1f&&Math.abs(restored[2]-activity.miniature.getWidth())<.1f,"expansion restores identity projection");check(activity.sceneShadow.getVisibility()==View.GONE,"contact shadow removed on expansion");check(activity.controls.getVisibility()==View.VISIBLE&&activity.miniature.getVisibility()==View.GONE,"full controls restored without overlay");});
+  main(()->{check(!activity.sceneCollapsed&&!activity.sceneAnimating,"tap miniature restores full-size cabinet");float[] restored=new float[8];activity.miniature.copyRenderedCorners(restored);checkEditorPose();check(activity.sceneShadow.getVisibility()==View.GONE,"contact shadow removed on expansion");check(activity.controls.getVisibility()==View.VISIBLE&&activity.miniature.getVisibility()==View.GONE,"full controls restored without overlay");});
   snapshot("pinch-restored.png");pinch(true);awaitScene(true);rotateScreens();
  }
  void clickDescription(String description){android.view.accessibility.AccessibilityNodeInfo root=activeAppWindow();android.view.accessibility.AccessibilityNodeInfo node=findDescription(root,description);if(node==null||!node.performAction(android.view.accessibility.AccessibilityNodeInfo.ACTION_CLICK))throw new AssertionError("click description "+description);waitForIdleSync();}
@@ -529,6 +506,25 @@ public final class SmokeInstrumentation extends Instrumentation {
   final boolean[] ready={false};long deadline=android.os.SystemClock.uptimeMillis()+2000;
   do{runOnMainSync(()->ready[0]=Math.abs(android.animation.ValueAnimator.getDurationScale()-1)<.001f);if(ready[0])return;android.os.SystemClock.sleep(20);}while(android.os.SystemClock.uptimeMillis()<deadline);
   throw new AssertionError("Animator scale setting did not reach app process");
+ }
+ void roomReversalAndBack(){
+  String previous=shell("settings get global animator_duration_scale");
+  if(!previous.equals("null")&&!previous.matches("[0-9]+(\\.[0-9]+)?"))throw new AssertionError("Unexpected animator scale");
+  final String books=activity.sites.toString();
+  try{
+   shell("settings put global animator_duration_scale 1");awaitAnimatorScaleOne();
+   main(()->{activity.collapseToScene(false);activity.shelfScroll.scrollTo(0,0);activity.expandFromScene(true);});
+   android.os.SystemClock.sleep(120);
+   main(()->{
+    float p=activity.roomExperience.transition.progress();check(p>0&&p<1,"approach reaches an intermediate room pose");float[] before=new float[8],after=new float[8];activity.miniature.copyRenderedCorners(before);activity.collapseToScene(true);activity.miniature.copyRenderedCorners(after);
+    check(Math.abs(p-activity.roomExperience.transition.progress())<.00001f,"reverse keeps current timeline progress");for(int i=0;i<8;i++)check(Math.abs(before[i]-after[i])<.1f,"reverse keeps rendered corner "+i);
+   });
+   awaitScene(true);main(()->{for(int i=0;i<8;i++){activity.expandFromScene(true);activity.collapseToScene(true);}activity.expandFromScene(false);});
+   main(()->check(!activity.sceneCollapsed&&!activity.sceneAnimating&&activity.controls.getVisibility()==View.VISIBLE,"rapid alternating requests settle in editor"));
+   sendKeyDownUpSync(android.view.KeyEvent.KEYCODE_BACK);awaitScene(true);
+   main(()->check(activity.sites.toString().equals(books),"native Back and reversal preserve the library"));
+   checks.append("PASS photographic room reverse continuity, repeated requests and native Back verified\n");
+  }finally{shell(previous.equals("null")?"settings delete global animator_duration_scale":"settings put global animator_duration_scale "+previous);}
  }
  void measuredExpand(){
   String previous=shell("settings get global animator_duration_scale");

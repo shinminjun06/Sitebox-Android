@@ -11,17 +11,44 @@ import android.widget.TextView;
 /** A single furniture sprite behind nine identical fractional interaction regions. */
 final class BookshelfView extends FrameLayout {
  private final ImageView cabinet;
+ private final Bitmap artwork;
  BookshelfView(Context context,Bitmap bitmap){
-  super(context);setClipChildren(false);setClipToPadding(false);
+  super(context);artwork=bitmap;setClipChildren(false);setClipToPadding(false);
   cabinet=new ImageView(context);cabinet.setScaleType(ImageView.ScaleType.FIT_XY);
   if(bitmap!=null)cabinet.setImageBitmap(bitmap);
   else {setBackgroundColor(0xffad8056);}
   addView(cabinet,new LayoutParams(-1,-1));
  }
+ Bitmap artwork(){return artwork;}
+ void setFinish(int index){
+  if(index==0){cabinet.clearColorFilter();return;}
+  ColorMatrix color=new ColorMatrix();
+  if(index==1)color.set(new float[]{.60f,0,0,0,0,0,.56f,0,0,0,0,0,.55f,0,0,0,0,0,1,0});
+  else color.set(new float[]{.80f,0,0,0,42,0,.84f,0,0,43,0,0,.89f,0,42,0,0,0,1,0});
+  cabinet.setColorFilter(new ColorMatrixColorFilter(color));
+ }
+ /** Draw the same actual frame/books at full canvas resolution, including during travel. */
+ void drawProjected(Canvas canvas,float labels){
+  cabinet.draw(canvas);drawRoomBooks(canvas);
+  if(labels<=0)return;
+  int layer=canvas.saveLayerAlpha(0,0,getWidth(),getHeight(),Math.round(255*labels));
+  for(int i=1;i<getChildCount();i++){
+   View child=getChildAt(i);if(!(child.getTag() instanceof Integer)||(Integer)child.getTag()<9)continue;
+   int save=canvas.save();canvas.translate(child.getLeft(),child.getTop());child.draw(canvas);canvas.restoreToCount(save);
+  }
+  canvas.restoreToCount(layer);
+ }
+ /** Render actual book children onto room furniture; category controls belong to the expanded UI. */
+ void drawRoomBooks(Canvas canvas){
+  for(int i=1;i<getChildCount();i++){
+   View child=getChildAt(i);if(!(child.getTag() instanceof Integer)||(Integer)child.getTag()>=9)continue;
+   int save=canvas.save();canvas.translate(child.getLeft(),child.getTop());child.draw(canvas);canvas.restoreToCount(save);
+  }
+ }
  @Override protected void onMeasure(int widthSpec,int heightSpec){
   int width=MeasureSpec.getSize(widthSpec);
   // The cabinet is wide enough for seven proportionate books in every cubby.
-  int height=Math.round(width*1.30f);
+  int height=Math.round(width*CabinetGeometry.ASPECT);
   setMeasuredDimension(width,height);
   cabinet.measure(MeasureSpec.makeMeasureSpec(width,MeasureSpec.EXACTLY),MeasureSpec.makeMeasureSpec(height,MeasureSpec.EXACTLY));
   for(int i=1;i<getChildCount();i++){

@@ -84,7 +84,7 @@ final class BackupChecks {
    test.activeAppWindow();test.main(()->controller.validateAndPreview(replacement,"기기 문서 테스트"));idle();snapshotDialog("백업 복원 확인","backup-preview.png");test.clickText("취소");test.waitForIdleSync();
    test.check(!activeWindowHasText("백업 복원 확인")&&before.equals(activity.getPreferences(0).getAll()),"cancelled restore preview closes and leaves data unchanged");
    test.activeAppWindow();test.main(()->controller.restore(restored));idle();
-   BackupCodec.Snapshot actual=BackupCodec.decode(controller.snapshot());test.check(actual.sites.toString().equals(books.toString())&&actual.shelfTheme==2&&actual.bookTheme==1&&actual.backgroundTheme.equals("wizard")&&!actual.motion,"confirmed restore updates every field");
+   BackupCodec.Snapshot actual=BackupCodec.decode(controller.snapshot());test.check(actual.sites.toString().equals(books.toString())&&actual.shelfTheme==2&&actual.bookTheme==1&&actual.backgroundTheme.equals("study")&&!actual.motion,"confirmed restore updates every field");
    test.main(activity::load);test.check(activity.sites.toString().equals(books.toString()),"restored library persists through preferences reload");
    BackupCodec.Snapshot safety=BackupCodec.decode(new String(java.nio.file.Files.readAllBytes(rollback.toPath()),StandardCharsets.UTF_8));test.check(safety.sites.toString().equals(base.sites.toString()),"restore saves original atomic rollback copy");
    test.checks.append("PASS Google backup codec and local restore verified\nUNTESTED Google account consent and live Drive transfer: no configured cloud account in CI\n");

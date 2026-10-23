@@ -44,7 +44,7 @@ jobs:
             keytool -genkeypair -keystore "$SITEBOX_DEBUG_KEYSTORE" -storepass android -keypass android -alias androiddebugkey -dname "CN=Android Debug,O=Android,C=US" -keyalg RSA -keysize 2048 -validity 10000
           fi
       - name: Build debug APK
-        run: gradle :app:assembleDebug :app:assemblePreview :app:assembleDebugAndroidTest :app:lintDebug --no-daemon
+        run: gradle :app:testDebugUnitTest :app:assembleDebug :app:assemblePreview :app:assembleDebugAndroidTest :app:lintDebug --no-daemon
       - name: Record provenance
         run: |
           echo "$GITHUB_SHA" > app/build/outputs/apk/debug/SOURCE_COMMIT.txt

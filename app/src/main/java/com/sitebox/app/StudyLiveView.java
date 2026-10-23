@@ -26,15 +26,32 @@ final class StudyLiveView extends FrameLayout {
     private static final long FRAME_MS = 42; // At most 24 atmospheric updates/second.
     private final Handler handler = new Handler(Looper.getMainLooper());
     private final Matrix sceneMatrix = new Matrix(), textureMatrix = new Matrix(), nightMatrix = new Matrix();
+    private final Matrix roomMaskMatrix=new Matrix();
+    private final Matrix outsideNightMatrix=new Matrix();
+    private Bitmap outsideDay,outsideNight;
+    private boolean studentRoom,reducedEffects;
+    private Runnable frameListener;
+    void setStudentRoom(boolean value){studentRoom=value;updateGeometry();}
+    void setFrameListener(Runnable listener){frameListener=listener;}
+    void setReducedEffects(boolean value){if(reducedEffects==value)return;reducedEffects=value;if(value&&studentRoom)stopVideo();else startVideoIfReady();}
+    void setWindowTextures(Bitmap day,Bitmap night){outsideDay=day;outsideNight=night;updateGeometry();}
+    void setRoomTransforms(float[] room,float[] outside){
+        roomMaskMatrix.setScale(room[0],room[0]);roomMaskMatrix.postTranslate(room[1],room[2]);
+        scale=outside[0];offsetX=outside[1];offsetY=outside[2];updateGeometry();
+    }
+    private void frameChanged(){if(frameListener!=null)frameListener.run();}
     private final Path glass = new Path();
     private final RectF glassBounds = new RectF();
     private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.FILTER_BITMAP_FLAG);
     private final Paint glowPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final RoomLightView roomLight;
+    private boolean lampEnabled=true;
     private final GlassFrame videoClip;
     private final TextureView texture;
     private final Atmosphere atmosphere;
-    private Bitmap day, night;
+    private Bitmap day, night, lampOffDay, lampOffNight;
+    private final Matrix lampOffDayMatrix=new Matrix(),lampOffNightMatrix=new Matrix();
+    void setLampPlates(Bitmap dayOff,Bitmap nightOff){lampOffDay=dayOff;lampOffNight=nightOff;updateGeometry();roomLight.invalidate();}
     private boolean wide, active, motionEnabled = true, attached, decoderFailed, firstFrame, renderingStarted, videoNight;
     private float scale = 1, offsetX, offsetY, daylight = 1, targetDaylight = 1;
     private float cloudiness = .25f, targetCloudiness = .25f, rain, snow, targetRain, targetSnow;
@@ -57,7 +74,8 @@ final class StudyLiveView extends FrameLayout {
             updateVideoAlpha();
             roomLight.invalidate();
             atmosphere.invalidate();
-            handler.postDelayed(this, FRAME_MS);
+            frameChanged();
+            handler.postDelayed(this, reducedEffects?84:FRAME_MS);
         }
     };
 
@@ -131,10 +149,12 @@ final class StudyLiveView extends FrameLayout {
         startVideoIfReady();
         roomLight.invalidate();
         atmosphere.invalidate();
+        frameChanged();
     }
+    void setLampEnabled(boolean enabled){if(lampEnabled==enabled)return;lampEnabled=enabled;roomLight.invalidate();atmosphere.invalidate();}
     void setActive(boolean value) { if(value&&!active)decoderFailed=false;active = value; reconcile(); }
     void setMotionEnabled(boolean value) { if(value&&!motionEnabled)decoderFailed=false;motionEnabled = value; reconcile(); }
-    void release() { active = false; handler.removeCallbacks(tick); stopVideo(); }
+    void release() { lampOffDay=null;lampOffNight=null;active = false; handler.removeCallbacks(tick); stopVideo(); }
     boolean isPlaying() {
         try { return player != null && player.isPlaying(); }
         catch (IllegalStateException ignored) { return false; }
@@ -155,11 +175,12 @@ final class StudyLiveView extends FrameLayout {
         // Prime the texture with one opacity level even before player creation;
         // release/failure/inactivity still hide it completely. The opaque still
         // underneath remains the visible fallback until a decoder frame arrives.
-        texture.setAlpha(canRunMotion() && day != null && !decoderFailed
+        texture.setAlpha(canRunMotion() && day != null && !decoderFailed && !(studentRoom&&reducedEffects)
                 ? Math.max(1f/255f,visible) : 0);
     }
     private void settleAtmosphere() {
         daylight = targetDaylight; cloudiness = targetCloudiness; rain = targetRain; snow = targetSnow;
+        frameChanged();
     }
     private static float approach(float value, float target, float blend) {
         float distance = target-value;
@@ -193,7 +214,9 @@ final class StudyLiveView extends FrameLayout {
             nightMatrix.setScale(day.getWidth()*scale/night.getWidth(), day.getHeight()*scale/night.getHeight());
             nightMatrix.postTranslate(offsetX, offsetY);
         }
-        if (wide) {
+        if(studentRoom){
+            for(float[] p:RoomScene.GLASS)pane(p[0],p[1],p[2],p[3],p[4],p[5],p[6],p[7]);
+        } else if (wide) {
             // Insets leave the sloping rails, handles, curtain and plant entirely static.
             pane(.615f,.064f, .750f,.035f, .750f,.172f, .615f,.195f);
             pane(.775f,.027f, .918f,.006f, .918f,.150f, .775f,.170f);
@@ -209,17 +232,22 @@ final class StudyLiveView extends FrameLayout {
             pane(.637f,.352f, .889f,.345f, .889f,.420f, .637f,.420f);
             pane(.934f,.345f, 1f,.341f, 1f,.440f, .934f,.440f);
         }
-        glass.transform(sceneMatrix);
+        if(lampOffDay!=null){lampOffDayMatrix.setScale(day.getWidth()*scale/lampOffDay.getWidth(),day.getHeight()*scale/lampOffDay.getHeight());lampOffDayMatrix.postTranslate(offsetX,offsetY);}
+        if(lampOffNight!=null){lampOffNightMatrix.setScale(day.getWidth()*scale/lampOffNight.getWidth(),day.getHeight()*scale/lampOffNight.getHeight());lampOffNightMatrix.postTranslate(offsetX,offsetY);}
+        if(studentRoom&&outsideNight!=null){
+            float[] b=RoomScene.SKY;outsideNightMatrix.setScale(day.getWidth()*(b[2]-b[0])*scale/outsideNight.getWidth(),day.getHeight()*(b[3]-b[1])*scale/outsideNight.getHeight());outsideNightMatrix.postTranslate(offsetX+day.getWidth()*scale*b[0],offsetY+day.getHeight()*scale*b[1]);
+        }
+        glass.transform(studentRoom?roomMaskMatrix:sceneMatrix);
         glass.computeBounds(glassBounds, true);
         if (getWidth() > 0 && getHeight() > 0) {
-            textureMatrix.setScale(day.getWidth() * scale / getWidth(), day.getHeight() * scale / getHeight());
-            textureMatrix.postTranslate(offsetX, offsetY);
+            if(studentRoom){float[] b=RoomScene.SKY;textureMatrix.setScale(day.getWidth()*scale*(b[2]-b[0])/getWidth(),day.getHeight()*scale*(b[3]-b[1])/getHeight());textureMatrix.postTranslate(offsetX+day.getWidth()*scale*b[0],offsetY+day.getHeight()*scale*b[1]);}
+            else {textureMatrix.setScale(day.getWidth() * scale / getWidth(), day.getHeight() * scale / getHeight());textureMatrix.postTranslate(offsetX, offsetY);}
             texture.setTransform(textureMatrix);
         }
         lampX = offsetX + day.getWidth() * scale * .045f;
         lampY = offsetY + day.getHeight() * scale * (wide ? .51f : .47f);
         lampRadius = day.getWidth() * scale * (wide ? .20f : .28f);
-        glowPaint.setShader(new RadialGradient(lampX, lampY, Math.max(1,lampRadius),
+        if(!studentRoom)glowPaint.setShader(new RadialGradient(lampX, lampY, Math.max(1,lampRadius),
                 new int[]{0x90ffc572,0x28ffb65c,0x00ffb65c}, null, Shader.TileMode.CLAMP));
         videoClip.invalidate(); roomLight.invalidate(); atmosphere.invalidate();
     }
@@ -230,7 +258,7 @@ final class StudyLiveView extends FrameLayout {
     }
 
     private void startVideoIfReady() {
-        if (!canRunMotion() || decoderFailed || player != null || day == null || day.isRecycled()
+        if (!canRunMotion() || studentRoom&&reducedEffects || decoderFailed || player != null || day == null || day.isRecycled()
                 || !texture.isAvailable() || getWidth() == 0 || getHeight() == 0) return;
         firstFrame = false; renderingStarted = false; texture.setAlpha(0);
         videoNight = targetDaylight < .5f;
@@ -252,7 +280,7 @@ final class StudyLiveView extends FrameLayout {
                 return false;
             });
             candidate.setOnErrorListener((p, what, extra) -> { videoFailure="media:"+what+":"+extra; videoFailed(p); return true; });
-            String asset = videoNight
+            String asset = studentRoom?RoomScene.ROOT+(videoNight?"window_night.mp4":"window_day.mp4"):videoNight
                     ? (wide ? "scenes/study_night_landscape.mp4" : "scenes/study_night_portrait.mp4")
                     : (wide ? "scenes/study_landscape.mp4" : "scenes/study_portrait.mp4");
             try (AssetFileDescriptor fd = getContext().getAssets().openFd(asset)) {
@@ -285,15 +313,44 @@ final class StudyLiveView extends FrameLayout {
     /** Full-room light plate is below video so opaque night artwork never hides playback. */
     private final class RoomLightView extends View {
         private final Paint roomPaint = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.FILTER_BITMAP_FLAG);
-        RoomLightView(Context context) { super(context); setClickable(false); }
+        private final Paint nightBlend=new Paint(),warmMask=new Paint(Paint.ANTI_ALIAS_FLAG);
+        RoomLightView(Context context) {
+            super(context);setClickable(false);
+            warmMask.setShader(new RadialGradient(0,0,1,new int[]{0xffffffff,0xffffffff,0x00ffffff},new float[]{0,.55f,1},Shader.TileMode.CLAMP));
+            warmMask.setXfermode(new android.graphics.PorterDuffXfermode(android.graphics.PorterDuff.Mode.DST_OUT));
+        }
+        private void keepWarm(Canvas canvas,float x,float y,float rx,float ry,int strength){
+            warmMask.setAlpha(strength);int save=canvas.save();canvas.translate(offsetX+day.getWidth()*scale*x,offsetY+day.getHeight()*scale*y);canvas.scale(day.getWidth()*scale*rx,day.getHeight()*scale*ry);canvas.drawCircle(0,0,1,warmMask);canvas.restoreToCount(save);
+        }
         @Override protected void onDraw(Canvas canvas) {
             if (day == null || day.isRecycled()) return;
-            if (night != null && !night.isRecycled() && daylight < 1) {
+            int windowSave=canvas.save();if(studentRoom)canvas.clipPath(glass);
+            Bitmap moon=studentRoom&&outsideNight!=null?outsideNight:night;
+            if (moon != null && !moon.isRecycled() && daylight < 1) {
                 roomPaint.setAlpha(Math.round(255*(1-daylight)));
-                canvas.drawBitmap(night,nightMatrix,roomPaint);
+                canvas.drawBitmap(moon,studentRoom&&outsideNight!=null?outsideNightMatrix:nightMatrix,roomPaint);
             } else if (night == null && daylight < 1) {
                 roomPaint.setColor(0xff101b37); roomPaint.setAlpha(Math.round(160*(1-daylight)));
                 canvas.drawRect(0,0,getWidth(),getHeight(),roomPaint);
+            }
+            if(lampEnabled&&daylight<1&&lampOffNight!=null&&!lampOffNight.isRecycled()){
+                // Preserve moonlight and leaf shadows on the room, with warm light
+                // confined to the bulb and desk. Both registered source plates stay intact.
+                int save=canvas.save();canvas.clipPath(glass,android.graphics.Region.Op.DIFFERENCE);
+                nightBlend.setAlpha(Math.round(255*(1-daylight)));
+                int layer=canvas.saveLayer(0,0,getWidth(),getHeight(),nightBlend);
+                roomPaint.setAlpha(255);canvas.drawBitmap(lampOffNight,lampOffNightMatrix,roomPaint);
+                keepWarm(canvas,.04f,wide?.51f:.477f,wide?.12f:.20f,wide?.13f:.09f,255);
+                keepWarm(canvas,.22f,.88f,wide?.48f:.70f,wide?.38f:.27f,185);
+                canvas.restoreToCount(layer);canvas.restoreToCount(save);
+            }
+            if(!lampEnabled&&lampOffDay!=null&&!lampOffDay.isRecycled()){
+                // Replace indoor illumination, including baked highlights and cast shadows.
+                // Retain the exact window pixels and video registration in every lamp state.
+                int save=canvas.save();canvas.clipPath(glass,android.graphics.Region.Op.DIFFERENCE);
+                roomPaint.setAlpha(255);canvas.drawBitmap(lampOffDay,lampOffDayMatrix,roomPaint);
+                if(lampOffNight!=null&&!lampOffNight.isRecycled()&&daylight<1){roomPaint.setAlpha(Math.round(255*(1-daylight)));canvas.drawBitmap(lampOffNight,lampOffNightMatrix,roomPaint);}
+                canvas.restoreToCount(save);
             }
             if (cloudiness > .01f && daylight > .01f) {
                 roomPaint.setColor(0xff233345);
@@ -301,6 +358,7 @@ final class StudyLiveView extends FrameLayout {
                 canvas.drawRect(0,0,getWidth(),getHeight(),roomPaint);
             }
             roomPaint.setAlpha(255);
+            canvas.restoreToCount(windowSave);
         }
     }
     private final class Atmosphere extends View {
@@ -331,7 +389,7 @@ final class StudyLiveView extends FrameLayout {
                 paint.setColor(precipitation == 2 ? 0xfff4f7ff : 0xffc4dcee);
                 paint.setAlpha(Math.round(amount*(precipitation == 2 ? 185 : 120)));
                 paint.setStrokeWidth(Math.max(1,getWidth()/700f));
-                for (int i=0;i<60;i++) {
+                for (int i=0;i<(reducedEffects?24:60);i++) {
                     float x=glassBounds.left+fraction(i*.618034f+t*(precipitation==2?.012f:.045f))*w;
                     float y=glassBounds.top+fraction(i*.381966f+t*(precipitation==2?.065f:.7f))*h;
                     if (precipitation==2) canvas.drawCircle(x,y,Math.max(1.3f,w*.003f)*(1+(i%3)*.3f),paint);
@@ -340,7 +398,7 @@ final class StudyLiveView extends FrameLayout {
             }
             canvas.restoreToCount(save);
             float lampStrength = Math.max(1-daylight,Math.max(0,cloudiness-.6f)*.8f*daylight);
-            if (lampStrength > .01f && lampRadius > 0) {
+            if (!studentRoom && lampEnabled && lampStrength > .01f && lampRadius > 0) {
                 glowPaint.setAlpha(Math.round(lampStrength*150));
                 canvas.drawCircle(lampX,lampY,lampRadius,glowPaint);
             }

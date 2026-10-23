@@ -2,8 +2,8 @@ package com.sitebox.app;
 import java.util.HashSet;
 public class SceneThemeTest {
  public static void main(String[] args){
-  String[] ids={"study","classroom","library","bedroom","greenhouse","cafe","tatami","attic","lab","wizard","seaside","train"};
-  if(SceneTheme.ALL.length!=ids.length)throw new AssertionError("Twelve backgrounds required");
+  String[] ids={"study"};
+  if(SceneTheme.ALL.length!=ids.length)throw new AssertionError("Only study is selectable");
   HashSet<String> unique=new HashSet<>();
   for(int i=0;i<ids.length;i++){
    SceneTheme theme=SceneTheme.ALL[i];
@@ -19,16 +19,21 @@ public class SceneThemeTest {
     if(feet<24||feet>h-24)throw new AssertionError("Anchor-aware crop must keep floor visible");
     float[] b=theme.sceneBounds(w,h,iw,ih,10,24,10,24);
     if(b[0]<10||b[1]<24||b[2]>w-10||b[3]>h-24)throw new AssertionError("Furniture must respect safe areas");
-    if(Math.abs((b[3]-b[1])/(b[2]-b[0])-1.3f)>.001f)throw new AssertionError("Cabinet must retain aspect ratio");
+    float[] source=SceneProjection.find("study",iw>ih).imageBounds();
+    float projectedRatio=(source[3]-source[1])*ih/((source[2]-source[0])*iw);
+    if(Math.abs((b[3]-b[1])/(b[2]-b[0])-projectedRatio)>.001f)throw new AssertionError("Use the camera's projected aspect, not the editor sprite's aspect");
     if(Math.abs(b[3]-feet)>.01f)throw new AssertionError("Furniture and image must share floor transform");
    }
   }
-  if(!SceneTheme.initialTheme("classroom",false).equals("study")||!SceneTheme.initialTheme(null,false).equals("study")||!SceneTheme.initialTheme("classroom",true).equals("classroom")||!SceneTheme.initialTheme("wizard",false).equals("wizard"))throw new AssertionError("Study introduction preserves explicit nondefault selection and allows returning to classroom");
-  SceneTheme study=SceneTheme.find("study");SceneProjection studyCamera=SceneProjection.find("study");
-  for(boolean wide:new boolean[]{false,true}){float frontFeet=study.anchorFeet(wide),rear=studyCamera.cameraY+(frontFeet-studyCamera.cameraY)/(1+studyCamera.depth);float floor=wide?.675f:.595f;if(Math.abs(rear-floor)>.002f||!wide&&frontFeet>.608f)throw new AssertionError("Study rear meets wall-floor seam and front feet stay behind foreground books");}
-  SceneTheme train=SceneTheme.find("train");
-  float rearFloor=SceneProjection.find("train").cameraY+(train.feet-SceneProjection.find("train").cameraY)/(1+SceneProjection.find("train").depth);
-  if(train.feet!=.74f||train.height!=.23f||rearFloor<.71f||rearFloor>.72f)throw new AssertionError("Train feet must stand on parquet below baseboard, with rear floor near source .713");
+  for(String old:new String[]{null,"classroom","wizard","train","unknown"})for(boolean introduced:new boolean[]{false,true})if(!SceneTheme.initialTheme(old,introduced).equals("study"))throw new AssertionError("Old room choices migrate to study");
+  SceneTheme study=SceneTheme.find("study");
+  for(boolean wide:new boolean[]{false,true}){
+   SceneProjection camera=SceneProjection.find("study",wide);
+   float iw=wide?1672:852,ih=wide?941:1846;
+   float[] bounds=study.sceneBounds(iw,ih,iw,ih,0,0,0,0);
+   float vx=(iw*camera.cameraX-bounds[0])/(bounds[2]-bounds[0]);
+   if(!camera.rightVisible(vx,0,1))throw new AssertionError("Room-facing side must remain visible");
+  }
   if(SceneTheme.find(null)!=SceneTheme.ALL[0]||SceneTheme.find("removed-room")!=SceneTheme.ALL[0])throw new AssertionError("Missing and unknown saved IDs must use study");
   System.out.println("PASS: stable room IDs, fallback, shared crop/pose geometry and safe areas");
  }

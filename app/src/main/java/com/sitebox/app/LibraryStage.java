@@ -10,6 +10,13 @@ final class LibraryStage extends FrameLayout {
  private boolean multiTouch,triggered;
  private int first=-1,second=-1;
  private float initialSpan;
+ interface HitTest {boolean contains(float x,float y);}
+ private java.util.function.BooleanSupplier moving=()->false;
+ private HitTest furniture=(x,y)->false;
+ private Runnable approach=()->{};
+ private boolean blockedStream,moved;
+ private float downX,downY;
+ void setTransitionGuard(java.util.function.BooleanSupplier moving,HitTest furniture,Runnable approach){this.moving=moving;this.furniture=furniture;this.approach=approach;}
  LibraryStage(Context context,Runnable pinchIn){super(context);this.pinchIn=pinchIn;}
  @Override public boolean dispatchTouchEvent(MotionEvent event){
   int action=event.getActionMasked();
@@ -27,6 +34,18 @@ final class LibraryStage extends FrameLayout {
   return super.dispatchTouchEvent(event);
  }
  private float span(MotionEvent event){int a=event.findPointerIndex(first),b=event.findPointerIndex(second);return a<0||b<0?0:(float)Math.hypot(event.getX(a)-event.getX(b),event.getY(a)-event.getY(b));}
- @Override public boolean onInterceptTouchEvent(MotionEvent event){return multiTouch||super.onInterceptTouchEvent(event);}
- @Override public boolean onTouchEvent(MotionEvent event){return multiTouch||super.onTouchEvent(event);}
+ @Override public boolean onInterceptTouchEvent(MotionEvent event){
+  if(event.getActionMasked()==MotionEvent.ACTION_DOWN){blockedStream=moving.getAsBoolean();downX=event.getX();downY=event.getY();moved=false;}
+  return multiTouch||blockedStream||super.onInterceptTouchEvent(event);
+ }
+ @Override public boolean onTouchEvent(MotionEvent event){
+  if(multiTouch)return true;
+  if(blockedStream){
+   if(event.getActionMasked()==MotionEvent.ACTION_MOVE&&Math.hypot(event.getX()-downX,event.getY()-downY)>android.view.ViewConfiguration.get(getContext()).getScaledTouchSlop())moved=true;
+   if(event.getActionMasked()==MotionEvent.ACTION_UP){if(!moved&&furniture.contains(event.getX(),event.getY()))approach.run();blockedStream=false;}
+   if(event.getActionMasked()==MotionEvent.ACTION_CANCEL)blockedStream=false;
+   return true;
+  }
+  return super.onTouchEvent(event);
+ }
 }
