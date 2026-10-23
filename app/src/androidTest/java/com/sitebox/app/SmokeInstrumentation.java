@@ -21,12 +21,14 @@ public final class SmokeInstrumentation extends Instrumentation {
  int backupShelf,backupBook;
  int recoveredPixelLauncherAnrs;
  StringBuilder checks=new StringBuilder();
+ void phase(String name){Bundle progress=new Bundle();progress.putString("stream","PHASE "+name+" uptimeMs="+android.os.SystemClock.uptimeMillis()+"\n");sendStatus(1,progress);}
  void check(boolean value,String name){if(!value)throw new AssertionError(name);checks.append("PASS ").append(name).append('\n');}
  void main(Runnable action){final Throwable[] failure={null};runOnMainSync(()->{try{action.run();}catch(Throwable error){failure[0]=error;}});waitForIdleSync();if(failure[0] instanceof Error)throw (Error)failure[0];if(failure[0] instanceof RuntimeException)throw (RuntimeException)failure[0];if(failure[0]!=null)throw new RuntimeException(failure[0]);}
  @Override public void onCreate(Bundle arguments){super.onCreate(arguments);start();}
  @Override public void onStart(){
   Bundle result=new Bundle();int code=Activity.RESULT_OK;
   try {
+   phase("startup and physical cabinet entry");
    activity=(MainActivity)startActivitySync(new Intent(getTargetContext(),MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));waitForIdleSync();
    SharedPreferences prefs=activity.getPreferences(0);backupSites=prefs.getString("sites","[]");backupCategories=prefs.getString("categories","[]");backupShelf=prefs.getInt("shelfTheme",0);backupBook=prefs.getInt("bookTheme",0);hadGestureTip=prefs.contains("gestureTipSeen");backupGestureTip=prefs.getBoolean("gestureTipSeen",false);hadBackground=prefs.contains("backgroundTheme");backupBackground=prefs.getString("backgroundTheme","classroom");
    hadMotion=prefs.contains("studyMotion");backupMotion=prefs.getBoolean("studyMotion",true);main(()->activity.setStudyMotion(true));
@@ -58,8 +60,8 @@ public final class SmokeInstrumentation extends Instrumentation {
     check(activity.pageSummary.getText().toString().contains("/ 2"),"eighth book starts second page after seven visible books");
    });
    snapshot("oak-classic.png");
-   new BackupChecks(this).run();
-   ambientScenes();
+   phase("accounts, backup and automatic sync");new BackupChecks(this).run();
+   phase("day, night, weather and decoder lifecycle");ambientScenes();
    // Sync/atmosphere checks intentionally preserve the room pose. Enter through
    // an actual screen tap before testing visible editor books and native drag.
    if(activity.sceneCollapsed)tapRoomCabinet();
@@ -67,12 +69,12 @@ public final class SmokeInstrumentation extends Instrumentation {
    main(()->{try{JSONObject single=new JSONObject();single.put("name","naver");single.put("url","https://naver.com");single.put("category",activity.categories[5]);activity.sites=new JSONArray().put(single);activity.populate();}catch(Exception error){throw new RuntimeException(error);}});
    main(()->{check(activity.pagingBar.getVisibility()==View.GONE,"single page hides paging bar");check(activity.pageSummary.getText().toString().contains("1권"),"hidden page summary remains current");check(activity.shelves.getChildCount()==2,"populated shelf has no persistent bottom instructions");});
    snapshot("single-book-naver.png");main(()->{try{activity.sites=new JSONArray(fullFixture);activity.populate();}catch(Exception error){throw new RuntimeException(error);}});
-   for(int s=0;s<3;s++)for(int b=0;b<3;b++){
+   phase("nine editor finish and book-style combinations");for(int s=0;s<3;s++)for(int b=0;b<3;b++){
     final int si=s,bi=b;main(()->{activity.shelfThemeIndex=si;activity.bookThemeIndex=bi;activity.save();activity.populate();});
     snapshot("theme-"+s+"-"+b+".png");
    }
-   crudDialogs();
-   nativeDrag();
+   phase("native book dialogs");crudDialogs();
+   phase("native long-press drag");nativeDrag();
    main(()->{
     check(activity.sites.optJSONObject(0).optString("category").equals(activity.categories[1]),"long-press native drag delivered cross-cell drop");
     check(activity.dragSource==null||activity.dragSource.getAlpha()==1f,"drag source opacity restored");
@@ -102,13 +104,13 @@ public final class SmokeInstrumentation extends Instrumentation {
    });
    snapshot("final-home.png");
    main(()->activity.edit(-1));snapshot("add-dialog.png");clickText("취소");waitForIdleSync();
-   collapsedSearchRotation();
-   renameCategory();
-   rotateScreens();
-   projectedCabinetThemes();
-   pinchCollapseRestore();
-   roomReversalAndBack();
-   backgroundCollection();
+   phase("collapsed search and rotation");collapsedSearchRotation();
+   phase("category rename");renameCategory();
+   phase("editor rotation");rotateScreens();
+   phase("projected cabinet finishes");projectedCabinetThemes();
+   phase("physical pinch and animated approach");pinchCollapseRestore();
+   phase("reversal, repeated requests and native Back");roomReversalAndBack();
+   phase("background and rotated room lifecycle");backgroundCollection();
    main(()->{
     View root=((ViewGroup)activity.stage).getChildAt(1);View header=((ViewGroup)root).getChildAt(0);
     check(header.performLongClick()&&activity.backgroundOnly,"classroom-only reveal preserved");
@@ -119,6 +121,10 @@ public final class SmokeInstrumentation extends Instrumentation {
    checks.append("PASS all nine theme combinations rendered\n");
   }catch(Throwable failure){try{snapshot("failure.png");}catch(Throwable ignored){}code=Activity.RESULT_CANCELED;result.putString("failure",failure.toString());checks.append("FAIL ").append(failure);}
   finally{
+   if(activity!=null)try{
+    File directory=new File(getTargetContext().getExternalFilesDir(null),"qa");directory.mkdirs();
+    try(FileOutputStream out=new FileOutputStream(new File(directory,"emulator-frame-stats.txt"))){out.write(shell("dumpsys gfxinfo "+getTargetContext().getPackageName()+" framestats").getBytes(java.nio.charset.StandardCharsets.UTF_8));}
+   }catch(Exception diagnostics){checks.append("UNMEASURED emulator frame statistics: ").append(diagnostics).append('\n');}
    if(activity!=null&&backupSites!=null){main(()->{SharedPreferences.Editor restore=activity.getPreferences(0).edit().putString("sites",backupSites).putString("categories",backupCategories).putInt("shelfTheme",backupShelf).putInt("bookTheme",backupBook);if(hadBackground)restore.putString("backgroundTheme",backupBackground);else restore.remove("backgroundTheme");if(hadGestureTip)restore.putBoolean("gestureTipSeen",backupGestureTip);else restore.remove("gestureTipSeen");if(hadMotion)restore.putBoolean("studyMotion",backupMotion);else restore.remove("studyMotion");restore.commit();activity.finish();});}
   }
   checks.append("\nENV recoveredPixelLauncherAnrs=").append(recoveredPixelLauncherAnrs).append("\n");

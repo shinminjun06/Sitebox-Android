@@ -59,6 +59,8 @@ ThemeAssets samples images to screen/low-RAM limits, samples outside textures in
 
 A persisted per-device reduced-effects switch disables camera parallax and window decoding, and reduces weather particles/ticks. Low-RAM devices default to reduced effects. It does not change the library or cloud format. The existing motion switch, lifecycle decoder pause/release, Open-Meteo city/cache/offline status and time-based day/night remain supported.
 
+Contact shadows remain enabled to keep the cabinet grounded; reduced mode saves the heavier camera/video/weather work instead of removing the floor contact.
+
 ## Verification and remaining limits
 
 Tests cover visible label ink, actual photographed shelf baselines, eight aspect ratios/overscan, all nine inverse-matrix cells, 71-book paging, live rebind/weather isolation, reversal continuity, persistence/quality preferences, lamp and night-window rendering, existing account/sync behavior and Android builds/lint/signature. GitHub Actions `room-verify.yml` builds and runs the existing native Android 15 instrumentation, including CRUD, drag, gestures, rotation, account/sync fixtures and decoder lifecycle.

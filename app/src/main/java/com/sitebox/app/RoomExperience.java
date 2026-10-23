@@ -66,6 +66,9 @@ final class RoomExperience {
  private void render(float p,boolean running,boolean towardRoom){
   if(disposed||day==null||a.currentCabinet==null||a.currentCabinet.getWidth()==0)return;
   a.sceneCollapsed=towardRoom;a.sceneAnimating=running;
+  // The photographic room/matte is static between camera or lighting changes.
+  // Cache its composed GPU layer while weather/video beneath it keeps moving.
+  a.backdrop.setLayerType(running?View.LAYER_TYPE_NONE:View.LAYER_TYPE_HARDWARE,null);
   float w=a.stage.getWidth(),h=a.stage.getHeight(),iw=day.getWidth(),ih=day.getHeight();
   RectF editorBounds=a.cabinetBounds();
   RoomScene.camera(w,h,iw,ih,p,RoomScene.ROOM,reduced,editorBounds.left,editorBounds.top,editorBounds.right,editorBounds.bottom,room);
