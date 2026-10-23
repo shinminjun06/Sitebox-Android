@@ -48,7 +48,7 @@ jobs:
           arch: x86_64
           profile: pixel_5
           disable-animations: true
-          emulator-options: -no-window -gpu swiftshader_indirect -feature -Vulkan -noaudio -no-boot-anim -camera-back none -camera-front none
+          emulator-options: -no-window -gpu swangle -noaudio -no-boot-anim -camera-back none -camera-front none
           script: |
             adb shell wm size 720x1560
             adb shell wm density 320
