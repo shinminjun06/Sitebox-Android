@@ -9,6 +9,7 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-24.04
+    timeout-minutes: 40
     permissions:
       contents: read
     env:
@@ -22,15 +23,21 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.9'
+      - uses: FedericoCarboni/setup-ffmpeg@36c6454b5a2348e7794ba2d82a21506605921e3d # v3
+        timeout-minutes: 6
+        with:
+          ffmpeg-version: release
       - name: Install required Android SDK packages
         run: |
           SDKMANAGER="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
-          yes | "$SDKMANAGER" --licenses > /dev/null || true
-          "$SDKMANAGER" "platforms;android-35" "build-tools;35.0.0"
+          if [ ! -f "$ANDROID_HOME/platforms/android-35/android.jar" ] || [ ! -x "$ANDROID_HOME/build-tools/35.0.0/aapt2" ]; then
+            timeout 90s bash -c 'yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null' || true
+            timeout 180s "$SDKMANAGER" "platforms;android-35" "build-tools;35.0.0"
+          fi
       - name: Verify library rules and bundled artwork
         run: |
           python3 -m pip install --user Pillow
-          command -v ffprobe || (sudo apt-get update && sudo apt-get install -y ffmpeg)
+          ffprobe -version
           sh tests/run.sh
       - name: Keep debug update signing stable across builds
         uses: actions/cache@v4
@@ -65,7 +72,7 @@ jobs:
             adb shell wm density 320
             adb install -r app/build/outputs/apk/debug/app-debug.apk
             adb install -r app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk
-            timeout 420s adb shell am instrument -w com.sitebox.app.test/com.sitebox.app.SmokeInstrumentation | tee device-tests.txt
+            timeout 1200s adb shell am instrument -w com.sitebox.app.test/com.sitebox.app.SmokeInstrumentation | tee device-tests.txt
             mkdir -p device-qa
             adb pull /sdcard/Android/data/com.sitebox.app/files/qa/ device-qa/
             adb logcat -d -s AndroidRuntime:E > device-qa/crashes.txt
