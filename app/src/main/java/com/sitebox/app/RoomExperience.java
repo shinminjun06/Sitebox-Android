@@ -30,7 +30,7 @@ final class RoomExperience {
  boolean reduced(){return reduced;}
  void setReduced(boolean value){reduced=value;a.getPreferences(0).edit().putBoolean("roomReducedEffects",value).apply();model.setReduced(value);}
  void bind(){
-  if(a.currentCabinet==null)return;a.miniature.setContent(a.currentCabinet);
+  if(a.currentCabinet==null)return;model.setFinish(a.shelfThemeIndex);a.miniature.setContent(a.currentCabinet);
   a.currentCabinet.addOnLayoutChangeListener((v,l,t,r,b,ol,ot,or,ob)->{if(!disposed&&v==a.currentCabinet)relayout();});
   a.currentCabinet.post(()->{if(!disposed)relayout();});
  }
@@ -60,7 +60,7 @@ final class RoomExperience {
  }
  void setWeather(WeatherState state,long now){daylight=state.daylight(now);clouds=state.cloudiness();precipitation=state.precipitation();updateLighting();}
  void setClouds(float value){clouds=value;updateLighting();}
- void updateLighting(){if(!disposed){model.setAtmosphere(daylight,clouds,precipitation,a.studyLampOn);a.miniature.setModelLighting(daylight,clouds,a.studyLampOn);}}
+ void updateLighting(){if(!disposed){model.setWeatherImages(a.motionEnabled);model.setAtmosphere(daylight,clouds,precipitation,a.studyLampOn);a.miniature.setModelLighting(daylight,clouds,a.studyLampOn);}}
  void lampBounds(float[] out){rig.lampBounds(out);}
  void roomBounds(float[] out){RoomScene.bounds(quad,out);}
  void dispose(){disposed=true;transition.dispose();a.miniature.setContent(null);model.dispose();}

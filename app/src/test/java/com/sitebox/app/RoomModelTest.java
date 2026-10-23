@@ -19,6 +19,12 @@ public class RoomModelTest {
    float[] before=q.clone();rig.update(size[0],size[1],40,100,size[0]-40,size[1]-70,.4f);rig.update(size[0],size[1],40,100,size[0]-40,size[1]-70,1);rig.shelfQuad(q);assertArrayEquals(before,q,0);
   }
  }
+ @Test public void shelfFinishPreservesOriginalAndOffersDistinctWoodColors(){
+  assertArrayEquals(new float[]{1,1,1},RoomModelGeometry.finishTint(0),0);
+  float[] dark=RoomModelGeometry.finishTint(1),light=RoomModelGeometry.finishTint(2);
+  for(int i=0;i<3;i++){assertTrue(dark[i]>0&&dark[i]<1);assertTrue(light[i]>1&&Float.isFinite(light[i]));}
+  assertArrayEquals(RoomModelGeometry.finishTint(0),RoomModelGeometry.finishTint(-4),0);
+ }
  @Test public void nineActualModelOpeningsNeverTouchFrameOrOneAnother(){
   for(int i=0;i<9;i++){float[] r=RoomModelGeometry.cell(i);assertTrue(r[0]>0&&r[1]>0&&r[2]<1&&r[3]<1);assertTrue(r[0]<r[2]&&r[1]<r[3]);assertEquals(i,RoomModelGeometry.hit((r[0]+r[2])/2,(r[1]+r[3])/2));}
  }

@@ -272,13 +272,13 @@ public class MainActivity extends Activity {
   if(ambientStatus!=null){String updated=state.available?weatherClock(state.observedAt,state):"없음";ambientStatus.setText("날씨 지역: "+weather.place().name+"\n"+weather.status()+"\n"+(state.available?state.description()+" · "+String.format(java.util.Locale.getDefault(),"%.1f°C",state.temperature):"시간만 반영 중")+"\n날씨 기준 시각: "+updated+"\n"+(state.available?"지역 현재 시각: ":"기기 시각: ")+weatherClock(now,state));}
  }
  String weatherClock(long time,WeatherState state){java.text.DateFormat format=android.text.format.DateFormat.getTimeFormat(this);if(state.utcOffsetSeconds!=Integer.MIN_VALUE){java.util.TimeZone zone=java.util.TimeZone.getTimeZone("GMT");zone.setRawOffset(state.utcOffsetSeconds*1000);format.setTimeZone(zone);}return format.format(new java.util.Date(time));}
- void setStudyMotion(boolean enabled){motionEnabled=enabled;getPreferences(0).edit().putBoolean("studyMotion",enabled).apply();if(backups!=null)backups.localChanged();if(studyLive!=null)studyLive.setMotionEnabled(enabled);}
+ void setStudyMotion(boolean enabled){motionEnabled=enabled;getPreferences(0).edit().putBoolean("studyMotion",enabled).apply();if(backups!=null)backups.localChanged();if(studyLive!=null)studyLive.setMotionEnabled(enabled);if(roomExperience!=null)roomExperience.updateLighting();}
  void setAmbientPreview(WeatherState state,long now){ambientPreview=state;ambientPreviewTime=now;updateAmbient();}
  void clearAmbientPreview(){ambientPreview=null;updateAmbient();}
  void showAmbientSettings(){
   LinearLayout content=new LinearLayout(this);content.setOrientation(LinearLayout.VERTICAL);content.setPadding(dp(22),dp(8),dp(22),dp(12));
   TextView info=label("테마 1에만 적용됩니다. 선택한 도시의 낮·밤과 날씨를 반영하며 위치 권한은 사용하지 않습니다.",13,0xFF574532);content.addView(info);
-  Switch motion=new Switch(this);motion.setText("창문 날씨 효과");motion.setMinHeight(dp(48));motion.setChecked(motionEnabled);content.addView(motion);motion.setOnCheckedChangeListener((v,checked)->setStudyMotion(checked));
+  Switch motion=new Switch(this);motion.setText("창문 날씨 이미지 반영");motion.setMinHeight(dp(48));motion.setChecked(motionEnabled);content.addView(motion);motion.setOnCheckedChangeListener((v,checked)->setStudyMotion(checked));
   Switch quality=new Switch(this);quality.setText("효과 줄이기 · 저사양 기기");quality.setMinHeight(dp(48));quality.setChecked(roomExperience.reduced());content.addView(quality);quality.setOnCheckedChangeListener((v,checked)->roomExperience.setReduced(checked));
   ambientStatus=label("",13,0xFF574532);ambientStatus.setPadding(0,dp(12),0,dp(12));content.addView(ambientStatus);
   Button city=new Button(this);city.setText("날씨 지역 변경");content.addView(city);city.setOnClickListener(v->searchWeatherCity());

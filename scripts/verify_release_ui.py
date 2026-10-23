@@ -15,6 +15,18 @@ def click(text):
                 return
         time.sleep(.25)
     raise AssertionError('Missing release UI: ' + text)
+# Require actual native GLB loading and a presented TextureView frame in the R8 APK.
+deadline = time.monotonic() + 60
+while time.monotonic() < deadline:
+    renderer_logs = adb('logcat', '-d', '-s', 'SiteBox3D:I')
+    assert 'Native room initialization failed' not in renderer_logs, renderer_logs
+    if 'Loaded supplied room GLB:' in renderer_logs and 'room GPU frame presented' in renderer_logs:
+        break
+    time.sleep(.5)
+else:
+    raise AssertionError('Signed release did not present the native GLB frame: ' + renderer_logs)
+with open('release-verification.txt', 'a') as output:
+    output.write('PASS signed R8 release loads supplied GLB and presents native GPU frame\n')
 click('작아진 책장 열기')
 click('설정')
 click('Google 계정 · 자동 동기화')

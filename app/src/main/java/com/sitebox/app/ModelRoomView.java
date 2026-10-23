@@ -33,11 +33,21 @@ final class ModelRoomView extends TextureView implements TextureView.SurfaceText
  private int cameraEntity,sun,lamp;
  private final HashMap<String,Texture> windows=new HashMap<>();
  private MaterialInstance windowMaterial;
+ private final java.util.ArrayList<MaterialInstance> shelfMaterials=new java.util.ArrayList<>();
+ private final java.util.ArrayList<Float> shelfFactors=new java.util.ArrayList<>();
+ private int finish;
+ private boolean weatherImages=true;
+ int finishMaterialCount(){return shelfMaterials.size();}
+ void setWeatherImages(boolean value){if(weatherImages==value)return;weatherImages=value;updateWindow();requestFrame();}
+ void setFinish(int value){finish=value;applyFinish();requestFrame();}
+ private void applyFinish(){float[] tint=RoomModelGeometry.finishTint(finish);for(int i=0;i<shelfMaterials.size();i++){float f=shelfFactors.get(i);shelfMaterials.get(i).setParameter("baseColorFactor",tint[0]*f,tint[1]*f,tint[2]*f,1);}}
+
  private boolean active=true,disposed,scheduled,dirty=true,reduced;
  private float daylight=1,clouds,progress=1;
  private int precipitation;
  private boolean lampOn=true;
  private long frames;
+ private boolean presented;
  private String error,windowKey="day";
  private Consumer<String> status=value->{};
  private RoomCameraRig rig;
@@ -79,6 +89,11 @@ final class ModelRoomView extends TextureView implements TextureView.SurfaceText
    boolean shell=name.startsWith("Wall_")||name.startsWith("Ceiling")||name.startsWith("Window_Neighborhood");
    rm.setCastShadows(instance,!shell);rm.setReceiveShadows(instance,true);rm.setScreenSpaceContactShadows(instance,true);
    scene.addEntity(entity);
+   if(name.startsWith("Bookshelf_3x3_")||name.startsWith("Bookshelf_Edge_")||name.startsWith("Bookshelf_Foot_")||name.startsWith("HQ_Shelf_Wood_")||name.startsWith("V4_Bookshelf_")){
+    for(int primitive=0;primitive<rm.getPrimitiveCount(instance);primitive++){
+     MaterialInstance separate=MaterialInstance.duplicate(rm.getMaterialInstanceAt(instance,primitive),"SiteBox shelf finish");rm.setMaterialInstanceAt(instance,primitive,separate);shelfMaterials.add(separate);shelfFactors.add(name.startsWith("HQ_")?.4f:1f);
+    }
+   }
    if(name.equals("Window_Neighborhood_Reference"))windowMaterial=rm.getMaterialInstanceAt(instance,0);
   }
   if(windowMaterial==null)throw new IllegalStateException("Model window material is missing");
@@ -86,7 +101,7 @@ final class ModelRoomView extends TextureView implements TextureView.SurfaceText
   new LightManager.Builder(LightManager.Type.DIRECTIONAL).color(1,.88f,.72f).intensity(65000).direction(-.55f,-.85f,.55f).castShadows(true).shadowOptions(shadow).build(engine,sun);scene.addEntity(sun);
   lamp=EntityManager.get().create();new LightManager.Builder(LightManager.Type.POINT).position(-.69f,1.44f,-1.57f).color(1,.66f,.32f).intensity(2400).falloff(3.8f).castShadows(false).build(engine,lamp);scene.addEntity(lamp);
   ambient=new IndirectLight.Builder().irradiance(1,new float[]{1,1,1}).intensity(18000).build(engine);scene.setIndirectLight(ambient);
-  asset.releaseSourceData();updateCamera();updateLights();updateWindow();status.accept(null);
+  android.util.Log.i("SiteBox3D","Loaded supplied room GLB: "+asset.getRenderableEntities().length+" renderables");asset.releaseSourceData();applyFinish();updateCamera();updateLights();updateWindow();status.accept(null);
  }
  private void configureQuality(){
   view.setAntiAliasing(com.google.android.filament.View.AntiAliasing.FXAA);
@@ -107,7 +122,7 @@ final class ModelRoomView extends TextureView implements TextureView.SurfaceText
   ambient.setIntensity(1700+16000*daylight*(1-.35f*clouds)+(1-progress)*8000);
  }
  private void updateWindow(){
-  windowKey=daylight<.35f?"night":precipitation==2?"snow":precipitation==1||clouds>.78f?"rain":"day";
+  windowKey=daylight<.35f?"night":weatherImages&&precipitation==2?"snow":weatherImages&&(precipitation==1||clouds>.78f)?"rain":"day";
   if(engine==null||windowMaterial==null)return;
   // Day is the original embedded GLB texture. Weather variants preserve its UVs.
   String name="models/window_"+windowKey+".png";
@@ -136,15 +151,15 @@ final class ModelRoomView extends TextureView implements TextureView.SurfaceText
  private void resize(int width,int height){if(view!=null){view.setViewport(new Viewport(0,0,width,height));updateCamera();requestFrame();}}
  @Override public void onSurfaceTextureSizeChanged(SurfaceTexture texture,int width,int height){resize(width,height);}
  @Override public boolean onSurfaceTextureDestroyed(SurfaceTexture texture){
-  Choreographer.getInstance().removeFrameCallback(this);scheduled=false;
+  Choreographer.getInstance().removeFrameCallback(this);scheduled=false;presented=false;
   if(swap!=null){engine.destroySwapChain(swap);engine.flushAndWait();swap=null;}if(surface!=null){surface.release();surface=null;}return true;
  }
- @Override public void onSurfaceTextureUpdated(SurfaceTexture texture){}
+ @Override public void onSurfaceTextureUpdated(SurfaceTexture texture){if(!presented&&asset!=null&&frames>0){presented=true;android.util.Log.i("SiteBox3D","room GPU frame presented");}}
  void dispose(){
   if(disposed)return;disposed=true;active=false;Choreographer.getInstance().removeFrameCallback(this);scheduled=false;
   if(engine==null)return;
   if(swap!=null){engine.destroySwapChain(swap);engine.flushAndWait();swap=null;}if(surface!=null){surface.release();surface=null;}
-  if(resources!=null){resources.asyncCancelLoad();resources.destroy();}if(asset!=null){loader.destroyAsset(asset);asset=null;}if(loader!=null)loader.destroy();
+  if(resources!=null){resources.asyncCancelLoad();resources.destroy();}for(MaterialInstance material:shelfMaterials)engine.destroyMaterialInstance(material);shelfMaterials.clear();shelfFactors.clear();if(asset!=null){loader.destroyAsset(asset);asset=null;}if(loader!=null)loader.destroy();
   if(materials!=null){materials.destroyMaterials();materials.destroy();}
   for(Texture t:windows.values())engine.destroyTexture(t);windows.clear();
   if(ambient!=null)engine.destroyIndirectLight(ambient);
