@@ -12,7 +12,20 @@ log_pid=$!
   done
 ) &
 pull_pid=$!
-trap 'kill "$log_pid" "$pull_pid" 2>/dev/null || true' EXIT
+(
+  sleep 150
+  if ! grep -q 'PASS actual supplied GLB rendered with furniture and walls' room-device-tests.txt; then
+    model_pid=$(adb shell pidof -s com.sitebox.app | tr -d '\r' || true)
+    if [ -n "$model_pid" ]; then
+      timeout 20s adb shell debuggerd -b "$model_pid" > room-device-qa/native-thread-dump.txt 2>&1 || true
+      adb shell dumpsys activity activities > room-device-qa/startup-activity-state.txt || true
+      echo 'FAIL native startup watchdog: no displayed model within 150 seconds' >> room-device-tests.txt
+      adb shell am force-stop com.sitebox.app || true
+    fi
+  fi
+) &
+watchdog_pid=$!
+trap 'kill "$log_pid" "$pull_pid" "$watchdog_pid" 2>/dev/null || true' EXIT
 status=0
 timeout 1200s adb shell am instrument -w com.sitebox.app.test/com.sitebox.app.ModelSmokeInstrumentation | tee room-device-tests.txt || status=$?
 adb pull /sdcard/Android/data/com.sitebox.app/files/qa/ room-device-qa/ || true
