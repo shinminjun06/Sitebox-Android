@@ -16,7 +16,7 @@ import static org.junit.Assert.*;
 @Config(sdk=28)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 public class CabinetPanelTest {
- @Test public void photographicFrameHasClosedStilesAndNineSolidBacks()throws Exception{
+ @Test public void nativeEditorNeverPaintsAnAlternateFrameOverTheModel()throws Exception{
   ActivityController<MainActivity> lifecycle=Robolectric.buildActivity(MainActivity.class).create();
   try{
    MainActivity a=lifecycle.get();a.setStudyMotion(false);
@@ -24,16 +24,11 @@ public class CabinetPanelTest {
     a.expandFromScene(false);layout(a,size[0],size[1]);a.expandFromScene(false);layout(a,size[0],size[1]);
     BookshelfView v=a.currentCabinet;Bitmap b=Bitmap.createBitmap(v.getWidth(),v.getHeight(),Bitmap.Config.ARGB_8888);v.draw(new Canvas(b));
     File folder=new File("build/reports/cabinet-panel");folder.mkdirs();try(FileOutputStream out=new FileOutputStream(new File(folder,size[0]+"-panel.png"))){b.compress(Bitmap.CompressFormat.PNG,100,out);}
-    Matrix m=new Matrix();
-    // The final design is a photographed alpha frame, with closed wooden backs.
-    // Inspect native rendered pixels in every cubby and both outer stiles.
+    assertTrue("Native editor uses GLB frame",v.usesModelFrame());
+    assertEquals("No separate photographed cabinet",View.GONE,v.getChildAt(0).getVisibility());
     for(int cell=0;cell<9;cell++){
-     float[] r=CabinetGeometry.cell(cell),point={(r[0]+r[2])*.5f*v.getWidth(),(r[1]+r[3])*.5f*v.getHeight()};
-     m.mapPoints(point);assertTrue("Photographic cubby backs must be opaque",Color.alpha(b.getPixel((int)point[0],(int)point[1]))>=250);
-    }
-    for(float x:new float[]{.035f,.965f})for(float y:new float[]{.15f,.45f,.75f}){
-     float[] point={v.getWidth()*x,v.getHeight()*y};m.mapPoints(point);
-     assertTrue("Photographic outer stiles must be closed",Color.alpha(b.getPixel((int)point[0],(int)point[1]))>=250);
+     float[] r=RoomModelGeometry.cell(cell);int x=Math.round((r[0]+r[2])*.5f*v.getWidth()),y=Math.round((r[1]+r[3])*.5f*v.getHeight());
+     assertEquals("Empty openings stay transparent over actual GLB",0,Color.alpha(b.getPixel(x,y)));
     }
     b.recycle();
    }

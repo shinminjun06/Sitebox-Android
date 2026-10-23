@@ -16,13 +16,12 @@ import static org.junit.Assert.*;
 @Config(sdk=28)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 public class FurnitureGroundingTest {
- @Test public void hotspotFollowsTheOriginalPhotographedShelf(){
+ @Test public void hotspotFollowsTheActualModelShelf(){
   ActivityController<MainActivity> life=Robolectric.buildActivity(MainActivity.class).create();
   try{
    MainActivity a=life.get();a.setStudyMotion(false);
    for(int[] size:new int[][]{{591,1206},{926,428}}){RoomExperienceTest.layout(a,size[0],size[1]);a.collapseToScene(false);RoomExperienceTest.layout(a,size[0],size[1]);float[] actual=new float[8];a.miniature.copyRenderedCorners(actual);
-    // Independently marked crown/feet on the user's 720x1280 photograph.
-    float[] expected={0,.170f,.216f,.235f,.216f,.598f,0,.670f};for(int i=0;i<8;i+=2){expected[i]*=a.sceneBackdrop.getWidth();expected[i+1]*=a.sceneBackdrop.getHeight();}a.backdrop.getImageMatrix().mapPoints(expected);assertArrayEquals(expected,actual,.5f);
+    float[] expected=new float[8];a.roomExperience.rig.shelfQuad(expected);assertArrayEquals("Book overlay follows exact 3D camera",expected,actual,.02f);
     assertEquals("Use the source photo's real floor contact",View.GONE,a.sceneShadow.getVisibility());
    }
   }finally{life.destroy();}

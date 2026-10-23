@@ -105,19 +105,18 @@ public class MainActivity extends Activity {
  TextView title=label("SiteBox",24,0xFFFFF4DD);title.setTypeface(Typeface.SERIF,Typeface.BOLD);title.setSingleLine(true);title.setEllipsize(TextUtils.TruncateAt.END);branding.addView(title);
  headline.addView(branding,new LinearLayout.LayoutParams(0,-2,1));
  TextView settings=label("설정",13,0xFFFFF1D5);settings.setGravity(Gravity.CENTER);settings.setContentDescription("카테고리와 테마 설정");headline.addView(settings,new LinearLayout.LayoutParams(dp(48),dp(48)));
- settings.setOnClickListener(v->new AlertDialog.Builder(this).setTitle("나의 서재").setItems(new String[]{"배경 테마","책장 · 책 테마","카테고리 이름 수정","시간 · 날씨","Google 계정 · 자동 동기화","앱 정보"},(d,w)->{if(w==0)showBackgroundThemes();else if(w==1)showThemes();else if(w==2)manageCategories();else if(w==3)showAmbientSettings();else if(w==4)backups.show();else new AlertDialog.Builder(this).setTitle("SiteBox "+BuildConfig.VERSION_NAME).setMessage("소스 버전: "+BuildConfig.SOURCE_REVISION+"\n책을 길게 눌러 칸 사이로 이동하세요.\n명패를 누르면 해당 칸에 책을 추가합니다.").setPositiveButton("닫기",null).show();}).show());
+ settings.setOnClickListener(v->new AlertDialog.Builder(this).setTitle("나의 서재").setItems(new String[]{"배경 테마","책 스타일","카테고리 이름 수정","시간 · 날씨","Google 계정 · 자동 동기화","앱 정보"},(d,w)->{if(w==0)showBackgroundThemes();else if(w==1)showThemes();else if(w==2)manageCategories();else if(w==3)showAmbientSettings();else if(w==4)backups.show();else new AlertDialog.Builder(this).setTitle("SiteBox "+BuildConfig.VERSION_NAME).setMessage("소스 버전: "+BuildConfig.SOURCE_REVISION+"\n책을 길게 눌러 칸 사이로 이동하세요.\n명패를 누르면 해당 칸에 책을 추가합니다.").setPositiveButton("닫기",null).show();}).show());
  TextView add=label("＋",28,0xFF263B30);add.setGravity(Gravity.CENTER);add.setContentDescription("북마크 추가");add.setBackground(bg(0xFFE5C28A,14));headline.addView(add,new LinearLayout.LayoutParams(dp(48),dp(48)));add.setOnClickListener(v->edit(-1));searchToggle=label("검색",13,0xFFFFF1D5);searchToggle.setGravity(Gravity.CENTER);searchToggle.setContentDescription("검색 펼치기");headline.addView(searchToggle,new LinearLayout.LayoutParams(dp(48),dp(48)));searchToggle.setOnClickListener(v->setSearchExpanded(!searchExpanded));header.addView(headline);
  search=new EditText(this);search.setSingleLine(true);search.setTextSize(13);search.setTextColor(0xFF243E32);search.setHintTextColor(0xFF667568);search.setHint("검색 · 제목, 주소, 카테고리");search.setPadding(dp(14),0,dp(12),0);search.setBackground(bg(0xF2FFF9EB,12));search.setText(filter);
  search.setImeOptions(android.view.inputmethod.EditorInfo.IME_ACTION_SEARCH);
  LinearLayout.LayoutParams sp=new LinearLayout.LayoutParams(-1,dp(48));sp.topMargin=dp(7);header.addView(search,sp);setSearchExpanded(searchExpanded);root.addView(header);
- shelfScroll=new ShelfScrollView(this);shelfScroll.setFillViewport(true);shelfScroll.setClipToPadding(false);
+ shelfScroll=new ShelfScrollView(this);shelfScroll.setFillViewport(true);shelfScroll.setOnScrollChangeListener((v,x,y,oldX,oldY)->{if(roomExperience!=null)roomExperience.relayout();});shelfScroll.setClipToPadding(false);
  shelves=new LinearLayout(this);shelves.setOrientation(LinearLayout.VERTICAL);shelves.setGravity(Gravity.CENTER_HORIZONTAL);shelves.setPadding(0,dp(8),0,dp(14));
- shelfScroll.addOnLayoutChangeListener((v,l,t,r,b,ol,ot,or,ob)->{if(r-l!=or-ol)resizeShelfContents();});
+ shelfScroll.addOnLayoutChangeListener((v,l,t,r,b,ol,ot,or,ob)->{if(r-l!=or-ol||b-t!=ob-ot)resizeShelfContents();});
  shelfScroll.addView(shelves);root.addView(shelfScroll,new LinearLayout.LayoutParams(-1,0,1));stage.addView(root,new FrameLayout.LayoutParams(-1,-1));
  revealOverlay=new View(this);revealOverlay.setContentDescription("서재 화면으로 돌아가기");revealOverlay.setVisibility(View.GONE);stage.addView(revealOverlay,new FrameLayout.LayoutParams(-1,-1));
  revealOverlay.setOnClickListener(v->{backgroundOnly=false;root.setVisibility(View.VISIBLE);revealOverlay.setVisibility(View.GONE);});
- View.OnLongClickListener reveal=v->{backgroundOnly=true;root.setVisibility(View.INVISIBLE);revealOverlay.setVisibility(View.VISIBLE);return true;};
- header.setOnLongClickListener(reveal);shelves.setOnLongClickListener(reveal);shelfScroll.setOnLongClickListener(reveal);
+ // Empty-area long presses are inert. BookView alone owns long-press drag.
  sceneShadow=new FurnitureShadow(this);sceneShadow.setVisibility(View.GONE);stage.addView(sceneShadow,new FrameLayout.LayoutParams(1,1));
  miniature=new ProjectedCabinetView(this);miniature.setContentDescription("작아진 책장 열기");miniature.setVisibility(View.GONE);stage.addView(miniature,new FrameLayout.LayoutParams(-1,-1));miniature.setOnClickListener(v->expandFromScene(true));
  roomForeground=new RoomPlateView(this,true);stage.addView(roomForeground,new FrameLayout.LayoutParams(-1,-1));
@@ -144,7 +143,7 @@ public class MainActivity extends Activity {
   updateSceneBackdrop();
  }
  void updateSceneBackdrop(){
-  if(backdrop==null||backdrop.getWidth()==0||backdrop.getHeight()==0||roomExperience==null)return;
+  if(stage==null||stage.getWidth()==0||stage.getHeight()==0||roomExperience==null)return;
   renderedSceneTheme=SceneTheme.find(backgroundThemeId);roomExperience.relayout();
   studyLive.setMotionEnabled(motionEnabled);restartAmbient();updateLampSwitch();
  }
@@ -179,11 +178,11 @@ public class MainActivity extends Activity {
  }
  void showThemes(){
  LinearLayout layout=new LinearLayout(this);layout.setOrientation(LinearLayout.VERTICAL);layout.setPadding(dp(22),dp(14),dp(22),dp(8));
- TextView shelfLabel=label("책장 테마",16,0xFF3D291D);layout.addView(shelfLabel);
+ TextView shelfLabel=label("책장 색상 설정 · 3D 모델 원목 유지",16,0xFF3D291D);layout.addView(shelfLabel);
  Spinner shelfPicker=new Spinner(this);shelfPicker.setAdapter(new ArrayAdapter<String>(this,android.R.layout.simple_spinner_dropdown_item,shelfThemeNames));shelfPicker.setSelection(shelfThemeIndex);layout.addView(shelfPicker);
  TextView bookLabel=label("책 테마",16,0xFF3D291D);bookLabel.setPadding(0,dp(18),0,0);layout.addView(bookLabel);
  Spinner bookPicker=new Spinner(this);bookPicker.setAdapter(new ArrayAdapter<String>(this,android.R.layout.simple_spinner_dropdown_item,bookThemeNames));bookPicker.setSelection(bookThemeIndex);layout.addView(bookPicker);
- new AlertDialog.Builder(this).setTitle("책장 · 책 테마").setView(layout).setNegativeButton("취소",null).setPositiveButton("적용",(d,w)->{shelfThemeIndex=shelfPicker.getSelectedItemPosition();bookThemeIndex=bookPicker.getSelectedItemPosition();save();assets.clear();populate();}).show();
+ new AlertDialog.Builder(this).setTitle("책 스타일").setView(layout).setNegativeButton("취소",null).setPositiveButton("적용",(d,w)->{shelfThemeIndex=shelfPicker.getSelectedItemPosition();bookThemeIndex=bookPicker.getSelectedItemPosition();save();assets.clear();populate();}).show();
  }
  void setSearchExpanded(boolean expanded){
   searchExpanded=expanded;if(search==null)return;
@@ -191,7 +190,7 @@ public class MainActivity extends Activity {
   if(!expanded){search.clearFocus();((android.view.inputmethod.InputMethodManager)getSystemService(INPUT_METHOD_SERVICE)).hideSoftInputFromWindow(search.getWindowToken(),0);}
  }
  void updateSearchIndicator(){searchToggle.setText(filter.isEmpty()?"검색":"검색 중");searchToggle.setContentDescription((searchExpanded?"검색 접기":"검색 펼치기")+(filter.isEmpty()?"":" · 현재 검색: "+filter));}
- int shelfContentWidth(){int available=shelfScroll.getWidth();if(available<=0)available=getResources().getDisplayMetrics().widthPixels;return Math.round(available*.87f);}
+ int shelfContentWidth(){int available=shelfScroll.getWidth();if(available<=0)available=getResources().getDisplayMetrics().widthPixels;int height=shelfScroll.getHeight();if(height<=0)height=getResources().getDisplayMetrics().heightPixels-dp(110);return Math.max(dp(96),Math.round(Math.min(available*.87f,Math.max(dp(180),height-dp(100))/RoomModelGeometry.ASPECT)));}
  void resizeShelfContents(){int width=shelfContentWidth();for(int i=0;i<shelves.getChildCount();i++){View child=shelves.getChildAt(i);ViewGroup.LayoutParams lp=child.getLayoutParams();if(lp.width!=width){lp.width=width;child.setLayoutParams(lp);}}}
  void populate(){
  shelves.removeAllViews();
@@ -212,7 +211,7 @@ public class MainActivity extends Activity {
  nav.setVisibility(pages>1?View.VISIBLE:View.GONE);
  shelves.addView(nav,new LinearLayout.LayoutParams(maxWidth,dp(48)));
  Bitmap frame=assets.get(RoomScene.ROOT+"cabinet_front.webp");
- BookshelfView furniture=new BookshelfView(this,frame!=null?frame:assets.shelf(shelfThemeIndex));furniture.setFinish(shelfThemeIndex);currentCabinet=furniture;
+ BookshelfView furniture=new BookshelfView(this,frame!=null?frame:assets.shelf(shelfThemeIndex));furniture.setFinish(shelfThemeIndex);furniture.setModelFrame();currentCabinet=furniture;
  for(int cell=0;cell<9;cell++){
   final int category=cell;LinearLayout books=new LinearLayout(this);books.setGravity(Gravity.BOTTOM);books.setPadding(dp(2),dp(6),dp(2),0);books.setTag(cell);
   for(int slot=0;slot<BOOKS_PER_SHELF;slot++){
@@ -252,13 +251,13 @@ public class MainActivity extends Activity {
  @Override protected void onDestroy(){if(backups!=null)backups.close();ambientHandler.removeCallbacksAndMessages(null);if(roomExperience!=null)roomExperience.dispose();if(studyLive!=null)studyLive.release();if(weather!=null)weather.close();if(controls!=null)controls.animate().cancel();super.onDestroy();}
 
  @Override protected void onResume(){super.onResume();foreground=true;restartAmbient();if(backups!=null)backups.resume();}
- @Override protected void onPause(){foreground=false;if(backups!=null)backups.pause();ambientHandler.removeCallbacks(ambientTick);if(studyLive!=null)studyLive.setActive(false);super.onPause();}
- void restartAmbient(){ambientHandler.removeCallbacks(ambientTick);if(studyLive==null)return;studyLive.setActive(foreground&&backgroundThemeId.equals("study"));if(foreground&&backgroundThemeId.equals("study")){updateAmbient();weather.refresh(false);ambientHandler.postDelayed(ambientTick,60000);}}
+ @Override protected void onPause(){foreground=false;if(backups!=null)backups.pause();ambientHandler.removeCallbacks(ambientTick);if(studyLive!=null)studyLive.setActive(false);if(roomExperience!=null)roomExperience.model.setActive(false);super.onPause();}
+ void restartAmbient(){ambientHandler.removeCallbacks(ambientTick);if(studyLive==null)return;studyLive.setActive(false);if(roomExperience!=null)roomExperience.model.setActive(foreground);if(foreground&&backgroundThemeId.equals("study")){updateAmbient();weather.refresh(false);ambientHandler.postDelayed(ambientTick,60000);}}
  void updateLampSwitch(){
   if(studyLive==null||lampSwitch==null)return;
   studyLive.setLampEnabled(studyLampOn);sceneShadow.setLampEnabled(studyLampOn);miniature.setLampEnabled(studyLampOn);
   lampSwitch.setContentDescription(studyLampOn?"조명 끄기":"조명 켜기");
-  if(!sceneCollapsed||sceneAnimating||sceneBackdrop==null||roomExperience==null){lampSwitch.setVisibility(View.GONE);return;}
+  if(!sceneCollapsed||sceneAnimating||roomExperience==null){lampSwitch.setVisibility(View.GONE);return;}
   float[] region=new float[4];roomExperience.lampBounds(region);
   int width=Math.min(stage.getWidth(),Math.max(dp(48),Math.round(region[2]-region[0]))),height=Math.min(stage.getHeight(),Math.max(dp(48),Math.round(region[3]-region[1])));
   if(lampSwitch.getLayoutParams().width!=width||lampSwitch.getLayoutParams().height!=height)lampSwitch.setLayoutParams(new FrameLayout.LayoutParams(width,height));
@@ -269,7 +268,7 @@ public class MainActivity extends Activity {
  void updateAmbient(){
   if(studyLive==null||weather==null)return;
   WeatherState state=ambientPreview!=null?ambientPreview:weather.state();long now=ambientPreview!=null?ambientPreviewTime:System.currentTimeMillis();
-  studyLive.setWeather(state,now);if(roomExperience!=null)roomExperience.setClouds(state.cloudiness());
+  studyLive.setWeather(state,now);if(roomExperience!=null)roomExperience.setWeather(state,now);
   if(ambientStatus!=null){String updated=state.available?weatherClock(state.observedAt,state):"없음";ambientStatus.setText("날씨 지역: "+weather.place().name+"\n"+weather.status()+"\n"+(state.available?state.description()+" · "+String.format(java.util.Locale.getDefault(),"%.1f°C",state.temperature):"시간만 반영 중")+"\n날씨 기준 시각: "+updated+"\n"+(state.available?"지역 현재 시각: ":"기기 시각: ")+weatherClock(now,state));}
  }
  String weatherClock(long time,WeatherState state){java.text.DateFormat format=android.text.format.DateFormat.getTimeFormat(this);if(state.utcOffsetSeconds!=Integer.MIN_VALUE){java.util.TimeZone zone=java.util.TimeZone.getTimeZone("GMT");zone.setRawOffset(state.utcOffsetSeconds*1000);format.setTimeZone(zone);}return format.format(new java.util.Date(time));}

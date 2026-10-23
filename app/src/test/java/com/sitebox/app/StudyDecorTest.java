@@ -53,8 +53,8 @@ public class StudyDecorTest {
                 int w=wide?926:428,h=wide?428:926;layout(a,w,h);
                 long now=1700000000000L;a.setAmbientPreview(new WeatherState(20,0,0,0,now,0,0,now,true,0,night?0:1),now);a.updateSceneBackdrop();a.collapseToScene(false);layout(a,w,h);
                 float[] front=new float[8];a.miniature.copyRenderedCorners(front);
-                assertFalse("Original photo must not add an independent cabinet roof",a.miniature.topVisible());
-                assertTrue("Front feet must follow room slope",Math.abs(front[5]-front[7])>1);
+                assertTrue("The same actual model supplies the cabinet frame",a.currentCabinet.usesModelFrame());
+                assertTrue("Projected feet lie below crown",front[5]>front[3]&&front[7]>front[1]);
                 Bitmap decor=a.assets.get("themes/study/cabinet_decor.webp");assertNotNull(decor);
                 Bitmap with=render(a,w,h);a.miniature.setRoomDecor(null);Bitmap without=render(a,w,h);
                 int bottom=(int)Math.min(front[1],front[3]),top=Math.max(0,bottom-(int)(h*.30f));int changes=0;

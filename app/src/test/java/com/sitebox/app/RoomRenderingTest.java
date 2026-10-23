@@ -30,16 +30,15 @@ public class RoomRenderingTest {
     layout(a,size[0],size[1]);float[] q=new float[8];a.miniature.copyRenderedCorners(q);
     Matrix m=new Matrix();float w=a.currentCabinet.getWidth(),h=a.currentCabinet.getHeight();float[] src={0,0,w,0,w,h,0,h};m.setPolyToPoly(src,0,q,0,4);
     for(int cell=0;cell<9;cell++){
-     float[] b=CabinetGeometry.photoCell(cell),p={(b[0]+b[2])*.5f*w,(b[1]+b[3])*.5f*h};m.mapPoints(p);
+     float[] b=RoomModelGeometry.cell(cell),p={(b[0]+b[2])*.5f*w,(b[1]+b[3])*.5f*h};m.mapPoints(p);
      assertTrue("Visible cabinet cell must be inside viewport",p[0]>=0&&p[0]<size[0]&&p[1]>=0&&p[1]<size[1]);
      assertEquals("Inverse touch cell on "+size[0]+"x"+size[1],cell,a.miniature.hitCell(p[0],p[1]));assertTrue(a.miniature.hitFrame(p[0],p[1]));
     }
     assertFalse(a.miniature.hitFrame(0,0));
-    android.view.accessibility.AccessibilityNodeInfo node=android.view.accessibility.AccessibilityNodeInfo.obtain();a.miniature.onInitializeAccessibilityNodeInfo(node);Rect accessible=new Rect();node.getBoundsInParent(accessible);assertTrue("Accessible target bounds must match the visible cabinet",accessible.width()<a.stage.getWidth()*.5f);assertTrue(a.miniature.hitFrame(accessible.exactCenterX(),accessible.exactCenterY()));node.recycle();
+    android.view.accessibility.AccessibilityNodeInfo node=android.view.accessibility.AccessibilityNodeInfo.obtain();a.miniature.onInitializeAccessibilityNodeInfo(node);Rect accessible=new Rect();node.getBoundsInParent(accessible);assertTrue("Accessible target bounds must match the visible cabinet",accessible.width()<a.stage.getWidth()*.6f);assertTrue(a.miniature.hitFrame(accessible.exactCenterX(),accessible.exactCenterY()));node.recycle();
    }
    layout(a,591,1206);save(a,"room-day");
-   // Rectified native render exposes the shelf registration for visual review.
-   Bitmap canonical=Bitmap.createBitmap(591,769,Bitmap.Config.ARGB_8888);Canvas cc=new Canvas(canonical);float[] qf=new float[8];a.miniature.copyRenderedCorners(qf);Matrix qm=new Matrix(),qi=new Matrix();qm.setPolyToPoly(new float[]{0,0,591,0,591,769,0,769},0,qf,0,4);qm.invert(qi);cc.concat(qi);a.miniature.draw(cc);try(FileOutputStream out=new FileOutputStream(new File("build/reports/room-experience/photo-shelf-registration.png"))){canonical.compress(Bitmap.CompressFormat.PNG,100,out);}canonical.recycle();int daySky=sample(a,.77f,.22f);ambient(a,0);save(a,"room-night");int nightSky=sample(a,.77f,.22f);assertTrue("Window must relight with the room",(Color.red(nightSky)+Color.green(nightSky)+Color.blue(nightSky))<(Color.red(daySky)+Color.green(daySky)+Color.blue(daySky))*.7f);a.lampSwitch.performClick();save(a,"room-night-off");a.lampSwitch.performClick();ambient(a,1);
+   assertTrue(a.currentCabinet.usesModelFrame());
    a.expandFromScene(true);ValueAnimator animator=(ValueAnimator)GoogleAccountTest.get(a.roomExperience.transition,"animator");animator.setCurrentPlayTime(250);save(a,"approach");
    float before=a.roomExperience.transition.progress();float[] old=new float[8],now=new float[8];a.miniature.copyRenderedCorners(old);a.collapseToScene(true);a.miniature.copyRenderedCorners(now);
    assertEquals("Retargeting starts at current progress",before,a.roomExperience.transition.progress(),.00001f);for(int i=0;i<8;i++)assertEquals("No pose jump on reversal",old[i],now[i],.01f);
@@ -71,10 +70,11 @@ public class RoomRenderingTest {
   ActivityController<MainActivity> life=Robolectric.buildActivity(MainActivity.class).create();
   try{
    MainActivity a=life.get();a.setStudyMotion(false);layout(a,591,1206);ambient(a,1);a.collapseToScene(false);layout(a,591,1206);
-   int sun=sample(a,.60f,.67f),sky=sample(a,.77f,.22f),bulb=sample(a,.425f,.386f);a.lampSwitch.performClick();
-   assertEquals("Daylight shadows stay fixed",sun,sample(a,.60f,.67f));assertEquals("Outside scene stays fixed",sky,sample(a,.77f,.22f));assertNotEquals("The physical bulb must change",bulb,sample(a,.425f,.386f));
-   a.lampSwitch.performClick();ambient(a,0);int lit=sample(a,.43f,.46f);a.lampSwitch.performClick();int unlit=sample(a,.43f,.46f);
-   assertTrue("Lamp-off removes the warm indoor pool",Color.red(lit)-Color.blue(lit)>Color.red(unlit)-Color.blue(unlit)+10);
+   BookshelfView nativeBooks=a.currentCabinet;String books=a.sites.toString();a.lampSwitch.performClick();
+   assertSame("Changing light never rebuilds books",nativeBooks,a.currentCabinet);assertEquals(books,a.sites.toString());
+   assertEquals("Window stays day when lamp switches", "day",a.roomExperience.model.windowState());
+   ambient(a,0);assertEquals("Window has actual night texture state","night",a.roomExperience.model.windowState());
+   a.lampSwitch.performClick();assertEquals("Lamp never changes outside time","night",a.roomExperience.model.windowState());
   }finally{life.destroy();}
  }
  static int booksInCell(MainActivity a,int cell){

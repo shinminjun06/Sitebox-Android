@@ -20,7 +20,7 @@ public class LampSwitchTest {
     @Before public void setup(){
         lifecycle=Robolectric.buildActivity(MainActivity.class).create();activity=lifecycle.get();
         activity.applyBackgroundTheme("study");layout(1080,1920);
-        assertTrue("Lamp hit geometry needs actual WebP decoding, not a 100x100 placeholder",activity.sceneBackdrop.getHeight()>1000);
+        assertNotNull("Lamp geometry belongs to native room camera",activity.roomExperience.model);
     }
     @After public void close(){lifecycle.destroy();}
     void layout(int width,int height){

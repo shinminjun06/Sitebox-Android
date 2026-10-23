@@ -11,6 +11,10 @@ import android.widget.TextView;
 /** A single furniture sprite behind nine identical fractional interaction regions. */
 final class BookshelfView extends FrameLayout {
  private final ImageView cabinet;
+ private boolean modelFrame;
+ void setModelFrame(){modelFrame=true;cabinet.setVisibility(GONE);setBackgroundColor(Color.TRANSPARENT);requestLayout();}
+ boolean usesModelFrame(){return modelFrame;}
+ private float[] opening(int i){return modelFrame?RoomModelGeometry.cell(i):LibraryRules.cell(i);}
  private final Bitmap artwork;
  private final RectF[] roomCells=new RectF[9];
  BookshelfView(Context context,Bitmap bitmap){
@@ -32,7 +36,7 @@ final class BookshelfView extends FrameLayout {
  void drawProjected(Canvas canvas,float labels){
   drawFrame(canvas);drawRoomBooks(canvas);drawCategoryLabels(canvas,labels);
  }
- void drawFrame(Canvas canvas){cabinet.draw(canvas);}
+ void drawFrame(Canvas canvas){if(!modelFrame)cabinet.draw(canvas);}
  void drawCategoryLabels(Canvas canvas,float labels){
   if(labels<=0)return;
   int layer=canvas.saveLayerAlpha(0,0,getWidth(),getHeight(),Math.round(255*labels));
@@ -61,13 +65,13 @@ final class BookshelfView extends FrameLayout {
  @Override protected void onMeasure(int widthSpec,int heightSpec){
   int width=MeasureSpec.getSize(widthSpec);
   // The cabinet is wide enough for seven proportionate books in every cubby.
-  int height=Math.round(width*CabinetGeometry.ASPECT);
+  int height=Math.round(width*(modelFrame?RoomModelGeometry.ASPECT:CabinetGeometry.ASPECT));
   setMeasuredDimension(width,height);
   cabinet.measure(MeasureSpec.makeMeasureSpec(width,MeasureSpec.EXACTLY),MeasureSpec.makeMeasureSpec(height,MeasureSpec.EXACTLY));
   for(int i=1;i<getChildCount();i++){
-   View child=getChildAt(i);int tag=(Integer)child.getTag();float[] r=LibraryRules.cell(tag%9);
+   View child=getChildAt(i);int tag=(Integer)child.getTag();float[] r=opening(tag%9);
    int cw=tag<9?Math.round(width*r[2])-Math.round(width*r[0]):Math.round(width*.175f);
-   int ch=tag<9?Math.round(height*r[3])-Math.round(height*r[1]):Math.round(height*.038f);
+   int ch=tag<9?Math.round(height*r[3])-Math.round(height*r[1]):Math.round(height*(modelFrame?.025f:.038f));
    child.measure(MeasureSpec.makeMeasureSpec(cw,MeasureSpec.EXACTLY),MeasureSpec.makeMeasureSpec(ch,MeasureSpec.EXACTLY));
   }
  }
@@ -76,10 +80,10 @@ final class BookshelfView extends FrameLayout {
   for(int cell=0;cell<9;cell++){float[] r=CabinetGeometry.photoCell(cell);roomCells[cell].set(w*r[0],h*r[1],w*r[2],h*r[3]);}
   for(int i=1;i<getChildCount();i++){
    View child=getChildAt(i);int tag=(Integer)child.getTag();int cell=tag%9;
-   float[] r=LibraryRules.cell(cell);
+   float[] r=opening(cell);
    if(tag<9)child.layout(Math.round(w*r[0]),Math.round(h*r[1]),Math.round(w*r[2]),Math.round(h*r[3]));
    else {
-    int pw=Math.round(w*.175f),ph=Math.round(h*.038f);
+    int pw=Math.round(w*.175f),ph=Math.round(h*(modelFrame?.025f:.038f));
     int cx=Math.round(w*(r[0]+r[2])*.5f),cy=Math.round(h*(r[3]+.012f));
     child.layout(cx-pw/2,cy-ph/2,cx+pw/2,cy+ph/2);
    }

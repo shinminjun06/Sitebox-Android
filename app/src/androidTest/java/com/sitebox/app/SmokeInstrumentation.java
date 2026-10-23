@@ -14,7 +14,7 @@ import java.io.File;
 import java.io.FileOutputStream;
 
 /** Device tests with no external test dependency. Restores original user preferences. */
-public final class SmokeInstrumentation extends Instrumentation {
+public class SmokeInstrumentation extends Instrumentation {
  volatile MainActivity activity;
  String backupSites,backupCategories,demoSites,backupBackground;
  boolean hadBackground,hadGestureTip,backupGestureTip,hadMotion,backupMotion;

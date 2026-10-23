@@ -21,7 +21,9 @@ final class ProjectedCabinetView extends ImageView {
  private final ColorMatrix color=new ColorMatrix();
  private float fraction,ambient=1;
  private boolean lampEnabled=true,validPose,pressedInside;
- private boolean photoBackdrop;
+ private boolean photoBackdrop,modelProjection;
+ void setModelLighting(float day,float clouds,boolean lamp){float b=1+((.30f+.55f*day*(1-.3f*clouds)+(lamp?.1f:0))-1)*fraction;color.setScale(b,b,b*(1+.08f*(1-day)),1);lightPaint.setColorFilter(new ColorMatrixColorFilter(color));invalidate();}
+ void setModelPose(float[] quad,float progress){modelProjection=true;fraction=progress;System.arraycopy(quad,0,corners,0,8);if(content==null||content.getWidth()==0)return;float w=content.getWidth(),h=content.getHeight();float[] source={0,0,w,0,w,h,0,h};System.arraycopy(source,0,rectangle,0,8);validPose=true;frontMatrix.setPolyToPoly(rectangle,0,corners,0,4);frontMatrix.invert(inverse);invalidate();}
  private Bitmap photoFrame,photoOcclusion;
  private final RectF occlusionRegion=new RectF();
  private final Matrix photoFrameMatrix=new Matrix();
@@ -80,9 +82,9 @@ final class ProjectedCabinetView extends ImageView {
   out[2]=contacts[2]+depthX;out[3]=contacts[3]+depthY*.75f;
   out[4]=contacts[2];out[5]=contacts[3];out[6]=contacts[0];out[7]=contacts[1];
  }
- int hitCell(float x,float y){if(!canonical(x,y))return -1;float u=point[0]/content.getWidth(),v=point[1]/content.getHeight();if(photoBackdrop&&photoFrame!=null){for(int i=0;i<9;i++){float[] a=CabinetGeometry.cell(i),b=CabinetGeometry.photoCell(i);if(u>=a[0]+(b[0]-a[0])*fraction&&u<a[2]+(b[2]-a[2])*fraction&&v>=a[1]+(b[1]-a[1])*fraction&&v<a[3]+(b[3]-a[3])*fraction)return i;}return -1;}return CabinetGeometry.hit(u,v);}
+ int hitCell(float x,float y){if(!canonical(x,y))return -1;float u=point[0]/content.getWidth(),v=point[1]/content.getHeight();if(modelProjection)return RoomModelGeometry.hit(u,v);if(photoBackdrop&&photoFrame!=null){for(int i=0;i<9;i++){float[] a=CabinetGeometry.cell(i),b=CabinetGeometry.photoCell(i);if(u>=a[0]+(b[0]-a[0])*fraction&&u<a[2]+(b[2]-a[2])*fraction&&v>=a[1]+(b[1]-a[1])*fraction&&v<a[3]+(b[3]-a[3])*fraction)return i;}return -1;}return CabinetGeometry.hit(u,v);}
  boolean hitFrame(float x,float y){
-  if(!canonical(x,y))return false;Bitmap b=content.artwork();if(b==null)return true;
+  if(!canonical(x,y))return false;if(modelProjection)return true;Bitmap b=content.artwork();if(b==null)return true;
   int px=Math.min(b.getWidth()-1,(int)(point[0]/content.getWidth()*b.getWidth())),py=Math.min(b.getHeight()-1,(int)(point[1]/content.getHeight()*b.getHeight()));
   return Color.alpha(b.getPixel(Math.max(0,px),Math.max(0,py)))>24;
  }
@@ -123,6 +125,7 @@ final class ProjectedCabinetView extends ImageView {
   if(content==null||!validPose)return;
   if(photoBackdrop&&photoFrame==null&&fraction>=.9999f)return;
   int save=canvas.save();canvas.concat(frontMatrix);
+  if(modelProjection){int light=canvas.saveLayer(0,0,content.getWidth(),content.getHeight(),lightPaint);content.drawRoomBooks(canvas);content.drawCategoryLabels(canvas,Math.max(0,1-fraction*4));canvas.restoreToCount(light);canvas.restoreToCount(save);return;}
   int fade=photoBackdrop&&photoFrame==null?canvas.saveLayerAlpha(0,0,content.getWidth(),content.getHeight(),Math.round(255*(1-fraction))):-1;
   if(photoBackdrop&&photoFrame!=null){
    if(fraction<1){int lit=canvas.saveLayer(0,0,content.getWidth(),content.getHeight(),lightPaint);content.drawFrame(canvas);canvas.restoreToCount(lit);}

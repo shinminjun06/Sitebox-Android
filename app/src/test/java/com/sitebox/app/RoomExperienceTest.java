@@ -48,5 +48,11 @@ public class RoomExperienceTest {
    assertSame("Toolbar cannot open an edit dialog during camera travel",before,org.robolectric.shadows.ShadowAlertDialog.getLatestAlertDialog());
   }finally{life.destroy();}
  }
+ @Test public void emptyLongPressNeverHidesTheEditor(){
+  ActivityController<MainActivity> life=Robolectric.buildActivity(MainActivity.class).create();
+  try{MainActivity a=life.get();layout(a,428,926);a.expandFromScene(false);
+   for(View empty:new View[]{a.header,a.shelves,a.shelfScroll}){assertFalse("Empty long press must not reveal wallpaper",empty.performLongClick());assertFalse(a.backgroundOnly);assertEquals(View.VISIBLE,a.controls.getVisibility());assertFalse(a.sceneCollapsed);}
+  }finally{life.destroy();}
+ }
  static void layout(MainActivity a,int w,int h){a.stage.measure(View.MeasureSpec.makeMeasureSpec(w,View.MeasureSpec.EXACTLY),View.MeasureSpec.makeMeasureSpec(h,View.MeasureSpec.EXACTLY));a.stage.layout(0,0,w,h);a.updateSceneBackdrop();}
 }

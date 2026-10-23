@@ -27,9 +27,9 @@ android {
         manifestPlaceholders = [appLabel: 'SiteBox']
         minSdk 24
         targetSdk 35
-        testInstrumentationRunner 'com.sitebox.app.SmokeInstrumentation'
-        versionCode 27
-        versionName '3.1.1-photo'
+        testInstrumentationRunner 'com.sitebox.app.ModelSmokeInstrumentation'
+        versionCode 28
+        versionName '3.2.0-3d'
         buildConfigField 'String', 'SOURCE_REVISION', '"' + revision + '"'
     }
     signingConfigs {
@@ -93,6 +93,8 @@ tasks.matching { it.name == 'preReleaseBuild' }.configureEach {
 
 dependencies {
     implementation 'com.google.android.gms:play-services-auth:22.0.0'
+    implementation 'com.google.android.filament:filament-android:1.56.0'
+    implementation 'com.google.android.filament:gltfio-android:1.56.0'
     testImplementation 'junit:junit:4.13.2'
     testImplementation 'org.robolectric:robolectric:4.14.1'
 }
