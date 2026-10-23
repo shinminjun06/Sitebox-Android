@@ -74,5 +74,7 @@ Files: version/build/workflow, docs/asset and layer reports, release artifacts.
 
 - [x] Self-review against every spec section; resolve geometry, touch, animation, lifecycle and persistence defects. Native screenshot review additionally found a TextView scroll-space label bug; add parent/projected pixel regression and on-device visible-ink checks.
 - [x] Run Java/assets, full Android unit tests, debug/preview/release and instrumentation compilation, lint and release certificate verification.
-- [ ] Commit source/notes and signed APK to an authorized distribution branch, run GitHub Actions checks and artifact upload; download and compare the public APK.
-- [ ] Deliver APK and preview links, validation results and exact remaining artwork/device-test limitations.
+- [x] Commit source/notes and signed APK to an authorized distribution branch, run GitHub Actions checks and artifact upload; download and compare the public APK.
+- [x] Deliver APK and preview links, validation results and exact remaining artwork/device-test limitations.
+
+Final evidence: source `84fb330994cc39ad6403a81da8ba69e441d01f8c`, native QA run 39925249890, signed R8 installation run 39926760328, 53 unit tests, public + Actions APK downloads byte-identical. Source review: PR #1. No physical-device FPS or live Google-account claim.
