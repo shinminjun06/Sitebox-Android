@@ -20,7 +20,7 @@ public final class ModelSmokeInstrumentation extends SmokeInstrumentation {
     image.recycle();
    });snapshot("3d-room.png");
    main(()->{check(activity.roomExperience.model.renderableCount()>650,"actual supplied GLB rendered with furniture and walls");check(activity.roomExperience.model.failure()==null,"native renderer reports no initialization failure");check(activity.roomExperience.model.frames()>0,"Filament GPU frame submitted");check(activity.roomExperience.model.finishMaterialCount()>15,"shelf finishes have isolated model materials");});
-   tapRoomCabinet();snapshot("3d-editor-empty.png");
+   phase("native GLB visible and interactive");tapRoomCabinet();snapshot("3d-editor-empty.png");
    main(()->{check(!activity.header.performLongClick(),"empty long press does not collapse or hide editor");check(!activity.backgroundOnly&&!activity.sceneCollapsed&&activity.controls.getVisibility()==View.VISIBLE,"editor remains visible after long press");
     activity.sites=new JSONArray();for(int i=0;i<70;i++){JSONObject o=new JSONObject();try{o.put("name","실제 책 "+i);o.put("url","https://example.com/"+i);o.put("category",activity.categories[i%9]);o.put("sortOrder",i*1000L);}catch(JSONException e){throw new RuntimeException(e);}activity.sites.put(o);}activity.save();activity.populate();
    });waitForIdleSync();snapshot("3d-editor-books.png");for(int style=0;style<3;style++){final int choice=style;main(()->{activity.shelfThemeIndex=choice;activity.bookThemeIndex=choice;activity.populate();});snapshot("3d-style-"+style+".png");}main(()->{activity.shelfThemeIndex=0;activity.bookThemeIndex=0;activity.populate();});

@@ -707,7 +707,8 @@ public class SmokeInstrumentation extends Instrumentation {
   try{if(!drawn.await(3,java.util.concurrent.TimeUnit.SECONDS))throw new AssertionError("screenshot requires a fresh on-screen frame");}catch(InterruptedException interrupted){throw new RuntimeException(interrupted);}
   main(()->{check(!activity.sceneAnimating,"screenshot animation settled");if(activity.sceneCollapsed)check(activity.controls.getVisibility()==View.INVISIBLE&&activity.miniature.isShown()&&activity.miniature.getProjectionFraction()==1,"collapsed screenshot is real visible miniature with controls hidden");});
   try{
-   Bitmap image=getUiAutomation().takeScreenshot();if(image==null)throw new IllegalStateException("screenshot unavailable");
+   Bitmap image=null;for(int attempt=0;attempt<5&&image==null;attempt++){image=getUiAutomation().takeScreenshot();if(image==null)android.os.SystemClock.sleep(250);}
+   if(image==null)throw new IllegalStateException("screenshot unavailable after five capture attempts");
    File directory=new File(getTargetContext().getExternalFilesDir(null),"qa");directory.mkdirs();
    try(FileOutputStream out=new FileOutputStream(new File(directory,name))){image.compress(Bitmap.CompressFormat.PNG,100,out);}image.recycle();
   }catch(Exception e){throw new RuntimeException(e);}
