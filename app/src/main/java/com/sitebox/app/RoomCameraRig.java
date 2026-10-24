@@ -12,15 +12,15 @@ final class RoomCameraRig {
   double cx=(RoomModelGeometry.LEFT+RoomModelGeometry.RIGHT)/2,cy=(RoomModelGeometry.TOP+RoomModelGeometry.BOTTOM)/2;
   double ex=cx-((left+right)/width-1)*d*editorTan*aspect;
   double ey=cy+((top+bottom)/height-1)*d*editorTan;
-  // Pull back through the open front in portrait, with a narrower lens. Every
-  // view ray still enters the authored room, and the foreground table remains
-  // visible. Wide screens use the interior camera to avoid exposing its edges.
+  // Frame the cabinet, foreground table and bed together in portrait. Every
+  // view ray still enters the authored open front; wide screens stay inside.
   double portrait=Math.max(0,Math.min(1,(1-aspect)/.25));
-  double roomTan=.70+(Math.min(.85,.38/aspect)-.70)*portrait;
-  double roomZ=2.2+1.7*portrait;
+  double roomTan=.70+(.61/aspect-.70)*portrait;
+  double roomX=-.8+.4*portrait,roomY=1.45+.05*portrait,roomZ=2.2+.7*portrait;
+  double targetX=-.7+.5*portrait,targetY=1.32-.52*portrait;
   tanY=editorTan+(roomTan-editorTan)*room;
-  eye[0]=ex+(-.8-ex)*room;eye[1]=ey+(1.45-ey)*room;eye[2]=editorZ+(roomZ-editorZ)*room;
-  target[0]=ex+(-.7-ex)*room;target[1]=ey+(1.32-ey)*room;target[2]=(editorZ-1)+(-.9-(editorZ-1))*room;
+  eye[0]=ex+(roomX-ex)*room;eye[1]=ey+(roomY-ey)*room;eye[2]=editorZ+(roomZ-editorZ)*room;
+  target[0]=ex+(targetX-ex)*room;target[1]=ey+(targetY-ey)*room;target[2]=(editorZ-1)+(-.9-(editorZ-1))*room;
   fx=target[0]-eye[0];fy=target[1]-eye[1];fz=target[2]-eye[2];double n=Math.sqrt(fx*fx+fy*fy+fz*fz);fx/=n;fy/=n;fz/=n;
   n=Math.sqrt(fz*fz+fx*fx);rx=-fz/n;ry=0;rz=fx/n;
   ux=ry*fz-rz*fy;uy=rz*fx-rx*fz;uz=rx*fy-ry*fx;

@@ -566,9 +566,10 @@ public class SmokeInstrumentation extends Instrumentation {
   String previous=shell("settings get global animator_duration_scale");
   if(!previous.equals("null")&&!previous.matches("[0-9]+(\\.[0-9]+)?"))throw new AssertionError("Unexpected animator scale");
   final String books=activity.sites.toString();
+  final StringBuilder frameStates=new StringBuilder();
   final java.util.concurrent.CountDownLatch reversed=new java.util.concurrent.CountDownLatch(1);final Throwable[] reversalFailure={null};
   android.view.ViewTreeObserver.OnPreDrawListener observer=new android.view.ViewTreeObserver.OnPreDrawListener(){public boolean onPreDraw(){
-   float p=activity.roomExperience.transition.progress();if(!activity.sceneAnimating||p<=0||p>=.9f)return true;
+   float p=activity.roomExperience.transition.progress();frameStates.append('[').append(android.os.SystemClock.uptimeMillis()).append(':').append(p).append('/').append(activity.sceneAnimating).append(']');if(!activity.sceneAnimating||p<=0||p>=.9f)return true;
    activity.stage.getViewTreeObserver().removeOnPreDrawListener(this);
    try{
     check(p>0&&p<1,"approach reaches an intermediate room pose");float[] before=new float[8],after=new float[8];activity.miniature.copyRenderedCorners(before);activity.collapseToScene(true);activity.miniature.copyRenderedCorners(after);
@@ -580,8 +581,9 @@ public class SmokeInstrumentation extends Instrumentation {
    // reversal is triggered from a displayed frame; the app keeps its 550ms base.
    shell("settings put global animator_duration_scale 4");awaitAnimatorScale(4);
    main(()->{activity.collapseToScene(false);activity.shelfScroll.scrollTo(0,0);});awaitScene(true);
+   snapshot("3d-reversal-room-start.png");
    main(()->{activity.stage.getViewTreeObserver().addOnPreDrawListener(observer);activity.expandFromScene(true);});
-   try{if(!reversed.await(5,java.util.concurrent.TimeUnit.SECONDS))throw new AssertionError("No intermediate native frame for reversal");}catch(InterruptedException interrupted){throw new RuntimeException(interrupted);}
+   try{if(!reversed.await(5,java.util.concurrent.TimeUnit.SECONDS))throw new AssertionError("No intermediate native frame for reversal: "+frameStates);}catch(InterruptedException interrupted){throw new RuntimeException(interrupted);}
    if(reversalFailure[0]!=null)throw new AssertionError("Native reversal frame",reversalFailure[0]);
    awaitScene(true);main(()->{for(int i=0;i<8;i++){activity.expandFromScene(true);activity.collapseToScene(true);}activity.expandFromScene(false);});
    main(()->check(!activity.sceneCollapsed&&!activity.sceneAnimating&&activity.controls.getVisibility()==View.VISIBLE,"rapid alternating requests settle in editor"));

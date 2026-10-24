@@ -26,7 +26,7 @@ public final class ModelSmokeInstrumentation extends SmokeInstrumentation {
    });waitForIdleSync();snapshot("3d-editor-books.png");for(int style=0;style<3;style++){final int choice=style;main(()->{activity.shelfThemeIndex=choice;activity.bookThemeIndex=choice;activity.populate();});snapshot("3d-style-"+style+".png");}main(()->{activity.shelfThemeIndex=0;activity.bookThemeIndex=0;activity.populate();});
    main(()->{check(activity.pageSummary.getText().toString().contains("/ 2"),"overflow paginates without overlapping books");for(int i=1;i<activity.currentCabinet.getChildCount();i+=2){android.view.ViewGroup row=(android.view.ViewGroup)activity.currentCabinet.getChildAt(i);for(int b=0;b<row.getChildCount();b++)check(row.getChildAt(b).getRight()<=row.getWidth(),"book stays inside actual model opening");}});
    phase("native book dialogs");crudDialogs();phase("native book drag and sync regression");nativeDrag();main(()->check(activity.sites.optJSONObject(0).optString("category").equals(activity.categories[1]),"native long press moves the real book without retreating"));new BackupChecks(this).run();awaitSystemToasts();
-   phase("same model camera gestures");main(()->activity.expandFromScene(false));pinch(false);awaitScene(false);pinch(true);awaitScene(true);snapshot("3d-pinch-room.png");tapRoomCabinet();roomReversalAndBack();
+   phase("same model camera gestures");main(()->activity.expandFromScene(false));pinch(false);awaitScene(false);pinch(true);awaitScene(true);snapshot("3d-pinch-room.png");tapRoomCabinet();
    main(()->{activity.collapseToScene(false);check(activity.roomExperience.model.ready(),"same GLB survives editor and room transitions");});snapshot("3d-room-books.png");
    String data=activity.sites.toString();long t=1700000000000L;
    int[] codes={0,0,63,73,3,63,73};String[] states={"day","night","rain","snow","cloud","night_rain","night_snow"};
@@ -37,6 +37,7 @@ public final class ModelSmokeInstrumentation extends SmokeInstrumentation {
    main(()->{activity.clearAmbientPreview();callActivityOnPause(activity);});SystemClock.sleep(250);long frames=activity.roomExperience.model.frames();SystemClock.sleep(350);check(activity.roomExperience.model.frames()==frames,"paused activity submits no native GPU frames");main(()->callActivityOnResume(activity));awaitModel();
    for(int[] size:new int[][]{{720,1560},{1080,1920},{1560,720}}){resizeWindow(size[0],size[1]);main(()->{activity.expandFromScene(false);activity.collapseToScene(false);});snapshot("3d-ratio-"+size[0]+"x"+size[1]+".png");}
    resizeWindow(720,1560);main(()->{activity.load();activity.populate();check(activity.sites.length()>0,"book data survives preferences reload");});
+   phase("displayed camera reversal and native Back");tapRoomCabinet();roomReversalAndBack();
    checks.append("PASS actual 3D room, shared camera, native book management, gestures and lifecycle verified\n");
   }catch(Throwable e){code=Activity.RESULT_CANCELED;checks.append("FAIL ").append(e).append('\n');try{snapshot("3d-failure.png");}catch(Throwable ignored){}}
   finally{if(activity!=null&&original!=null){final String saved=original;main(()->{try{activity.sites=new JSONArray(saved);activity.save();}catch(JSONException e){throw new RuntimeException(e);}if(activity.roomExperience.model.presented())activity.finish();});}}
