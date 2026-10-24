@@ -21,10 +21,6 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.9'
-      - uses: FedericoCarboni/setup-ffmpeg@36c6454b5a2348e7794ba2d82a21506605921e3d # v3
-        timeout-minutes: 6
-        with:
-          ffmpeg-version: release
       - name: Install SDK and artwork validation tools
         timeout-minutes: 6
         run: |
@@ -33,6 +29,10 @@ jobs:
             timeout 180s "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" 'platforms;android-35' 'build-tools;35.0.0'
           fi
           python3 -m pip install Pillow
+          if ! command -v ffprobe >/dev/null; then
+            sudo apt-get update
+            sudo apt-get install -y ffmpeg
+          fi
           ffprobe -version
       - name: Verify model assets, geometry, unit tests and Android builds
         run: |
