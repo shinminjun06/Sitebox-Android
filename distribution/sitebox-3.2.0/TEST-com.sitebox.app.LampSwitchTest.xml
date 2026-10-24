@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.sitebox.app.LampSwitchTest" tests="6" skipped="0" failures="0" errors="0" timestamp="2026-10-24T11:00:44" hostname="4c0584c3ea85" time="1.497">
+  <properties/>
+  <testcase name="compactCabinetLeavesClearSpaceBesideLamp" classname="com.sitebox.app.LampSwitchTest" time="0.179"/>
+  <testcase name="collapsedLampTapTurnsOffAndSecondTapTurnsOn" classname="com.sitebox.app.LampSwitchTest" time="0.122"/>
+  <testcase name="landscapeLampRemainsTappableWithoutOpeningCabinet" classname="com.sitebox.app.LampSwitchTest" time="0.314"/>
+  <testcase name="turningOffLampSurvivesActivityRecreation" classname="com.sitebox.app.LampSwitchTest" time="0.58"/>
+  <testcase name="lampTargetIsHiddenAfterExpandingBookshelf" classname="com.sitebox.app.LampSwitchTest" time="0.147"/>
+  <testcase name="removedThemeFallsBackToStudyAndKeepsLampSwitch" classname="com.sitebox.app.LampSwitchTest" time="0.154"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>
