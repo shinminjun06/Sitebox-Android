@@ -25,8 +25,18 @@ public class RoomModelTest {
   for(int i=0;i<3;i++){assertTrue(dark[i]>0&&dark[i]<1);assertTrue(light[i]>1&&Float.isFinite(light[i]));}
   assertArrayEquals(RoomModelGeometry.finishTint(0),RoomModelGeometry.finishTint(-4),0);
  }
- @Test public void roomCameraStaysInsideTheAuthoredRoomShell(){
-  RoomCameraRig rig=new RoomCameraRig();rig.update(591,1206,40,100,550,1000,1);assertTrue("A camera outside the open front leaves blank borders",rig.eye[2]<2.3);assertTrue(rig.eye[2]>-.77);
+ @Test public void roomCameraSeesThroughTheOpenFrontWithoutBlankBorders(){
+  for(int[] size:new int[][]{{360,800},{591,1206},{1080,1920},{1920,1080}}){
+   RoomCameraRig rig=new RoomCameraRig();rig.update(size[0],size[1],40,100,size[0]-40,size[1]-70,1);assertTrue(rig.eye[2]>RoomModelGeometry.FRONT);
+   if(rig.eye[2]>2.3){float[] q=new float[8];rig.project(-2.25,3,2.3,q,0);rig.project(2.25,3,2.3,q,2);rig.project(2.25,0,2.3,q,4);rig.project(-2.25,0,2.3,q,6);
+    for(int corner=0;corner<4;corner++){float x=(corner&1)==0?0:size[0],y=(corner&2)==0?0:size[1];for(int edge=0;edge<4;edge++){int a=edge*2,b=((edge+1)%4)*2;assertTrue("Every view ray must enter the supplied room opening",(q[b]-q[a])*(y-q[a+1])-(q[b+1]-q[a+1])*(x-q[a])>=-.1f);}}
+   }
+  }
+ }
+ @Test public void authoredForegroundTableRemainsVisibleFromTheSeatedPortraitView(){
+  for(int[] size:new int[][]{{360,800},{591,1206},{1080,1920}}){RoomCameraRig rig=new RoomCameraRig();rig.update(size[0],size[1],40,100,size[0]-40,size[1]-70,1);float[] p=new float[2];
+   rig.project(-.65,.4625,1.575,p,0);assertTrue("Authored coffee-table back edge must be inside the portrait viewport",p[0]>0&&p[0]<size[0]&&p[1]>size[1]*.65f&&p[1]<size[1]*.95f);
+  }
  }
  @Test public void lampHitAreaContainsTheActualGlbShadeOnEveryAspect(){
   RoomCameraRig rig=new RoomCameraRig();float[] bounds=new float[4],p=new float[2];

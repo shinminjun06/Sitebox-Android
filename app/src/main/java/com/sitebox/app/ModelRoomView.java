@@ -53,6 +53,7 @@ final class ModelRoomView extends TextureView implements TextureView.SurfaceText
  private boolean lampOn=true;
  private long frames;
  private boolean presented;
+ private Bitmap startupProbe;
  private String error,windowKey="day";
  private Consumer<String> status=value->{};
  private RoomCameraRig rig;
@@ -83,7 +84,7 @@ final class ModelRoomView extends TextureView implements TextureView.SurfaceText
   catch(RuntimeException|LinkageError e){error=e.toString();android.util.Log.e("SiteBox3D","Native room initialization failed",e);status.accept("3D 방을 열지 못했어요.\n"+error);}
  }
  private void initializeModel(){
-  configureQuality();view.setPostProcessingEnabled(false);
+  configureQuality();view.setPostProcessingEnabled(true);
   materials=new UbershaderProvider(engine);loader=new AssetLoader(engine,materials,EntityManager.get());resources=new ResourceLoader(engine);
   try(InputStream input=getContext().getAssets().open(RoomModelGeometry.ASSET)){
    java.io.ByteArrayOutputStream output=new java.io.ByteArrayOutputStream();byte[] chunk=new byte[8192];int count;while((count=input.read(chunk))!=-1)output.write(chunk,0,count);byte[] bytes=output.toByteArray();ByteBuffer buffer=ByteBuffer.allocateDirect(bytes.length).order(ByteOrder.nativeOrder());buffer.put(bytes).flip();asset=loader.createAsset(buffer);
@@ -127,12 +128,10 @@ final class ModelRoomView extends TextureView implements TextureView.SurfaceText
   lamp=EntityManager.get().create();new LightManager.Builder(LightManager.Type.POINT).position(-.36f,1.31f,-1.16f).color(1,.66f,.32f).intensity(2400).falloff(3.8f).castShadows(false).build(engine,lamp);scene.addEntity(lamp);
   ambient=new IndirectLight.Builder().irradiance(1,new float[]{1,1,1}).intensity(18000).build(engine);scene.setIndirectLight(ambient);
   android.util.Log.i("SiteBox3D","Loaded supplied room GLB: "+asset.getRenderableEntities().length+" renderables, scene="+scene.getRenderableCount()+", surface="+getWidth()+"x"+getHeight());asset.releaseSourceData();applyFinish();updateCamera();updateLights();updateWindow();
-  android.util.Log.i("SiteBox3D","Camera eye="+java.util.Arrays.toString(rig==null?null:rig.eye)+", target="+java.util.Arrays.toString(rig==null?null:rig.target)+", model="+java.util.Arrays.toString(camera.getModelMatrix(new double[16]))+", projection="+java.util.Arrays.toString(camera.getProjectionMatrix(new double[16])));
-  for(int entity:asset.getRenderableEntities())if("Bookshelf_3x3_Back_063".equals(asset.getName(entity)))android.util.Log.i("SiteBox3D","Shelf world transform="+java.util.Arrays.toString(tm.getWorldTransform(tm.getInstance(entity),new float[16])));
  }
  private void configureQuality(){
   view.setAntiAliasing(com.google.android.filament.View.AntiAliasing.FXAA);
-  com.google.android.filament.View.AmbientOcclusionOptions ao=new com.google.android.filament.View.AmbientOcclusionOptions();ao.enabled=false;ao.radius=.35f;ao.power=1.3f;ao.intensity=1;ao.resolution=.5f;view.setAmbientOcclusionOptions(ao);
+  com.google.android.filament.View.AmbientOcclusionOptions ao=new com.google.android.filament.View.AmbientOcclusionOptions();ao.enabled=!reduced;ao.radius=.35f;ao.power=1.3f;ao.intensity=1;ao.resolution=.5f;view.setAmbientOcclusionOptions(ao);
   view.setScreenSpaceRefractionEnabled(false);
  }
  private void updateCamera(){
@@ -184,10 +183,18 @@ final class ModelRoomView extends TextureView implements TextureView.SurfaceText
  }
  @Override public void onSurfaceTextureUpdated(SurfaceTexture texture){
   if(!surfacePresented){surfacePresented=true;android.util.Log.i("SiteBox3D","empty room surface GPU frame presented");if(asset==null)post(this::loadModel);}
-  else if(!presented&&asset!=null&&frames>1){presented=true;status.accept(null);android.util.Log.i("SiteBox3D","room GPU frame presented");}
+  else if(!presented&&asset!=null&&frames>1&&hasRoomPixels()){presented=true;startupProbe.recycle();startupProbe=null;status.accept(null);android.util.Log.i("SiteBox3D","room GPU frame presented");}
+ }
+ private boolean hasRoomPixels(){
+  // A queued empty frame can arrive after GLB loading. Keep the loading notice
+  // until the TextureView contains geometry, rather than trusting queue timing.
+  if(startupProbe==null)startupProbe=Bitmap.createBitmap(16,32,Bitmap.Config.ARGB_8888);
+  if(getBitmap(startupProbe)==null)return false;int first=startupProbe.getPixel(2,2);
+  for(int y=2;y<30;y+=2)for(int x=1;x<15;x+=2){int p=startupProbe.getPixel(x,y);if(Math.abs(((p>>16)&255)-((first>>16)&255))+Math.abs(((p>>8)&255)-((first>>8)&255))+Math.abs((p&255)-(first&255))>30)return true;}
+  return false;
  }
  void dispose(){
-  if(disposed)return;disposed=true;active=false;Choreographer.getInstance().removeFrameCallback(this);scheduled=false;
+  if(disposed)return;disposed=true;active=false;Choreographer.getInstance().removeFrameCallback(this);scheduled=false;if(startupProbe!=null){startupProbe.recycle();startupProbe=null;}
   if(engine==null)return;
   if(displayHelper!=null){displayHelper.detach();displayHelper=null;}
   if(swap!=null){engine.destroySwapChain(swap);engine.flushAndWait();swap=null;}if(surface!=null){surface.release();surface=null;}

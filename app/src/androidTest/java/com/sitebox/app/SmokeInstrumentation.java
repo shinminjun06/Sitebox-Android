@@ -554,9 +554,12 @@ public class SmokeInstrumentation extends Instrumentation {
   }catch(Exception error){throw new RuntimeException(error);}
  }
  void awaitAnimatorScaleOne(){
+  awaitAnimatorScale(1);
+ }
+ void awaitAnimatorScale(float expected){
   if(android.os.Build.VERSION.SDK_INT<26)return;
   final boolean[] ready={false};long deadline=android.os.SystemClock.uptimeMillis()+2000;
-  do{runOnMainSync(()->ready[0]=Math.abs(android.animation.ValueAnimator.getDurationScale()-1)<.001f);if(ready[0])return;android.os.SystemClock.sleep(20);}while(android.os.SystemClock.uptimeMillis()<deadline);
+  do{runOnMainSync(()->ready[0]=Math.abs(android.animation.ValueAnimator.getDurationScale()-expected)<.001f);if(ready[0])return;android.os.SystemClock.sleep(20);}while(android.os.SystemClock.uptimeMillis()<deadline);
   throw new AssertionError("Animator scale setting did not reach app process");
  }
  void roomReversalAndBack(){
@@ -573,7 +576,9 @@ public class SmokeInstrumentation extends Instrumentation {
    }catch(Throwable failure){reversalFailure[0]=failure;}finally{reversed.countDown();}return true;
   }};
   try{
-   shell("settings put global animator_duration_scale 1");awaitAnimatorScaleOne();
+   // Software GPU frames can exceed 550ms. Slow only this device test so its
+   // reversal is triggered from a displayed frame; the app keeps its 550ms base.
+   shell("settings put global animator_duration_scale 4");awaitAnimatorScale(4);
    main(()->{activity.collapseToScene(false);activity.shelfScroll.scrollTo(0,0);});awaitScene(true);
    main(()->{activity.stage.getViewTreeObserver().addOnPreDrawListener(observer);activity.expandFromScene(true);});
    try{if(!reversed.await(5,java.util.concurrent.TimeUnit.SECONDS))throw new AssertionError("No intermediate native frame for reversal");}catch(InterruptedException interrupted){throw new RuntimeException(interrupted);}
