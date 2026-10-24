@@ -57,8 +57,11 @@ public final class ModelSmokeInstrumentation extends SmokeInstrumentation {
   finally{main(()->application.unregisterActivityLifecycleCallbacks(activityTracker));if(activity!=null&&original!=null){final String saved=original;main(()->{try{activity.sites=new JSONArray(saved);activity.save();}catch(JSONException e){throw new RuntimeException(e);}if(activity.roomExperience.model.presented())activity.finish();});}}
   result.putString("stream",checks.toString());finish(code,result);
  }
- @Override void awaitScene(boolean collapsed){
-  try{awaitScene(collapsed,15000);}catch(AssertionError failure){
+ @Override void awaitScene(boolean collapsed){awaitScene(collapsed,30000);}
+ @Override void awaitScene(boolean collapsed,long timeout){
+  // swangle can take 10s per submitted frame plus TextureView composition.
+  // Still require the actual final GPU pose; never substitute timeline completion.
+  try{super.awaitScene(collapsed,Math.max(30000,timeout));}catch(AssertionError failure){
    final String[] state={""};main(()->state[0]=activity.roomExperience.model.presentationState()+" progress="+activity.roomExperience.transition.progress()+" running="+activity.roomExperience.transition.running()+" collapsed="+activity.sceneCollapsed+" moving="+activity.sceneAnimating);
    try{android.graphics.Bitmap bitmap=getUiAutomation().takeScreenshot();if(bitmap!=null){java.io.File folder=new java.io.File(getTargetContext().getExternalFilesDir(null),"qa");folder.mkdirs();try(java.io.FileOutputStream out=new java.io.FileOutputStream(new java.io.File(folder,"3d-camera-timeout.png"))){bitmap.compress(android.graphics.Bitmap.CompressFormat.PNG,100,out);}bitmap.recycle();}}catch(Exception ignored){}
    throw new AssertionError(failure.getMessage()+" "+state[0],failure);
