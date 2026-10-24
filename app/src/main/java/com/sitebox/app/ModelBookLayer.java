@@ -29,6 +29,7 @@ final class ModelBookLayer {
  private final Bitmap[] bitmaps=new Bitmap[2];
  private final Canvas[] canvases=new Canvas[2];
  private final Texture[] textures=new Texture[2];
+ private final java.util.ArrayList<Texture> retired=new java.util.ArrayList<>();
  private BookshelfView content;
  private boolean dirty=true,disposed,ready;
  private int uploads,width,height;
@@ -75,7 +76,7 @@ final class ModelBookLayer {
     if(bitmaps[i]!=null)bitmaps[i].recycle();bitmaps[i]=Bitmap.createBitmap(w,h,Bitmap.Config.ARGB_8888);canvases[i]=new Canvas(bitmaps[i]);
     Texture previous=textures[i];textures[i]=new Texture.Builder().width(w).height(h).levels(0xff).usage(Texture.Usage.DEFAULT|Texture.Usage.GEN_MIPMAPPABLE).sampler(Texture.Sampler.SAMPLER_2D).format(Texture.InternalFormat.SRGB8_A8).build(engine);
     (i==0?books:labels).setParameter("baseColorMap",textures[i],new TextureSampler(TextureSampler.MinFilter.LINEAR_MIPMAP_LINEAR,TextureSampler.MagFilter.LINEAR,TextureSampler.WrapMode.CLAMP_TO_EDGE));
-    if(previous!=null)engine.destroyTexture(previous);
+    if(previous!=null)retired.add(previous);
    }
   }
   if(!dirty)return;dirty=false;
@@ -86,6 +87,10 @@ final class ModelBookLayer {
   }
   if(!ready){ready=true;scene.addEntity(entity);content.setGpuBooks(true);}
  }
+ /** Release only after beginFrame has committed the new sampler bindings and
+  * endFrame has queued their draw. Earlier release leaves a stale sampler handle.
+  */
+ void releaseRetiredTextures(){for(Texture t:retired)engine.destroyTexture(t);retired.clear();}
  void setLighting(float day,float cloud,boolean lamp,float progress){
   float b=1+((.30f+.55f*day*(1-.3f*cloud)+(lamp?.1f:0))-1)*progress;
   books.setParameter("baseColorFactor",b*b,b*b,b*b*(1+.08f*(1-day)),1);
@@ -94,6 +99,6 @@ final class ModelBookLayer {
  private void recycle(){for(int i=0;i<2;i++)if(bitmaps[i]!=null){bitmaps[i].recycle();bitmaps[i]=null;canvases[i]=null;}}
  void dispose(){
   disposed=true;if(content!=null)content.setGpuBooks(false);scene.removeEntity(entity);engine.destroyEntity(entity);EntityManager.get().destroy(entity);
-  engine.destroyVertexBuffer(vertices);engine.destroyIndexBuffer(indices);engine.destroyMaterialInstance(books);engine.destroyMaterialInstance(labels);for(Texture t:textures)if(t!=null)engine.destroyTexture(t);if(uploads==0)recycle();
+  engine.destroyVertexBuffer(vertices);engine.destroyIndexBuffer(indices);engine.destroyMaterialInstance(books);engine.destroyMaterialInstance(labels);for(Texture t:textures)if(t!=null)engine.destroyTexture(t);releaseRetiredTextures();if(uploads==0)recycle();
  }
 }

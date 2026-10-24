@@ -522,7 +522,7 @@ public class SmokeInstrumentation extends Instrumentation {
  }
  void awaitScene(boolean collapsed,long timeout){
   long deadline=android.os.SystemClock.uptimeMillis()+timeout;final boolean[] ready={false};
-  do {main(()->ready[0]=activity.sceneCollapsed==collapsed&&!activity.sceneAnimating&&activity.stage.getWidth()>0&&activity.stage.getHeight()>0);if(ready[0])return;android.os.SystemClock.sleep(50);}while(android.os.SystemClock.uptimeMillis()<deadline);
+  do {main(()->ready[0]=activity.sceneCollapsed==collapsed&&!activity.sceneAnimating&&activity.stage.getWidth()>0&&activity.stage.getHeight()>0&&activity.currentCabinet!=null&&activity.currentCabinet.getWidth()>0&&!activity.currentCabinet.isLayoutRequested()&&!activity.stage.isLayoutRequested());if(ready[0])return;android.os.SystemClock.sleep(50);}while(android.os.SystemClock.uptimeMillis()<deadline);
   throw new AssertionError("scene transition timed out: collapsed="+collapsed);
  }
  void checkRoomGrounding(){checkSelectedScene(SceneTheme.find("study"));}

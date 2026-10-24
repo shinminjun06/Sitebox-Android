@@ -203,7 +203,7 @@ final class ModelRoomView extends TextureView implements TextureView.SurfaceText
  void requestFrame(){dirty=true;if(active&&!disposed&&!scheduled&&swap!=null){scheduled=true;Choreographer.getInstance().postFrameCallback(this);}}
  @Override public void doFrame(long time){
   scheduled=false;if(!active||disposed||swap==null||view==null)return;
-  if(dirty||(asset!=null&&(!presented||warmup<8))){dirty=false;if(renderer.beginFrame(swap,time)){if(bookLayer!=null)bookLayer.prepare(reduced);renderer.setPresentationTime(time);renderer.render(view);renderer.endFrame();frameTimes[frameSlot]=time;framePoses[frameSlot]=poseVersion;frameSlot=(frameSlot+1)%frameTimes.length;frames++;warmup++;invalidate();}else dirty=true;}
+  if(dirty||(asset!=null&&(!presented||warmup<8))){dirty=false;if(bookLayer!=null)bookLayer.prepare(reduced);if(renderer.beginFrame(swap,time)){renderer.setPresentationTime(time);renderer.render(view);renderer.endFrame();if(bookLayer!=null)bookLayer.releaseRetiredTextures();frameTimes[frameSlot]=time;framePoses[frameSlot]=poseVersion;frameSlot=(frameSlot+1)%frameTimes.length;frames++;warmup++;invalidate();}else dirty=true;}
   if(dirty||(asset!=null&&(!presented||warmup<8)))requestFrame();
  }
  @Override public void onSurfaceTextureAvailable(SurfaceTexture texture,int width,int height){
