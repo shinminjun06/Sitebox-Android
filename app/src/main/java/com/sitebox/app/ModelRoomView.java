@@ -65,6 +65,7 @@ final class ModelRoomView extends TextureView implements TextureView.SurfaceText
  String failure(){return error;}
  String windowState(){return windowKey;}
  float lampIntensity(){return engine==null||lamp==0?0:engine.getLightManager().getIntensity(engine.getLightManager().getInstance(lamp));}
+ float ambientIntensity(){return ambient==null?0:ambient.getIntensity();}
  void setPose(RoomCameraRig value,float p){rig=value;progress=p;updateCamera();updateLights();requestFrame();}
  void setReduced(boolean value){reduced=value;if(view!=null)configureQuality();requestFrame();}
  void setActive(boolean value){active=value;if(!value){Choreographer.getInstance().removeFrameCallback(this);scheduled=false;}else requestFrame();}
@@ -147,7 +148,7 @@ final class ModelRoomView extends TextureView implements TextureView.SurfaceText
   lm.setIntensity(s,900+64000*daylight*(1-.72f*clouds));
   lm.setColor(s,.55f+.45f*daylight,.66f+.22f*daylight,1-.28f*daylight);
   lm.setDirection(s,-.55f,-.85f,.55f);lm.setIntensity(l,lampOn?2400:0);
-  ambient.setIntensity(1700+16000*daylight*(1-.35f*clouds)+(1-progress)*8000);
+  ambient.setIntensity(1700+16000*daylight*(1-.35f*clouds));
  }
  private void updateWindow(){
   if(daylight<.35f)windowKey="night"+(weatherImages&&precipitation==2?"_snow":weatherImages&&precipitation==1?"_rain":"");
