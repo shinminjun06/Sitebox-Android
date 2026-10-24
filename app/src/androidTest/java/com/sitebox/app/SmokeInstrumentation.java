@@ -518,7 +518,10 @@ public class SmokeInstrumentation extends Instrumentation {
   throw new AssertionError("click target: "+text);
  }
  void awaitScene(boolean collapsed){
-  long deadline=android.os.SystemClock.uptimeMillis()+5000;final boolean[] ready={false};
+  awaitScene(collapsed,5000);
+ }
+ void awaitScene(boolean collapsed,long timeout){
+  long deadline=android.os.SystemClock.uptimeMillis()+timeout;final boolean[] ready={false};
   do {main(()->ready[0]=activity.sceneCollapsed==collapsed&&!activity.sceneAnimating&&activity.stage.getWidth()>0&&activity.stage.getHeight()>0);if(ready[0])return;android.os.SystemClock.sleep(50);}while(android.os.SystemClock.uptimeMillis()<deadline);
   throw new AssertionError("scene transition timed out: collapsed="+collapsed);
  }
@@ -588,7 +591,7 @@ public class SmokeInstrumentation extends Instrumentation {
    awaitScene(true);main(()->{for(int i=0;i<8;i++){activity.expandFromScene(true);activity.collapseToScene(true);}activity.expandFromScene(false);});
    main(()->check(!activity.sceneCollapsed&&!activity.sceneAnimating&&activity.controls.getVisibility()==View.VISIBLE,"rapid alternating requests settle in editor"));
    shell("settings put global animator_duration_scale 1");awaitAnimatorScaleOne();
-   sendKeyDownUpSync(android.view.KeyEvent.KEYCODE_BACK);awaitScene(true);
+   long backStarted=android.os.SystemClock.uptimeMillis();sendKeyDownUpSync(android.view.KeyEvent.KEYCODE_BACK);awaitScene(true,15000);checks.append("ENV native Back settled in ").append(android.os.SystemClock.uptimeMillis()-backStarted).append("ms on software GPU\n");
    main(()->check(activity.sites.toString().equals(books),"native Back and reversal preserve the library"));
    checks.append("PASS photographic room reverse continuity, repeated requests and native Back verified\n");
   }finally{main(()->{if(activity.stage.getViewTreeObserver().isAlive())activity.stage.getViewTreeObserver().removeOnPreDrawListener(observer);});shell(previous.equals("null")?"settings delete global animator_duration_scale":"settings put global animator_duration_scale "+previous);}
