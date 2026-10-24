@@ -3,10 +3,14 @@ import pathlib, re, subprocess, time, xml.etree.ElementTree as ET
 def adb(*args):
     return subprocess.check_output(['adb', *args], text=True)
 def ui():
-    adb('shell', 'uiautomator', 'dump', '/sdcard/release-ui.xml')
+    # A failed dump can leave yesterday's hierarchy on disk and still exit 0.
+    adb('shell', 'rm', '-f', '/sdcard/release-ui.xml')
+    result = adb('shell', 'uiautomator', 'dump', '/sdcard/release-ui.xml')
+    if 'dumped to:' not in result:
+        return ET.Element('hierarchy')
     return ET.fromstring(adb('shell', 'cat', '/sdcard/release-ui.xml'))
 def click(text):
-    deadline = time.monotonic() + 20
+    deadline = time.monotonic() + 60
     while time.monotonic() < deadline:
         for node in ui().iter('node'):
             if node.get('text') == text or node.get('content-desc') == text:
@@ -30,9 +34,14 @@ with open('release-verification.txt', 'a') as output:
 click('작아진 책장 열기')
 click('설정')
 click('Google 계정 · 자동 동기화')
-labels = {node.get('text') for node in ui().iter('node')}
-for text in ('Google 계정 · 자동 동기화', 'Google로 로그인', '아직 연결되지 않았어요'):
-    assert any(text.casefold() in label.casefold() for label in labels if label), (text, labels)
+expected = ('Google 계정 · 자동 동기화', 'Google로 로그인', '아직 연결되지 않았어요')
+deadline = time.monotonic() + 60
+while True:
+    labels = {node.get('text') for node in ui().iter('node')}
+    if all(any(text.casefold() in label.casefold() for label in labels if label) for text in expected):
+        break
+    assert time.monotonic() < deadline, ('Missing current account dialog', labels)
+    time.sleep(.25)
 for forbidden in ('Google Drive에 백업', 'Drive 최근 백업 불러오기', '백업 파일 불러오기'):
     assert forbidden.casefold() not in {label.casefold() for label in labels if label}, labels
 logs = adb('logcat', '-d', '-s', 'AndroidRuntime:E')
