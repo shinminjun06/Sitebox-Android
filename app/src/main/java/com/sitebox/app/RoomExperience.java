@@ -24,13 +24,14 @@ final class RoomExperience {
   a.studyLive.setVisibility(View.GONE);a.studyLive.setActive(false);a.backdrop.setVisibility(View.GONE);a.outsideLayer.setVisibility(View.GONE);a.roomForeground.setVisibility(View.GONE);
   a.roomLayer.removeAllViews();model=new ModelRoomView(a);model.setReduced(reduced);a.roomLayer.addView(model,new FrameLayout.LayoutParams(-1,-1));
   TextView status=a.label("3D 방을 준비하고 있어요…",15,0xffffedca);status.setGravity(android.view.Gravity.CENTER);status.setPadding(a.dp(24),a.dp(24),a.dp(24),a.dp(24));status.setBackgroundColor(0xcc242a29);a.roomLayer.addView(status,new FrameLayout.LayoutParams(-1,-1));
+  model.setPresentationListener(this::relayout);
   model.setStatusListener(message->{if(message==null)status.setVisibility(View.GONE);else{status.setText(message);status.setVisibility(View.VISIBLE);}relayout();});
   a.stage.addOnLayoutChangeListener((v,l,t,r,b,ol,ot,or,ob)->{if(r-l!=or-ol||b-t!=ob-ot)relayout();});
  }
  boolean reduced(){return reduced;}
  void setReduced(boolean value){reduced=value;a.getPreferences(0).edit().putBoolean("roomReducedEffects",value).apply();model.setReduced(value);}
  void bind(){
-  if(a.currentCabinet==null)return;model.setFinish(a.shelfThemeIndex);a.miniature.setContent(a.currentCabinet);
+  if(a.currentCabinet==null)return;model.setFinish(a.shelfThemeIndex);model.setBooks(a.currentCabinet);a.miniature.setContent(a.currentCabinet);
   a.currentCabinet.addOnLayoutChangeListener((v,l,t,r,b,ol,ot,or,ob)->{if(!disposed&&v==a.currentCabinet)relayout();});
   a.currentCabinet.post(()->{if(!disposed)relayout();});
  }
@@ -47,12 +48,13 @@ final class RoomExperience {
  }
  private void render(float p,boolean moving,boolean towardRoom){
   if(disposed||a.currentCabinet==null||a.currentCabinet.getWidth()==0||a.stage.getWidth()==0)return;
-  a.sceneCollapsed=towardRoom;a.sceneAnimating=moving;RectF bounds=a.cabinetBounds();
+  a.sceneCollapsed=towardRoom;RectF bounds=a.cabinetBounds();
   rig.update(a.stage.getWidth(),a.stage.getHeight(),bounds.left,bounds.top,bounds.right,bounds.bottom,p);rig.shelfQuad(quad);
   model.setPose(rig,p);a.miniature.setModelPose(quad,p);
-  boolean editor=p<.0001f&&!moving;
+  a.sceneAnimating=moving||!model.poseReady();
+  boolean editor=p<.0001f&&!a.sceneAnimating;
   a.currentCabinet.setVisibility(editor?View.VISIBLE:View.INVISIBLE);
-  a.controls.setVisibility(p>=.9999f&&!moving?View.INVISIBLE:View.VISIBLE);a.controls.setAlpha(Math.max(0,1-p*2));a.controls.setBackgroundColor(Color.TRANSPARENT);
+  a.controls.setVisibility(p>=.9999f&&!a.sceneAnimating?View.INVISIBLE:View.VISIBLE);a.controls.setAlpha(Math.max(0,1-p*2));a.controls.setBackgroundColor(Color.TRANSPARENT);
   a.controls.setImportantForAccessibility(editor?View.IMPORTANT_FOR_ACCESSIBILITY_AUTO:View.IMPORTANT_FOR_ACCESSIBILITY_NO_HIDE_DESCENDANTS);
   a.miniature.setVisibility(editor?View.GONE:View.VISIBLE);a.miniature.setEnabled(!editor);
   a.miniature.setImportantForAccessibility(editor?View.IMPORTANT_FOR_ACCESSIBILITY_NO:View.IMPORTANT_FOR_ACCESSIBILITY_YES);

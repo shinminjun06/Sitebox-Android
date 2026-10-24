@@ -11,7 +11,10 @@ import android.widget.TextView;
 /** A single furniture sprite behind nine identical fractional interaction regions. */
 final class BookshelfView extends FrameLayout {
  private final ImageView cabinet;
- private boolean modelFrame;
+ private boolean modelFrame,gpuBooks;
+ void setGpuBooks(boolean value){if(gpuBooks!=value){gpuBooks=value;invalidate();}}
+ boolean usesGpuBooks(){return gpuBooks;}
+ @Override protected void dispatchDraw(Canvas canvas){if(!gpuBooks)super.dispatchDraw(canvas);}
  void setModelFrame(){modelFrame=true;cabinet.setVisibility(GONE);setBackgroundColor(Color.TRANSPARENT);requestLayout();}
  boolean usesModelFrame(){return modelFrame;}
  private float[] opening(int i){return modelFrame?RoomModelGeometry.cell(i):LibraryRules.cell(i);}

@@ -572,7 +572,7 @@ public class SmokeInstrumentation extends Instrumentation {
   final StringBuilder frameStates=new StringBuilder();
   final java.util.concurrent.CountDownLatch reversed=new java.util.concurrent.CountDownLatch(1);final Throwable[] reversalFailure={null};
   android.view.ViewTreeObserver.OnPreDrawListener observer=new android.view.ViewTreeObserver.OnPreDrawListener(){public boolean onPreDraw(){
-   float p=activity.roomExperience.transition.progress();frameStates.append('[').append(android.os.SystemClock.uptimeMillis()).append(':').append(p).append('/').append(activity.sceneAnimating).append(']');if(!activity.sceneAnimating||p<=0||p>=.9f)return true;
+   float p=activity.roomExperience.transition.progress();frameStates.append('[').append(android.os.SystemClock.uptimeMillis()).append(':').append(p).append('/').append(activity.sceneAnimating).append(']');if(!activity.sceneAnimating||p<=0||p>=1)return true;
    activity.stage.getViewTreeObserver().removeOnPreDrawListener(this);
    try{
     check(p>0&&p<1,"approach reaches an intermediate room pose");float[] before=new float[8],after=new float[8];activity.miniature.copyRenderedCorners(before);activity.collapseToScene(true);activity.miniature.copyRenderedCorners(after);
@@ -588,7 +588,7 @@ public class SmokeInstrumentation extends Instrumentation {
    main(()->{activity.stage.getViewTreeObserver().addOnPreDrawListener(observer);activity.expandFromScene(true);});
    try{if(!reversed.await(5,java.util.concurrent.TimeUnit.SECONDS))throw new AssertionError("No intermediate native frame for reversal: "+frameStates);}catch(InterruptedException interrupted){throw new RuntimeException(interrupted);}
    if(reversalFailure[0]!=null)throw new AssertionError("Native reversal frame",reversalFailure[0]);
-   awaitScene(true);main(()->{for(int i=0;i<8;i++){activity.expandFromScene(true);activity.collapseToScene(true);}activity.expandFromScene(false);});
+   awaitScene(true);main(()->{for(int i=0;i<8;i++){activity.expandFromScene(true);activity.collapseToScene(true);}activity.expandFromScene(false);});awaitScene(false);
    main(()->check(!activity.sceneCollapsed&&!activity.sceneAnimating&&activity.controls.getVisibility()==View.VISIBLE,"rapid alternating requests settle in editor"));
    shell("settings put global animator_duration_scale 1");awaitAnimatorScaleOne();
    long backStarted=android.os.SystemClock.uptimeMillis();sendKeyDownUpSync(android.view.KeyEvent.KEYCODE_BACK);awaitScene(true,15000);checks.append("ENV native Back settled in ").append(android.os.SystemClock.uptimeMillis()-backStarted).append("ms on software GPU\n");

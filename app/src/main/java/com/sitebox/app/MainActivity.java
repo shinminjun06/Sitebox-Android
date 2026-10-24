@@ -233,7 +233,7 @@ public class MainActivity extends Activity {
  class BookView extends BookArtworkView {
   final int idx;
   BookView(Context c,JSONObject obj,int index){super(c,obj,assets.book(bookThemeIndex,Math.floorMod(obj.optString("name").hashCode(),4)),bookThemeIndex);idx=index;setFocusable(true);setClickable(true);setOnClickListener(v->showBook(idx));
-   setOnLongClickListener(v->{performHapticFeedback(HapticFeedbackConstants.LONG_PRESS);boolean started=startDragAndDrop(ClipData.newPlainText("sitebox-book",String.valueOf(idx)),new View.DragShadowBuilder(this),Integer.valueOf(idx),0);if(started){dragSource=this;setAlpha(.25f);}return started;});
+   setOnLongClickListener(v->{performHapticFeedback(HapticFeedbackConstants.LONG_PRESS);boolean started=startDragAndDrop(ClipData.newPlainText("sitebox-book",String.valueOf(idx)),new View.DragShadowBuilder(this),Integer.valueOf(idx),0);if(started){dragSource=this;setAlpha(.25f);invalidateBookArtwork();}return started;});
   }
  }
  RectF cabinetBounds(){
@@ -347,18 +347,19 @@ public class MainActivity extends Activity {
  categories=updated;save();populate();
  }).show();
  }
+ void invalidateBookArtwork(){if(roomExperience!=null)roomExperience.model.invalidateBooks();}
  boolean handleBookDrop(View target,DragEvent event,int category,int anchor){
  if(!(event.getLocalState() instanceof Integer))return false;
  switch(event.getAction()){
   case DragEvent.ACTION_DRAG_STARTED:return true;
-  case DragEvent.ACTION_DRAG_ENTERED:target.setForeground(new android.graphics.drawable.ColorDrawable(0x66F5D48A));return true;
+  case DragEvent.ACTION_DRAG_ENTERED:target.setForeground(new android.graphics.drawable.ColorDrawable(0x66F5D48A));invalidateBookArtwork();return true;
   case DragEvent.ACTION_DRAG_LOCATION:
    int[] location=new int[2],viewport=new int[2];target.getLocationOnScreen(location);shelfScroll.getLocationOnScreen(viewport);
    float y=location[1]+event.getY();long now=SystemClock.uptimeMillis();
    if(now-lastDragScroll>40){if(y<viewport[1]+dp(48))shelfScroll.smoothScrollBy(0,-dp(18));else if(y>viewport[1]+shelfScroll.getHeight()-dp(48))shelfScroll.smoothScrollBy(0,dp(18));lastDragScroll=now;}return true;
-  case DragEvent.ACTION_DRAG_EXITED:target.setForeground(null);return true;
+  case DragEvent.ACTION_DRAG_EXITED:target.setForeground(null);invalidateBookArtwork();return true;
   case DragEvent.ACTION_DROP:target.setForeground(null);if(dragSource!=null){dragSource.setAlpha(1);dragSource=null;}moveBookTo((Integer)event.getLocalState(),category,anchor);return true;
-  case DragEvent.ACTION_DRAG_ENDED:target.setForeground(null);if(dragSource!=null){dragSource.setAlpha(1);dragSource=null;}return true;
+  case DragEvent.ACTION_DRAG_ENDED:target.setForeground(null);if(dragSource!=null){dragSource.setAlpha(1);dragSource=null;}invalidateBookArtwork();return true;
   default:return true;
  }
  }

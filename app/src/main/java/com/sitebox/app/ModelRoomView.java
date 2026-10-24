@@ -57,6 +57,20 @@ final class ModelRoomView extends TextureView implements TextureView.SurfaceText
  private String error,windowKey="day";
  private Consumer<String> status=value->{};
  private RoomCameraRig rig;
+ private ModelBookLayer bookLayer;
+ private BookshelfView bookContent;
+ private Runnable presentationListener=()->{};
+ private final double[] pose=new double[9];
+ private long poseVersion=1,displayedPose;
+ private final long[] frameTimes=new long[64],framePoses=new long[64];
+ private int frameSlot;
+ private boolean wasPoseReady;
+ void setPresentationListener(Runnable value){presentationListener=value;}
+ boolean poseReady(){return engine==null||swap==null||presented&&displayedPose==poseVersion;}
+ boolean gpuBooksReady(){return bookLayer!=null&&bookLayer.ready();}
+ void setBooks(BookshelfView value){bookContent=value;if(bookLayer!=null)bookLayer.setContent(value);requestFrame();}
+ void invalidateBooks(){if(bookLayer!=null)bookLayer.invalidate();}
+
  ModelRoomView(Context context){super(context);setOpaque(true);setSurfaceTextureListener(this);setImportantForAccessibility(IMPORTANT_FOR_ACCESSIBILITY_NO);}
  void setStatusListener(Consumer<String> listener){status=listener;}
  boolean ready(){return asset!=null&&error==null;}
@@ -66,7 +80,10 @@ final class ModelRoomView extends TextureView implements TextureView.SurfaceText
  String windowState(){return windowKey;}
  float lampIntensity(){return engine==null||lamp==0?0:engine.getLightManager().getIntensity(engine.getLightManager().getInstance(lamp));}
  float ambientIntensity(){return ambient==null?0:ambient.getIntensity();}
- void setPose(RoomCameraRig value,float p){rig=value;progress=p;updateCamera();updateLights();requestFrame();}
+ void setPose(RoomCameraRig value,float p){
+  boolean changed=false;for(int i=0;i<9;i++){double v=i<3?value.eye[i]:i<6?value.target[i-3]:i==6?value.tanY:i==7?value.aspect:p;if(Math.abs(v-pose[i])>1e-9){pose[i]=v;changed=true;}}
+  if(changed){poseVersion++;wasPoseReady=false;}rig=value;progress=p;updateCamera();updateLights();requestFrame();
+ }
  void setReduced(boolean value){reduced=value;if(view!=null)configureQuality();requestFrame();}
  void setActive(boolean value){active=value;if(!value){Choreographer.getInstance().removeFrameCallback(this);scheduled=false;}else requestFrame();}
  void setAtmosphere(float day,float cloud,int rain,boolean light){
@@ -129,7 +146,7 @@ final class ModelRoomView extends TextureView implements TextureView.SurfaceText
   new LightManager.Builder(LightManager.Type.DIRECTIONAL).color(1,.88f,.72f).intensity(65000).direction(-.55f,-.85f,.55f).castShadows(true).shadowOptions(shadow).build(engine,sun);scene.addEntity(sun);
   lamp=EntityManager.get().create();new LightManager.Builder(LightManager.Type.POINT).position(-.36f,1.31f,-1.16f).color(1,.66f,.32f).intensity(2400).falloff(3.8f).castShadows(false).build(engine,lamp);scene.addEntity(lamp);
   ambient=new IndirectLight.Builder().irradiance(1,new float[]{1,1,1}).intensity(18000).build(engine);scene.setIndirectLight(ambient);
-  android.util.Log.i("SiteBox3D","Loaded supplied room GLB: "+asset.getRenderableEntities().length+" renderables, scene="+scene.getRenderableCount()+", surface="+getWidth()+"x"+getHeight());asset.releaseSourceData();applyFinish();updateCamera();updateLights();updateWindow();
+  android.util.Log.i("SiteBox3D","Loaded supplied room GLB: "+asset.getRenderableEntities().length+" renderables, scene="+scene.getRenderableCount()+", surface="+getWidth()+"x"+getHeight());asset.releaseSourceData();bookLayer=new ModelBookLayer(engine,scene,materials,this::requestFrame);bookLayer.setContent(bookContent);applyFinish();updateCamera();updateLights();updateWindow();
  }
  private void configureQuality(){
   view.setAntiAliasing(com.google.android.filament.View.AntiAliasing.FXAA);
@@ -149,6 +166,7 @@ final class ModelRoomView extends TextureView implements TextureView.SurfaceText
   lm.setColor(s,.55f+.45f*daylight,.66f+.22f*daylight,1-.28f*daylight);
   lm.setDirection(s,-.55f,-.85f,.55f);lm.setIntensity(l,lampOn?2400:0);
   ambient.setIntensity(1700+16000*daylight*(1-.35f*clouds));
+  if(bookLayer!=null)bookLayer.setLighting(daylight,clouds,lampOn,progress);
  }
  private void updateWindow(){
   if(daylight<.35f)windowKey="night"+(weatherImages&&precipitation==2?"_snow":weatherImages&&precipitation==1?"_rain":"");
@@ -171,22 +189,25 @@ final class ModelRoomView extends TextureView implements TextureView.SurfaceText
  void requestFrame(){dirty=true;if(active&&!disposed&&!scheduled&&swap!=null){scheduled=true;Choreographer.getInstance().postFrameCallback(this);}}
  @Override public void doFrame(long time){
   scheduled=false;if(!active||disposed||swap==null||view==null)return;
-  if(dirty||(asset!=null&&(!presented||warmup<8))){dirty=false;if(renderer.beginFrame(swap,time)){renderer.render(view);renderer.endFrame();frames++;warmup++;invalidate();}else dirty=true;}
+  if(dirty||(asset!=null&&(!presented||warmup<8))){dirty=false;if(renderer.beginFrame(swap,time)){if(bookLayer!=null)bookLayer.prepare(reduced);renderer.setPresentationTime(time);renderer.render(view);renderer.endFrame();frameTimes[frameSlot]=time;framePoses[frameSlot]=poseVersion;frameSlot=(frameSlot+1)%frameTimes.length;frames++;warmup++;invalidate();}else dirty=true;}
   if(dirty||(asset!=null&&(!presented||warmup<8)))requestFrame();
  }
  @Override public void onSurfaceTextureAvailable(SurfaceTexture texture,int width,int height){
   try{texture.setDefaultBufferSize(width,height);initialize();surface=new Surface(texture);swap=engine.createSwapChain(surface);displayHelper=new DisplayHelper(getContext());displayHelper.attach(renderer,getDisplay());resize(width,height);requestFrame();}
   catch(RuntimeException|LinkageError e){error=e.toString();android.util.Log.e("SiteBox3D","Native room initialization failed",e);status.accept("3D 방을 열지 못했어요. 앱을 다시 열어 주세요.\n"+error);}
  }
- private void resize(int width,int height){if(view!=null){view.setViewport(new Viewport(0,0,width,height));updateCamera();engine.flushAndWait();requestFrame();}}
+ private void resize(int width,int height){poseVersion++;wasPoseReady=false;if(view!=null){view.setViewport(new Viewport(0,0,width,height));updateCamera();engine.flushAndWait();requestFrame();}}
  @Override public void onSurfaceTextureSizeChanged(SurfaceTexture texture,int width,int height){resize(width,height);}
  @Override public boolean onSurfaceTextureDestroyed(SurfaceTexture texture){
-  Choreographer.getInstance().removeFrameCallback(this);scheduled=false;presented=false;surfacePresented=false;warmup=0;if(displayHelper!=null){displayHelper.detach();displayHelper=null;}
+  Choreographer.getInstance().removeFrameCallback(this);scheduled=false;presented=false;surfacePresented=false;warmup=0;displayedPose=0;wasPoseReady=false;java.util.Arrays.fill(frameTimes,0);if(displayHelper!=null){displayHelper.detach();displayHelper=null;}
   if(swap!=null){engine.destroySwapChain(swap);engine.flushAndWait();swap=null;}if(surface!=null){surface.release();surface=null;}return true;
  }
  @Override public void onSurfaceTextureUpdated(SurfaceTexture texture){
+  long timestamp=texture.getTimestamp();for(int i=0;i<frameTimes.length;i++)if(frameTimes[i]==timestamp){displayedPose=framePoses[i];break;}
+
   if(!surfacePresented){surfacePresented=true;android.util.Log.i("SiteBox3D","empty room surface GPU frame presented");if(asset==null)post(this::loadModel);}
   else if(!presented&&asset!=null&&frames>1&&hasRoomPixels()){presented=true;startupProbe.recycle();startupProbe=null;status.accept(null);android.util.Log.i("SiteBox3D","room GPU frame presented");}
+  boolean available=poseReady();if(available&&!wasPoseReady){wasPoseReady=true;presentationListener.run();}
  }
  private boolean hasRoomPixels(){
   // A queued empty frame can arrive after GLB loading. Keep the loading notice
@@ -201,6 +222,7 @@ final class ModelRoomView extends TextureView implements TextureView.SurfaceText
   if(engine==null)return;
   if(displayHelper!=null){displayHelper.detach();displayHelper=null;}
   if(swap!=null){engine.destroySwapChain(swap);engine.flushAndWait();swap=null;}if(surface!=null){surface.release();surface=null;}
+  if(bookLayer!=null){bookLayer.dispose();bookLayer=null;}
   if(resources!=null){resources.asyncCancelLoad();resources.destroy();}if(asset!=null){loader.destroyAsset(asset);asset=null;}for(MaterialInstance material:shelfMaterials)engine.destroyMaterialInstance(material);shelfMaterials.clear();shelfFactors.clear();if(loader!=null)loader.destroy();
   if(ownedWindowMaterial!=null){engine.destroyMaterialInstance(ownedWindowMaterial);ownedWindowMaterial=null;}
   if(materials!=null){materials.destroyMaterials();materials.destroy();}

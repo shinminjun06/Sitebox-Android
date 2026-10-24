@@ -125,6 +125,7 @@ final class ProjectedCabinetView extends ImageView {
   if(content==null||!validPose)return;
   if(photoBackdrop&&photoFrame==null&&fraction>=.9999f)return;
   int save=canvas.save();canvas.concat(frontMatrix);
+  if(modelProjection&&content.usesGpuBooks()){canvas.restoreToCount(save);return;}
   if(modelProjection){int light=canvas.saveLayer(0,0,content.getWidth(),content.getHeight(),lightPaint);content.drawRoomBooks(canvas);content.drawCategoryLabels(canvas,Math.max(0,1-fraction*4));canvas.restoreToCount(light);canvas.restoreToCount(save);return;}
   int fade=photoBackdrop&&photoFrame==null?canvas.saveLayerAlpha(0,0,content.getWidth(),content.getHeight(),Math.round(255*(1-fraction))):-1;
   if(photoBackdrop&&photoFrame!=null){
