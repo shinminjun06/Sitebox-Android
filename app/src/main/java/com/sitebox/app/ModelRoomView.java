@@ -64,6 +64,7 @@ final class ModelRoomView extends TextureView implements TextureView.SurfaceText
  int renderableCount(){return asset==null?0:asset.getRenderableEntities().length;}
  String failure(){return error;}
  String windowState(){return windowKey;}
+ float lampIntensity(){return engine==null||lamp==0?0:engine.getLightManager().getIntensity(engine.getLightManager().getInstance(lamp));}
  void setPose(RoomCameraRig value,float p){rig=value;progress=p;updateCamera();updateLights();requestFrame();}
  void setReduced(boolean value){reduced=value;if(view!=null)configureQuality();requestFrame();}
  void setActive(boolean value){active=value;if(!value){Choreographer.getInstance().removeFrameCallback(this);scheduled=false;}else requestFrame();}
@@ -141,6 +142,7 @@ final class ModelRoomView extends TextureView implements TextureView.SurfaceText
  }
  private void updateLights(){
   if(engine==null||ambient==null)return;
+  float dusk=1-daylight;camera.setExposure(16,1f/125,100+500*dusk*dusk*dusk);
   LightManager lm=engine.getLightManager();int s=lm.getInstance(sun),l=lm.getInstance(lamp);
   lm.setIntensity(s,900+64000*daylight*(1-.72f*clouds));
   lm.setColor(s,.55f+.45f*daylight,.66f+.22f*daylight,1-.28f*daylight);

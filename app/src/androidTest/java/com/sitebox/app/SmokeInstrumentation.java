@@ -587,6 +587,7 @@ public class SmokeInstrumentation extends Instrumentation {
    if(reversalFailure[0]!=null)throw new AssertionError("Native reversal frame",reversalFailure[0]);
    awaitScene(true);main(()->{for(int i=0;i<8;i++){activity.expandFromScene(true);activity.collapseToScene(true);}activity.expandFromScene(false);});
    main(()->check(!activity.sceneCollapsed&&!activity.sceneAnimating&&activity.controls.getVisibility()==View.VISIBLE,"rapid alternating requests settle in editor"));
+   shell("settings put global animator_duration_scale 1");awaitAnimatorScaleOne();
    sendKeyDownUpSync(android.view.KeyEvent.KEYCODE_BACK);awaitScene(true);
    main(()->check(activity.sites.toString().equals(books),"native Back and reversal preserve the library"));
    checks.append("PASS photographic room reverse continuity, repeated requests and native Back verified\n");
