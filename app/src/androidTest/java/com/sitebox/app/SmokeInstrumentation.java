@@ -662,15 +662,20 @@ public class SmokeInstrumentation extends Instrumentation {
   main(()->check(activity.currentCabinet.isShown()&&activity.controls.getVisibility()==View.VISIBLE&&activity.roomExperience.transition.progress()==0,"physical room tap opens the same live native editor"));
  }
  void nativeDrag(){
+  long focusDeadline=android.os.SystemClock.uptimeMillis()+5000;boolean focused=false;
+  do{final boolean[] ready={false};main(()->ready[0]=activity.hasWindowFocus()&&activity.currentCabinet.isLaidOut());if(ready[0]){focused=true;break;}android.os.SystemClock.sleep(30);}while(android.os.SystemClock.uptimeMillis()<focusDeadline);
+  check(focused,"native drag waits for the editor window and layout after dialog dismissal");snapshot("3d-native-drag-start.png");
   final int[] start=new int[2],end=new int[2];
   main(()->{
    check(!activity.sceneCollapsed&&activity.currentCabinet.isShown(),"native drag starts on visible editor books");
    BookshelfView furniture=activity.currentCabinet;
    View source=((ViewGroup)furniture.getChildAt(1)).getChildAt(0);
    View destination=((ViewGroup)furniture.getChildAt(3)).getChildAt(0);
+   check(source.getWidth()>0&&source.getHeight()>0&&destination.getWidth()>0&&destination.getHeight()>0,"native drag uses measured book views");
    source.getLocationOnScreen(start);destination.getLocationOnScreen(end);
    start[0]+=source.getWidth()/2;start[1]+=source.getHeight()/2;
    end[0]+=destination.getWidth()/2;end[1]+=destination.getHeight()/2;
+   checks.append("ENV native drag source=").append(start[0]).append(',').append(start[1]).append(" destination=").append(end[0]).append(',').append(end[1]).append(" focus=").append(activity.hasWindowFocus()).append('\n');
   });
   long down=android.os.SystemClock.uptimeMillis();
   touch(down,android.view.MotionEvent.ACTION_DOWN,start[0],start[1]);
