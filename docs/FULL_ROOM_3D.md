@@ -51,3 +51,5 @@ GLB는 surface 생성 시 로딩하고 이후 유지합니다. 정적 프레임�
 책장 확대 때 별도의 Android 오버레이가 GPU 배경보다 먼저 움직이던 문제도 수정합니다. 책과 명패를 같은 Filament Scene에서 렌더링하고, native 입력은 실제 최종 카메라 표시 이후 활성화합니다. Android 검사에서 GPU 책 레이어 사용 및 실제 표시 카메라 준비를 확인합니다.
 
 소프트웨어 GPU에서 실제 표시 프레임이 10초까지 지연된 기록이 있어 장면 검사에는 30초 상한을 둡니다. 앱의 애니메이션은 550ms이며 검사도 타임라인 완료만으로 통과하지 않고 실제 최종 GPU 카메라 표시를 기다립니다.
+
+TextureView는 UI 콜백에서 RenderThread의 이미지 갱신을 예약한 뒤 통지하므로 콜백 순간에는 직전 타임스탬프가 보일 수 있습니다. 마지막 프레임을 별도로 다시 렌더링하지 않고, 실제 이미지가 소비될 때까지 짧은 지연으로 타임스탬프를 재확인합니다. pose 일치 후 확인 루프를 멈추고 pause/surface 파괴/dispose 시 취소합니다. [Android 구현](https://android.googlesource.com/platform/frameworks/base/+/android-15.0.0_r1/core/java/android/view/TextureView.java).
