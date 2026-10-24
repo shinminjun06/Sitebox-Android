@@ -1,21 +1,15 @@
-> **3.1.1 원본 사진 방:** 보내주신 사진의 책상·벽·모서리를 그대로 유지하고, 책장 영역만 실제 책 데이터로 표시합니다. [구조와 변경점](docs/REFERENCE_PHOTO_ROOM_KO.md).
+> **3.2.0 실제 3D 방:** 제공된 GLB 전체를 Filament로 렌더링하고, 같은 3×3 책장으로 접근해 실제 책을 관리합니다. [구조와 검증](docs/FULL_ROOM_3D.md).
 
 # SiteBox Android · 학교 서재
 
-웹사이트를 책으로 정리하는 Android Java 앱입니다. 사진 기반 학생 방, 3×3 책장,
-독립적인 책장·책 테마와 직접 드래그 이동을 제공합니다. Android 7.0(API24) 이상.
+웹사이트를 책으로 정리하는 Java/Android View 앱입니다. Android 7.0(API24) 및 OpenGL ES3.0 이상.
 
-- 배경: 테마 1 학생 방. 이전 배경 ID와 백업은 책 데이터를 유지하며 학생 방으로 연결합니다.
-- 책장: 햇살 원목 / 짙은 월넛 / 화이트 오크
-- 책: 고전 양장본 / 파스텔 북 / 모던 북 — 총 9가지 조합
-- 제목·주소·카테고리 검색, 즐겨찾기, 메모, 사이트 미리보기, 페이지 전환
-- 책을 길게 눌러 같은 칸 순서 변경 또는 다른 칸 이동 (한 칸 7권)
-- 방 속 책장을 누르면 같은 책장의 정면 편집 화면으로 접근합니다. 두 손가락 오므리기 또는 뒤로 가기로 방에 돌아옵니다.
-- 550ms 접근/복귀를 현재 위치에서 반전합니다. 원본 사진의 책상·벽은 한 장으로 유지합니다.
-- 방 화면에서 책상 스탠드를 누르면 조명을 끄고 켭니다. 지역 시간에 맞춰 같은 원본 사진의 색감과 국소 조명을 조정합니다. 물리적인 그림자 재계산은 제공하지 않습니다.
-- 원본 책장에 맞춘 실제 책 좌표, 가로·정사각 화면의 안전한 구성과 효과 줄이기 옵션을 제공합니다.
-- 명패를 눌러 해당 칸에 추가, 설정에서 카테고리 이름·테마 변경
-- 빈 배경이나 헤더를 길게 누르면 배경만 표시, 화면을 누르면 서재 복원
+- 사용자 제공 GLB의 벽·창문·책상·침대·책장을 실제로 렌더링합니다.
+- 책장 터치로 접근, 두 손가락 오므리기 또는 뒤로 가기로 방에 복귀합니다. 550ms 전환은 현재 위치에서 반전합니다.
+- 3×3 실제 책 데이터, 칸당7권 페이지 분할, 제목·주소 검색, 메모·즐겨찾기·드래그 이동을 유지합니다.
+- 빈 공간 길게 누르기는 편집 화면을 숨기지 않습니다. 책 길게 누르기는 이동입니다.
+- 낮·밤·흐림·비·눈에 맞춰 창문 이미지와 실내 조명을 바꿉니다. 스탠드 조명을 별도로 끌 수 있습니다.
+- 계정 연결·자동 저장·Drive 동기화와 기존 데이터 구조를 유지합니다.
 
 ## 빌드와 검증
 
@@ -31,9 +25,9 @@ gradle :app:testDebugUnitTest :app:assembleDebug :app:assemblePreview :app:assem
 `SiteBox-debug-apk`와 실제 에뮬레이터 스크린샷 `SiteBox-device-qa`를 받을 수 있습니다.
 APK의 앱 정보와 `SOURCE_COMMIT.txt`에 빌드 소스 SHA가 기록됩니다.
 
-3.1.1 원본 사진 방의 별도 검증은 `Verify photographic student room` 워크플로를 사용합니다.
-[SiteBox 3.1.1 서명 APK 직접 다운로드](https://raw.githubusercontent.com/shinminjun06/Sitebox-Android/4292502e41b9b4031982e1d7218d2a9189435c52/distribution/sitebox-3.1.1/SiteBox-3.1.1.apk) · [Actions 다운로드](https://github.com/shinminjun06/Sitebox-Android/actions/runs/39941931244) (`SiteBox-3.1.1-installable-apk`).
-[원본 사진·책장 좌표·에셋과 검증 결과](docs/REFERENCE_PHOTO_ROOM_KO.md).
+3.2.0 실제 3D 방 검증은 `Verify native 3D student room` 워크플로를 사용합니다.
+[SiteBox 3.2.0 서명 APK 직접 다운로드](https://raw.githubusercontent.com/shinminjun06/Sitebox-Android/8b2111ccd7457d70fb498563641fdc965e8905b9/distribution/sitebox-3.2.0/SiteBox-3.2.0.apk) · [Actions 다운로드](https://github.com/shinminjun06/Sitebox-Android/actions/runs/40088952482) (`SiteBox-3.2.0-installable-apk`).
+[3D 모델·좌표·에셋과 검증 결과](docs/FULL_ROOM_3D.md).
 
 ## 데이터 및 설치
 
