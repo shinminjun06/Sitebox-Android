@@ -1,0 +1,2 @@
+PASS signed R8 release loads supplied GLB and presents native GPU frame
+PASS shrunk release launch and Google backup settings on Android 15
