@@ -1,0 +1,67 @@
+# SiteBox 3.2 · 사용자 GLB 방
+
+Android 7.0(API24) 이상과 OpenGL ES3.0 이상을 요구합니다. 필수 GPU 기능을 매니페스트에도 선언합니다. 기존 Java/Android View와 데이터 구조를 유지하고 Google Filament/gltfio 1.69.0으로 제공된 `SiteBox_FullRoom_3D_HQ_v4_fixed.glb` 전체를 렌더링합니다. 사진 책상·방·책장 이미지를 합성하지 않습니다. 창밖 풍경은 모델 자체에 포함된 평면 텍스처입니다.
+
+## 모델과 좌표
+
+- `app/src/main/assets/models/student_room.glb`: 사용자 파일 원본, 2,657,484바이트, 724개 메시. 모델의 벽·책상·침대·커튼·책장·소품을 그대로 사용합니다.
+- SHA-256: `e27c10b8333187cfe210dbb5513350ed3cea883f773a132216ca16ff293d9e02`. 총 25,076 삼각형입니다.
+- 원본 Z-up → Filament Y-up 변환 `(x,y,z) → (x,z,-y)`를 루트에 한 번 적용합니다. 모델을 임의의 단위 정육면체로 정규화하지 않습니다.
+- 자동 생성된 내장 카메라는 방을 위에서 내려다보는 위치여서 앱은 `RoomCameraRig`의 방 카메라를 사용합니다. 세로 화면에서는 책장·전경 테이블·침대가 함께 보이는 시점을 사용하고, 가로 화면에서는 방 내부 시점을 사용합니다. 방 밖 시점에서도 모든 화면 모서리의 시선이 모델의 열린 정면을 통과하는지 검사합니다. 같은 카메라가 550ms 감속 보간으로 정면 책장에 접근합니다. 반전은 현재 진행도에서 시작합니다.
+- 책장 전면 기준: X `-2.25..-1.11`, 높이 `-0.05..2.15`, 깊이 `-0.774`미터. 원본 `BOOK_SLOT_R1...`은 아래 행이므로 앱의 위→아래 카테고리 순서와 역순으로 대응합니다.
+- 실제 책장은 모델의 옆판·뒷판·선반·전면 몰딩으로 구성됩니다. 디버그용 `BOOK_SLOT_*` 앵커만 숨깁니다. 확대 시 별도 사진 프레임으로 바뀌지 않습니다. 기존 책장 색상은 책장 재질만 복제해 적용하고 다른 가구 재질을 바꾸지 않습니다.
+- `RoomModelGeometry`가 실제 칸의 개구부를 정의합니다. `BookshelfView`의 네이티브 책·명패를 `ModelBookLayer`가 투명 텍스처 두 장으로 캐시하고 실제 선반 평면에 그립니다. `ProjectedCabinetView`는 같은 좌표의 터치 역변환을 담당합니다. `RoomCameraRig`의 동일 시점·시야각이 Filament와 책/터치 역변환에 적용됩니다.
+
+## 화면과 동작
+
+`ModelRoomView(TextureView)` 안에서 실제 3D 방과 저장된 책을 함께 렌더링합니다. 책과 명패는 네이티브 View를 캐시한 평면 텍스처이며 입체 책 메시가 아닙니다. 카메라 이동 중에도 방·프레임·책이 같은 GPU 프레임에 표시됩니다. 책은 실제 프레임의 깊이 판정을 받고 명패는 전면 레일에 표시합니다. 화면에 최종 카메라 프레임이 도착하면 같은 위치의 네이티브 책 View가 입력과 접근성을 처리합니다. 그 View의 중복 화면 그리기는 생략합니다. 축소 화면의 책은 정적인 장식 책이 아닙니다. 각 칸 7권, 페이지 분할·검색·카테고리·순서·메모·즐겨찾기·삭제·드래그를 유지합니다. 방에서 책장 터치로 접근하며 두 손가락 수축 또는 Back으로 돌아옵니다. 빈 헤더/공간의 길게 누르기는 화면을 숨기지 않습니다. 책 길게 누르기는 이동입니다.
+
+## 조명과 창문
+
+모델에는 광원이 없어 햇빛/달빛, 따뜻한 스탠드 점광원, 실내 간접광을 추가합니다. 실내 메시의 그림자와 접촉 음영을 사용합니다. 모델의 뒤 벽에는 실제 창 구멍이 없어 뒤 벽·천장을 햇빛 그림자 차폐에서 제외하고 창 프레임·가구는 그림자를 만듭니다. 스탠드의 광량을 별도로 끌 수 있습니다. 현재 스탠드 점광원의 그림자는 사용하지 않습니다.
+
+`models/window_day.png`는 GLB 내장 원본, `window_night/rain/snow/cloud/night_rain/night_snow.png`는 같은 구도의 생성 이미지입니다. 각각 1536×1024, 같은 UV를 사용합니다. 시간·날씨가 바뀌면 3D 창문 재질의 이미지가 실제로 바뀌고 실내 광량·색온도도 달라집니다. 카메라 노출은 해질 무렵부터 완만하게 보정해 밤에도 방을 알아볼 수 있게 유지합니다. 창밖은 조명을 받지 않는 재질을 사용해 실내 스탠드를 꺼도 함께 어두워지지 않습니다. 원본이 생략한 metallicFactor의 glTF 기본값은 금속이므로 실내 나무·벽·직물은 비금속으로 보정합니다. 맑음/흐림/비/눈/밤/밤비/밤눈의 일곱 가지 상태이며 날씨별 지형 시뮬레이션이나 실제 야외 3D 도시는 아닙니다. 현재 텍스처 상태 전환은 즉시 적용합니다.
+
+기존 Open-Meteo와 선택 도시/시간대를 사용합니다. 네트워크가 없으면 기존 저장 날씨 또는 기기 시각을 사용하고 책 데이터를 재로딩하지 않습니다. 실시간 날씨를 받지 못한 상태는 기존 설정 화면에서 그대로 표시합니다.
+
+## 최적화와 검증 범위
+
+GLB는 surface 생성 시 로딩하고 이후 유지합니다. 정적 프레임은 계속 렌더링하지 않습니다. 카메라·책·날씨·조명·화면 크기 변경 시 프레임을 제출하고 pause에서는 멈춥니다. 최초 빈 프레임 표시 후 GLB를 로딩하며 작은 픽셀 샘플로 실제 모델이 표시된 것을 확인할 때까지 로딩 안내를 유지합니다. 이 샘플은 시작할 때만 사용하고 즉시 해제합니다. 책 텍스처는 내용·레이아웃·드래그 표시가 바뀔 때만 다시 그립니다. 애니메이션 매 프레임 비트맵 생성이나 View 캡처를 하지 않습니다. 최대 긴 변 2048px(저사양 1024px)이며 업로드 콜백이 올 때까지 비트맵을 재사용·해제하지 않습니다. 실제 SurfaceTexture 표시 시각과 제출 프레임의 카메라 버전을 대조해 최종 위치 표시 전 입력이 활성화되지 않게 합니다. 각 창문 이미지는 최초 사용 시 디코드/GPU 업로드하고 캐시합니다. 폭 1000px 미만 또는 저사양 설정에서는 창문 이미지를 1/2 해상도로 디코드합니다. 저사양 옵션은 AO를 끄고 초기 그림자 해상도를 줄입니다. 기기 화면 비율과 키보드/스크롤에 따라 책장 카메라와 네이티브 책의 정렬을 다시 계산합니다.
+
+호스트 테스트는 실제 GLB 구조, 화면비별 카메라, 네이티브 책/터치 정렬, 제스처 회귀, 책 저장 및 Google/자동 동기화 로직을 다룹니다. 실제 GPU 로딩·책장 접근·물리 핀치·책 드래그·날씨 화면·pause/resume·화면 크기 변경은 Actions의 Android 15 SwiftShader에서 별도로 검증합니다. 최종 빌드 결과와 링크는 배포 폴더 BUILD_INFO/README에 기록합니다. 물리 기기 60fps 및 실제 계정의 Google 동의/Drive 왕복은 자동 테스트의 검증 범위에 포함되지 않습니다.
+
+기존 인증 콘솔 설정은 계속 필요합니다. 패키지 `com.sitebox.app`, 검증판 서명 SHA-1 `CD:84:36:B7:75:DA:5A:45:9F:76:26:8F:D5:65:C6:E5:8E:1A:D1:9C`. Google 인증 플랫폼의 Android OAuth 클라이언트와 Drive API/게시 상태는 [Google 설정 문서](GOOGLE_DRIVE_SETUP_KO.md)를 따릅니다. 이번 3D 전환에 추가 외부 콘솔 설정은 없습니다.
+
+## Android 검사 환경
+
+최신 에뮬레이터에서는 폐기된 `swiftshader_indirect` 모드가 GLB 렌더링 중 에뮬레이터 전체의 응답을 멈췄습니다. 지원되는 `swangle` 모드에서 실제 방 픽셀·책 관리·동기화 검사를 확인했으며 최종 전체 검사를 통과했습니다. [공식 GPU 모드 안내](https://developer.android.com/studio/run/emulator-acceleration#accel-graphics). 소프트웨어 GPU에서 반전 검사는 시스템 애니메이션 배율을 일시적으로 4배로 늘려 실제 중간 프레임에서 수행하고 원래 설정으로 복구합니다. 앱의 기본 전환 시간은 550ms로 유지합니다.
+
+## 3.2.0 검증 기록
+
+- 소스 `cba6e0fd4712659fcf984ee4258f6bf26a52ecb8`: [Android 15 전체 앱 검사](https://github.com/shinminjun06/Sitebox-Android/actions/runs/40088117137) 통과. 실제 GLB GPU 표시·터치·핀치·Back·반전·화면 크기·책 CRUD/드래그·7가지 창문·조명·pause/resume·계정/자동 동기화 회귀를 검사했습니다.
+- JUnit/Robolectric 66개 통과. debug/preview/release/AndroidTest 빌드 성공. debug/release lint 오류 0.
+- [서명 APK 설치 검사](https://github.com/shinminjun06/Sitebox-Android/actions/runs/40088952482) 통과. 새 Android 15 에뮬레이터에 배포용 R8 APK를 설치하고 실제 화면 터치로 방→편집→Google 계정 설정을 확인했습니다. 실계정 Google 동의 절차 검사는 아닙니다.
+- [APK 직접 다운로드](https://raw.githubusercontent.com/shinminjun06/Sitebox-Android/8b2111ccd7457d70fb498563641fdc965e8905b9/distribution/sitebox-3.2.0/SiteBox-3.2.0.apk) · Actions의 `SiteBox-3.2.0-installable-apk`. 기존 검증판과 같은 서명입니다.
+- 파일 크기 52,232,812 bytes. SHA-256 `66493e4e101cb932f9f70ef566ef6d250adfbddefcb1d3ba039a973c59f062c1`. 공개 링크와 Actions에서 각각 다시 내려받아 원본과 동일한 파일임을 확인했습니다.
+
+## 3.2.1 조명 일치 보정
+
+카메라가 책장에 접근할 때 실내 간접광을 추가하지 않습니다. 야간 노출 보정과 확대용 보조광이 겹쳐 원목이 하얗게 보이던 원인을 제거했습니다. 방과 확대 책장은 같은 모델·재질·광원을 유지합니다. Android 검사에서 실제 IndirectLight 광량이 접근 전후에 같고 야간 편집 화면이 표시되는지 확인합니다. 패키지와 서명은 유지하고 versionCode29로 업데이트합니다.
+
+책장 확대 때 별도의 Android 오버레이가 GPU 배경보다 먼저 움직이던 문제도 수정합니다. 책과 명패를 같은 Filament Scene에서 렌더링하고, native 입력은 실제 최종 카메라 표시 이후 활성화합니다. Android 검사에서 GPU 책 레이어 사용 및 실제 표시 카메라 준비를 확인합니다.
+
+소프트웨어 GPU에서 실제 표시 프레임이 10초까지 지연된 기록이 있어 장면 검사에는 30초 상한을 둡니다. 앱의 애니메이션은 550ms이며 검사도 타임라인 완료만으로 통과하지 않고 실제 최종 GPU 카메라 표시를 기다립니다.
+
+TextureView는 UI 콜백에서 RenderThread의 이미지 갱신을 예약한 뒤 통지하므로 콜백 순간에는 직전 타임스탬프가 보일 수 있습니다. 마지막 프레임을 별도로 다시 렌더링하지 않고, 실제 이미지가 소비될 때까지 짧은 지연으로 타임스탬프를 재확인합니다. pose 일치 후 확인 루프를 멈추고 pause/surface 파괴/dispose 시 취소합니다. [Android 구현](https://android.googlesource.com/platform/frameworks/base/+/android-15.0.0_r1/core/java/android/view/TextureView.java).
+
+책 텍스처와 재질 바인딩은 Filament beginFrame 이전에 갱신합니다. 크기 변경으로 교체된 텍스처는 새 바인딩으로 그린 endFrame 이후 해제해, 키보드·페이지·화면 크기 변경에서 이전 sampler handle을 참조하지 않게 합니다.
+
+배포용 R8 APK의 새 설치 검사는 실제 GPU 표시를 확인한 뒤 책장 터치·설정·Google 계정 창을 검사합니다. UIAutomator의 화면 정보 조회가 실패하면 이전 XML을 재사용하지 않고 새 트리를 기다립니다. 소프트웨어 GPU용 화면 조회 대기는 최대 60초입니다. 앱 시작 후 에뮬레이터의 Pixel Launcher 프로세스를 종료해 부팅 경합을 줄입니다. 앱의 APK 바이트는 이 검사 도구 변경으로 달라지지 않습니다.
+
+## 최종 검증 및 설치본
+
+- 소스 `1e06eebe91a40a643383bc67f8d42177343f55ba`: [Android 15 전체 앱 검사](https://github.com/shinminjun06/Sitebox-Android/actions/runs/40109298541) 통과. 실제 GLB GPU 표시·터치·핀치·Back·반전·화면 크기·책 CRUD/드래그·7가지 창문·조명·pause/resume·계정/자동 동기화 회귀를 검사했습니다.
+- JUnit/Robolectric 66개 통과. debug/preview/release/AndroidTest 빌드 성공. debug/release lint 오류 0.
+- [서명 APK 설치 검사](https://github.com/shinminjun06/Sitebox-Android/actions/runs/40110789107) 통과. 새 Android 15 에뮬레이터에 배포용 R8 APK를 설치하고 실제 화면 터치로 방→편집→Google 계정 설정을 확인했습니다. 실계정 Google 동의 절차 검사는 아닙니다.
+- [APK 직접 다운로드](https://raw.githubusercontent.com/shinminjun06/Sitebox-Android/e3923c19a02f68968a7e08cd5dea1903a40ab48d/distribution/sitebox-3.2.1/SiteBox-3.2.1.apk) · Actions의 `SiteBox-3.2.1-installable-apk`. 기존 검증판과 같은 서명입니다.
+- 파일 크기 52,232,812 bytes. SHA-256 `61d01f3e503cef5daaf2b1a656977b76f7b5f6a74cb606c9ff91ddfa41dff7d9`. 공개 링크와 Actions에서 각각 다시 내려받아 원본과 동일한 파일임을 확인했습니다.

@@ -1,0 +1,15 @@
+# One cabinet model in the room camera — 3.0.13
+
+The reported shape and tilt problems came from two incompatible projections. A pre-rendered front sprite already contained perspective inside its openings; outer side and roof panels were added using another camera. The portrait front slope was then flattened independently of the wall. Closing its alpha seam did not resolve that mismatch.
+
+The compact cabinet now uses wooden boards projected by one level pinhole camera. The beam/baseboard intersections and side-wall floor line supply both room vanishing points. Assuming the image centre is the principal horizontal axis gives an orthogonal width/depth frame. A 0.85 × 1.02 × 0.28 m cabinet and a 1.45 m eye height set plausible furniture proportions. These are approximate dimensions for illustrated artwork, not measurements of a physical room.
+
+All nine backs, interior walls, shelf surfaces, front posts, lips, exterior side/top and four supports share that camera. The back feet lie on the floor just forward of the baseboard. The scene bounds come from all eight projected model corners. Independent X/Y display scales preserve those bounds through the collapse animation, and shadows use the corresponding projected foot contacts.
+
+Oak uses clean timber samples from the existing room cabinet image as materials, preserving photographed grain and joinery detail. The old sprite is never used as the furniture silhouette or openings. Other finishes use their existing full-grain surfaces on the same model. Paths, UV transforms and material filters are cached outside onDraw; no bitmap is decoded while drawing.
+
+The room snapshot now contains only the user's live book children, with no category controls or furniture pixels. Each opening projects its own book region slightly behind the front edge and clips it to the frame. Plant/picture/mug decoration sits over the same projected top. The expanded editor, three cabinet finishes and book styles remain available. Automatic location-based day/night, lamp composition, Google account and sync behavior are retained.
+
+Plan and validation: reproduce the arbitrary portrait-camera defect using independently measured wall vanishing points; replace the compact renderer and shared bounds; render actual app scenes with empty, single-book and populated shelves in portrait/landscape and day/night/lamp states; inspect native previews and opaque panel/foot contacts; run the full Java/assets, Android unit, lint, debug/preview/release and instrumentation compilation checks; verify the existing release certificate and distribute the signed APK through GitHub Actions. Native Skia rendering is not a physical-device check.
+
+The former seven-pixel silhouette test encoded an almost horizontal front from the target photograph, conflicting with the background's wall perspective. It is replaced by a reference floor-region/scale check plus independently measured room-camera rays, including the inner shelf depth edges. The cabinet follows the room geometry instead of forcing a separately chosen front slope.

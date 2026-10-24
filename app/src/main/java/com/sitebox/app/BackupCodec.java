@@ -19,7 +19,7 @@ final class BackupCodec {
   final boolean motion; final long createdAt;
   Snapshot(JSONObject o,JSONArray s,String[] c)throws JSONException{
    sites=s;categories=c;shelfTheme=(int)integer(o,"shelfTheme");bookTheme=(int)integer(o,"bookTheme");
-   bookCount=s.length();backgroundTheme=string(o,"backgroundTheme");motion=(Boolean)o.get("motion");createdAt=integer(o,"createdAt");
+   bookCount=s.length();backgroundTheme=SceneTheme.find(string(o,"backgroundTheme")).id;motion=(Boolean)o.get("motion");createdAt=integer(o,"createdAt");
   }
  }
  static String encode(JSONArray sites,String[] categories,int shelf,int book,String background,boolean motion)throws JSONException{
@@ -45,7 +45,7 @@ final class BackupCodec {
    if(site.has("notes"))string(site,"notes");if(site.has("sortOrder"))integer(site,"sortOrder");
   }
   long shelf=integer(o,"shelfTheme"),book=integer(o,"bookTheme");if(shelf<0||shelf>2||book<0||book>2||!(o.get("motion") instanceof Boolean))throw invalid();
-  String background=string(o,"backgroundTheme");boolean found=false;for(SceneTheme scene:SceneTheme.ALL)if(scene.id.equals(background))found=true;if(!found)throw invalid();
+  String background=string(o,"backgroundTheme");if(!SceneTheme.acceptsBackupId(background))throw invalid();
   return new Snapshot(o,sites,categories);
  }
  private static String string(JSONObject o,String k)throws JSONException{Object v=o.get(k);if(!(v instanceof String))throw invalid();return (String)v;}

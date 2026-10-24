@@ -15,8 +15,10 @@ final class BackupChecks {
  final SmokeInstrumentation test;final MainActivity activity;
  BackupChecks(SmokeInstrumentation test){this.test=test;activity=test.activity;}
  interface Ready{boolean get()throws Exception;}
- void waitFor(Ready ready)throws Exception{long end=SystemClock.elapsedRealtime()+5000;while(!ready.get()){if(SystemClock.elapsedRealtime()>end)throw new AssertionError("Backup UI timeout");SystemClock.sleep(30);}test.waitForIdleSync();}
- void idle()throws Exception{Field f=BackupController.class.getDeclaredField("storageBusy");f.setAccessible(true);waitFor(()->{boolean[] busy={true};test.main(()->{try{busy[0]=f.getBoolean(activity.backups);}catch(Exception e){throw new RuntimeException(e);}});return !busy[0];});}
+ // Production allows 45 seconds for provider I/O. Include cold provider startup
+ // and UI dispatch without treating a stale pre-idle observation as a timeout.
+ void waitFor(Ready ready)throws Exception{long end=SystemClock.elapsedRealtime()+60000;while(!ready.get()){if(SystemClock.elapsedRealtime()>end)throw new AssertionError("Backup storage still busy after its 45-second operation budget and UI grace period");SystemClock.sleep(30);}test.waitForIdleSync();}
+ void idle()throws Exception{Field f=BackupController.class.getDeclaredField("storageBusy");f.setAccessible(true);waitFor(()->{boolean[] busy={true};test.runOnMainSync(()->{try{busy[0]=f.getBoolean(activity.backups);}catch(Exception e){throw new RuntimeException(e);}});return !busy[0];});}
  View find(View v,String text){if(v instanceof TextView&&text.contentEquals(((TextView)v).getText()))return v;if(v instanceof ViewGroup)for(int i=0;i<((ViewGroup)v).getChildCount();i++){View hit=find(((ViewGroup)v).getChildAt(i),text);if(hit!=null)return hit;}return null;}
  void prefs(Map<String,?> state){SharedPreferences.Editor e=activity.getPreferences(0).edit().clear();for(Map.Entry<String,?> x:state.entrySet()){Object v=x.getValue();String k=x.getKey();if(v instanceof String)e.putString(k,(String)v);else if(v instanceof Integer)e.putInt(k,(Integer)v);else if(v instanceof Long)e.putLong(k,(Long)v);else if(v instanceof Boolean)e.putBoolean(k,(Boolean)v);else if(v instanceof Float)e.putFloat(k,(Float)v);}if(!e.commit())throw new AssertionError("Test cleanup prefs");}
  void reject(String json)throws Exception{try{BackupCodec.decode(json);throw new AssertionError("Invalid backup accepted");}catch(JSONException expected){}}
@@ -51,7 +53,7 @@ final class BackupChecks {
     reject(invalid.toString());
    }
    test.check(BackupCodec.decode(original).sites.toString().equals(base.sites.toString()),"codec rejects padded category labels and preserves valid fixture");
-   test.check(controller.snapshot()!=null&&base.sites.length()==32,"backup codec validates native fixture and rejects malformed imports");
+   test.check(controller.snapshot()!=null&&base.sites.length()==activity.sites.length()&&base.sites.length()>0,"backup codec validates native fixture and rejects malformed imports");
    // Neither a stalled reader nor a stalled writer may wait for provider progress after cancellation.
    for(boolean writing:new boolean[]{false,true}){
     ParcelFileDescriptor[] pipe=ParcelFileDescriptor.createPipe();CancellationSignal cancel=new CancellationSignal();AtomicReference<Throwable> failure=new AtomicReference<>();
@@ -84,7 +86,7 @@ final class BackupChecks {
    test.activeAppWindow();test.main(()->controller.validateAndPreview(replacement,"기기 문서 테스트"));idle();snapshotDialog("백업 복원 확인","backup-preview.png");test.clickText("취소");test.waitForIdleSync();
    test.check(!activeWindowHasText("백업 복원 확인")&&before.equals(activity.getPreferences(0).getAll()),"cancelled restore preview closes and leaves data unchanged");
    test.activeAppWindow();test.main(()->controller.restore(restored));idle();
-   BackupCodec.Snapshot actual=BackupCodec.decode(controller.snapshot());test.check(actual.sites.toString().equals(books.toString())&&actual.shelfTheme==2&&actual.bookTheme==1&&actual.backgroundTheme.equals("wizard")&&!actual.motion,"confirmed restore updates every field");
+   BackupCodec.Snapshot actual=BackupCodec.decode(controller.snapshot());test.check(actual.sites.toString().equals(books.toString())&&actual.shelfTheme==2&&actual.bookTheme==1&&actual.backgroundTheme.equals("study")&&!actual.motion,"confirmed restore updates every field");
    test.main(activity::load);test.check(activity.sites.toString().equals(books.toString()),"restored library persists through preferences reload");
    BackupCodec.Snapshot safety=BackupCodec.decode(new String(java.nio.file.Files.readAllBytes(rollback.toPath()),StandardCharsets.UTF_8));test.check(safety.sites.toString().equals(base.sites.toString()),"restore saves original atomic rollback copy");
    test.checks.append("PASS Google backup codec and local restore verified\nUNTESTED Google account consent and live Drive transfer: no configured cloud account in CI\n");

@@ -40,8 +40,6 @@ final class LibraryRules {
  }
  // Fractional bounds are the inner openings after artwork normalization.
  static float[] cell(int index){
-  int row=index/3,col=index%3;
-  float x=.075f+col*.300f,y=.075f+row*.272f;
-  return new float[]{x,y,x+.260f,y+.245f};
+  return CabinetGeometry.cell(index);
  }
 }
