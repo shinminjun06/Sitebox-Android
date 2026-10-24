@@ -64,6 +64,8 @@ final class ModelRoomView extends TextureView implements TextureView.SurfaceText
  private long poseVersion=1,displayedPose;
  private final long[] frameTimes=new long[64],framePoses=new long[64];
  private int frameSlot;
+ private long lastPresentedTime;
+ String presentationState(){int i=(frameSlot+frameTimes.length-1)%frameTimes.length;return "pose="+poseVersion+" displayed="+displayedPose+" surfaceTime="+lastPresentedTime+" submittedTime="+frameTimes[i]+" submittedPose="+framePoses[i]+" frames="+frames+" presented="+presented;}
  private boolean wasPoseReady;
  void setPresentationListener(Runnable value){presentationListener=value;}
  boolean poseReady(){return engine==null||swap==null||presented&&displayedPose==poseVersion;}
@@ -203,7 +205,7 @@ final class ModelRoomView extends TextureView implements TextureView.SurfaceText
   if(swap!=null){engine.destroySwapChain(swap);engine.flushAndWait();swap=null;}if(surface!=null){surface.release();surface=null;}return true;
  }
  @Override public void onSurfaceTextureUpdated(SurfaceTexture texture){
-  long timestamp=texture.getTimestamp();for(int i=0;i<frameTimes.length;i++)if(frameTimes[i]==timestamp){displayedPose=framePoses[i];break;}
+  long timestamp=texture.getTimestamp();lastPresentedTime=timestamp;for(int i=0;i<frameTimes.length;i++)if(frameTimes[i]==timestamp){displayedPose=framePoses[i];break;}
 
   if(!surfacePresented){surfacePresented=true;android.util.Log.i("SiteBox3D","empty room surface GPU frame presented");if(asset==null)post(this::loadModel);}
   else if(!presented&&asset!=null&&frames>1&&hasRoomPixels()){presented=true;startupProbe.recycle();startupProbe=null;status.accept(null);android.util.Log.i("SiteBox3D","room GPU frame presented");}
