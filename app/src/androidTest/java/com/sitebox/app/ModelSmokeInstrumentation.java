@@ -10,9 +10,20 @@ import org.json.*;
 /** Exercises the real native GPU renderer; host tests cannot stand in for this. */
 public final class ModelSmokeInstrumentation extends SmokeInstrumentation {
  int reportedChecks;
+ int expectedWidth,expectedHeight;
+ final android.app.Application.ActivityLifecycleCallbacks activityTracker=new android.app.Application.ActivityLifecycleCallbacks(){
+  public void onActivityResumed(Activity next){if(next instanceof MainActivity)activity=(MainActivity)next;}
+  public void onActivityCreated(Activity next,Bundle state){}
+  public void onActivityStarted(Activity next){}
+  public void onActivityPaused(Activity next){}
+  public void onActivityStopped(Activity next){}
+  public void onActivitySaveInstanceState(Activity next,Bundle state){}
+  public void onActivityDestroyed(Activity next){}
+ };
  @Override void phase(String name){super.phase(name);if(checks.length()>reportedChecks){Bundle progress=new Bundle();progress.putString("stream",checks.substring(reportedChecks));sendStatus(1,progress);reportedChecks=checks.length();}}
  @Override public void onStart(){
   Bundle result=new Bundle();int code=Activity.RESULT_OK;String original=null;
+  final android.app.Application application=(android.app.Application)getTargetContext().getApplicationContext();main(()->application.registerActivityLifecycleCallbacks(activityTracker));
   try{
    phase("native GLB startup");activity=(MainActivity)startActivitySync(new Intent(getTargetContext(),MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));waitForIdleSync();
    original=activity.sites.toString();awaitModel();awaitScene(true);main(()->{
@@ -40,9 +51,9 @@ public final class ModelSmokeInstrumentation extends SmokeInstrumentation {
    phase("displayed camera reversal and native Back");tapRoomCabinet();roomReversalAndBack();
    checks.append("PASS actual 3D room, shared camera, native book management, gestures and lifecycle verified\n");
   }catch(Throwable e){code=Activity.RESULT_CANCELED;checks.append("FAIL ").append(e).append('\n');try{snapshot("3d-failure.png");}catch(Throwable ignored){}}
-  finally{if(activity!=null&&original!=null){final String saved=original;main(()->{try{activity.sites=new JSONArray(saved);activity.save();}catch(JSONException e){throw new RuntimeException(e);}if(activity.roomExperience.model.presented())activity.finish();});}}
+  finally{main(()->application.unregisterActivityLifecycleCallbacks(activityTracker));if(activity!=null&&original!=null){final String saved=original;main(()->{try{activity.sites=new JSONArray(saved);activity.save();}catch(JSONException e){throw new RuntimeException(e);}if(activity.roomExperience.model.presented())activity.finish();});}}
   result.putString("stream",checks.toString());finish(code,result);
  }
- void resizeWindow(int w,int h){ActivityMonitor monitor=addMonitor(MainActivity.class.getName(),null,false);try{shell("wm size "+w+"x"+h);Activity next=monitor.waitForActivityWithTimeout(5000);if(next!=null)activity=(MainActivity)next;waitForIdleSync();awaitModel();}finally{removeMonitor(monitor);}}
- void awaitModel(){long end=SystemClock.uptimeMillis()+60000;while(SystemClock.uptimeMillis()<end){final boolean[] ready={false};main(()->{if(activity.roomExperience.model.failure()!=null)throw new AssertionError(activity.roomExperience.model.failure());if(activity.roomExperience.model.ready()&&activity.roomExperience.model.presented()){android.graphics.Bitmap image=activity.roomExperience.model.getBitmap(64,128);if(image!=null){java.util.HashSet<Integer> colors=new java.util.HashSet<>();for(int y=12;y<116;y+=3)for(int x=3;x<61;x+=3)colors.add(image.getPixel(x,y));image.recycle();ready[0]=colors.size()>60;}}});if(ready[0]){check(true,"actual room pixels are nonuniform, not an empty background");return;}SystemClock.sleep(200);}throw new AssertionError("Native model did not display geometry within 60 seconds; frames="+activity.roomExperience.model.frames()+", available="+activity.roomExperience.model.isAvailable()+", shown="+activity.roomExperience.model.isShown()+", size="+activity.roomExperience.model.getWidth()+"x"+activity.roomExperience.model.getHeight()+", alpha="+activity.roomExperience.model.getAlpha());}
+ void resizeWindow(int w,int h){expectedWidth=w;expectedHeight=h;shell("wm size "+w+"x"+h);waitForIdleSync();awaitModel();}
+ void awaitModel(){long end=SystemClock.uptimeMillis()+60000;while(SystemClock.uptimeMillis()<end){final boolean[] ready={false};main(()->{if(activity.roomExperience.model.failure()!=null)throw new AssertionError(activity.roomExperience.model.failure());if(!activity.isDestroyed()&&activity.roomExperience.model.isShown()&&activity.roomExperience.model.isAvailable()&&(expectedWidth==0||(activity.roomExperience.model.getWidth()==expectedWidth&&activity.roomExperience.model.getHeight()==expectedHeight))&&activity.roomExperience.model.ready()&&activity.roomExperience.model.presented()){android.graphics.Bitmap image=activity.roomExperience.model.getBitmap(64,128);if(image!=null){java.util.HashSet<Integer> colors=new java.util.HashSet<>();for(int y=12;y<116;y+=3)for(int x=3;x<61;x+=3)colors.add(image.getPixel(x,y));image.recycle();ready[0]=colors.size()>60;}}});if(ready[0]){check(true,"actual room pixels are nonuniform, not an empty background");return;}SystemClock.sleep(200);}throw new AssertionError("Native model did not display geometry within 60 seconds; frames="+activity.roomExperience.model.frames()+", available="+activity.roomExperience.model.isAvailable()+", shown="+activity.roomExperience.model.isShown()+", size="+activity.roomExperience.model.getWidth()+"x"+activity.roomExperience.model.getHeight()+", alpha="+activity.roomExperience.model.getAlpha());}
 }
