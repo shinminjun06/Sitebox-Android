@@ -8,7 +8,7 @@ log_pid=$!
   while adb get-state >/dev/null 2>&1; do
     adb pull /sdcard/Android/data/com.sitebox.app/files/qa/ room-device-qa/ >/dev/null 2>&1 || true
     free -m >> room-device-qa/host-memory.txt
-    sleep 3
+    sleep 15
   done
 ) &
 pull_pid=$!

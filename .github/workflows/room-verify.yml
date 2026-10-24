@@ -47,8 +47,10 @@ jobs:
           target: google_apis
           arch: x86_64
           profile: pixel_5
+          cores: 4
+          ram-size: 4096M
           disable-animations: true
-          emulator-options: -no-window -gpu swangle -noaudio -no-boot-anim -camera-back none -camera-front none
+          emulator-options: -no-window -gpu swangle -noaudio -no-boot-anim -camera-back none -camera-front none -no-snapshot-save
           script: |
             adb shell wm size 720x1560
             adb shell wm density 320
