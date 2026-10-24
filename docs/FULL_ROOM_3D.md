@@ -55,3 +55,13 @@ GLB는 surface 생성 시 로딩하고 이후 유지합니다. 정적 프레임�
 TextureView는 UI 콜백에서 RenderThread의 이미지 갱신을 예약한 뒤 통지하므로 콜백 순간에는 직전 타임스탬프가 보일 수 있습니다. 마지막 프레임을 별도로 다시 렌더링하지 않고, 실제 이미지가 소비될 때까지 짧은 지연으로 타임스탬프를 재확인합니다. pose 일치 후 확인 루프를 멈추고 pause/surface 파괴/dispose 시 취소합니다. [Android 구현](https://android.googlesource.com/platform/frameworks/base/+/android-15.0.0_r1/core/java/android/view/TextureView.java).
 
 책 텍스처와 재질 바인딩은 Filament beginFrame 이전에 갱신합니다. 크기 변경으로 교체된 텍스처는 새 바인딩으로 그린 endFrame 이후 해제해, 키보드·페이지·화면 크기 변경에서 이전 sampler handle을 참조하지 않게 합니다.
+
+배포용 R8 APK의 새 설치 검사는 실제 GPU 표시를 확인한 뒤 책장 터치·설정·Google 계정 창을 검사합니다. UIAutomator의 화면 정보 조회가 실패하면 이전 XML을 재사용하지 않고 새 트리를 기다립니다. 소프트웨어 GPU용 화면 조회 대기는 최대 60초입니다. 앱 시작 후 에뮬레이터의 Pixel Launcher 프로세스를 종료해 부팅 경합을 줄입니다. 앱의 APK 바이트는 이 검사 도구 변경으로 달라지지 않습니다.
+
+## 최종 검증 및 설치본
+
+- 소스 `1e06eebe91a40a643383bc67f8d42177343f55ba`: [Android 15 전체 앱 검사](https://github.com/shinminjun06/Sitebox-Android/actions/runs/40109298541) 통과. 실제 GLB GPU 표시·터치·핀치·Back·반전·화면 크기·책 CRUD/드래그·7가지 창문·조명·pause/resume·계정/자동 동기화 회귀를 검사했습니다.
+- JUnit/Robolectric 66개 통과. debug/preview/release/AndroidTest 빌드 성공. debug/release lint 오류 0.
+- [서명 APK 설치 검사](https://github.com/shinminjun06/Sitebox-Android/actions/runs/40110789107) 통과. 새 Android 15 에뮬레이터에 배포용 R8 APK를 설치하고 실제 화면 터치로 방→편집→Google 계정 설정을 확인했습니다. 실계정 Google 동의 절차 검사는 아닙니다.
+- [APK 직접 다운로드](https://raw.githubusercontent.com/shinminjun06/Sitebox-Android/e3923c19a02f68968a7e08cd5dea1903a40ab48d/distribution/sitebox-3.2.1/SiteBox-3.2.1.apk) · Actions의 `SiteBox-3.2.1-installable-apk`. 기존 검증판과 같은 서명입니다.
+- 파일 크기 52,232,812 bytes. SHA-256 `61d01f3e503cef5daaf2b1a656977b76f7b5f6a74cb606c9ff91ddfa41dff7d9`. 공개 링크와 Actions에서 각각 다시 내려받아 원본과 동일한 파일임을 확인했습니다.
