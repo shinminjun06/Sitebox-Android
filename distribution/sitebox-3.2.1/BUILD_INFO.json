@@ -17,5 +17,9 @@
     "No point-light shadows for the desk lamp",
     "No physical-device 60fps measurement",
     "No actual Google OAuth consent or live Drive transfer"
-  ]
+  ],
+  "signedReleaseInstallationRun": "https://github.com/shinminjun06/Sitebox-Android/actions/runs/40110789107",
+  "signedReleaseInstallation": "passed",
+  "publicDownloadSHA256": "61d01f3e503cef5daaf2b1a656977b76f7b5f6a74cb606c9ff91ddfa41dff7d9",
+  "actionsDownloadSHA256": "61d01f3e503cef5daaf2b1a656977b76f7b5f6a74cb606c9ff91ddfa41dff7d9"
 }

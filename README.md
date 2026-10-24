@@ -1,4 +1,4 @@
-> **3.2.0 실제 3D 방:** 제공된 GLB 전체를 Filament로 렌더링하고, 같은 3×3 책장으로 접근해 실제 책을 관리합니다. [구조와 검증](docs/FULL_ROOM_3D.md).
+> **3.2.1 실제 3D 방:** 제공된 GLB 전체를 Filament로 렌더링하고, 같은 3×3 책장으로 접근해 실제 책을 관리합니다. [구조와 검증](docs/FULL_ROOM_3D.md).
 
 # SiteBox Android · 학교 서재
 
@@ -25,8 +25,8 @@ gradle :app:testDebugUnitTest :app:assembleDebug :app:assemblePreview :app:assem
 `SiteBox-debug-apk`와 실제 에뮬레이터 스크린샷 `SiteBox-device-qa`를 받을 수 있습니다.
 APK의 앱 정보와 `SOURCE_COMMIT.txt`에 빌드 소스 SHA가 기록됩니다.
 
-3.2.0 실제 3D 방 검증은 `Verify native 3D student room` 워크플로를 사용합니다.
-[SiteBox 3.2.0 서명 APK 직접 다운로드](https://raw.githubusercontent.com/shinminjun06/Sitebox-Android/8b2111ccd7457d70fb498563641fdc965e8905b9/distribution/sitebox-3.2.0/SiteBox-3.2.0.apk) · [Actions 다운로드](https://github.com/shinminjun06/Sitebox-Android/actions/runs/40088952482) (`SiteBox-3.2.0-installable-apk`).
+3.2.1 실제 3D 방 검증은 `Verify native 3D student room` 워크플로를 사용합니다.
+[SiteBox 3.2.1 서명 APK 직접 다운로드](https://raw.githubusercontent.com/shinminjun06/Sitebox-Android/e3923c19a02f68968a7e08cd5dea1903a40ab48d/distribution/sitebox-3.2.1/SiteBox-3.2.1.apk) · [Actions 다운로드](https://github.com/shinminjun06/Sitebox-Android/actions/runs/40110789107) (`SiteBox-3.2.1-installable-apk`).
 [3D 모델·좌표·에셋과 검증 결과](docs/FULL_ROOM_3D.md).
 
 ## 데이터 및 설치
