@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.sitebox.app.RoomRenderingTest" tests="4" skipped="0" failures="0" errors="0" timestamp="2026-10-24T15:57:49" hostname="4c0584c3ea85" time="1.18">
+  <properties/>
+  <testcase name="nativeFramesAndAllNineProjectedTouchCellsShareTheirCoordinates" classname="com.sitebox.app.RoomRenderingTest" time="0.584"/>
+  <testcase name="lampRelightingPreservesSunlightAndOutsidePixels" classname="com.sitebox.app.RoomRenderingTest" time="0.173"/>
+  <testcase name="savedBooksAndReducedEffectsSurviveRecreation" classname="com.sitebox.app.RoomRenderingTest" time="0.251"/>
+  <testcase name="overflowingBooksPageAndRebindWithoutMovingTheRoom" classname="com.sitebox.app.RoomRenderingTest" time="0.172"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

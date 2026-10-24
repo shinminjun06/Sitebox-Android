@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.sitebox.app.CabinetPanelTest" tests="1" skipped="0" failures="0" errors="0" timestamp="2026-10-24T15:57:33" hostname="4c0584c3ea85" time="6.792">
+  <properties/>
+  <testcase name="nativeEditorNeverPaintsAnAlternateFrameOverTheModel" classname="com.sitebox.app.CabinetPanelTest" time="6.792"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.sitebox.app.AutomaticSyncTest" tests="6" skipped="0" failures="0" errors="0" timestamp="2026-10-24T15:57:26" hostname="4c0584c3ea85" time="6.539">
+  <properties/>
+  <testcase name="remoteLibraryRestoresWithoutConfirmationAndSurvivesReload" classname="com.sitebox.app.AutomaticSyncTest" time="4.93"/>
+  <testcase name="driveFailureDoesNotErasePersistedGoogleIdentity" classname="com.sitebox.app.AutomaticSyncTest" time="0.269"/>
+  <testcase name="anotherAccountNeverUploadsPreviousOwnersBooks" classname="com.sitebox.app.AutomaticSyncTest" time="0.546"/>
+  <testcase name="signedOutScreenOffersGoogleLoginOnly" classname="com.sitebox.app.AutomaticSyncTest" time="0.22"/>
+  <testcase name="deletingRemoteBookDoesNotResurrectItOnNextSync" classname="com.sitebox.app.AutomaticSyncTest" time="0.423"/>
+  <testcase name="accountUiOffersOnlyGoogleConnectionAndNoManualBackupButtons" classname="com.sitebox.app.AutomaticSyncTest" time="0.15"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

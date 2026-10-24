@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.sitebox.app.RoomModelTest" tests="8" skipped="0" failures="0" errors="0" timestamp="2026-10-24T15:57:49" hostname="4c0584c3ea85" time="0.003">
+  <properties/>
+  <testcase name="nineActualModelOpeningsNeverTouchFrameOrOneAnother" classname="com.sitebox.app.RoomModelTest" time="0.0"/>
+  <testcase name="lampHitAreaContainsTheActualGlbShadeOnEveryAspect" classname="com.sitebox.app.RoomModelTest" time="0.001"/>
+  <testcase name="roomShelfStaysVisibleAndWorldProjectionIsReversible" classname="com.sitebox.app.RoomModelTest" time="0.001"/>
+  <testcase name="editorProjectionMatchesTheLiveNativeCabinetOnEveryAspect" classname="com.sitebox.app.RoomModelTest" time="0.0"/>
+  <testcase name="authoredForegroundTableRemainsVisibleFromTheSeatedPortraitView" classname="com.sitebox.app.RoomModelTest" time="0.0"/>
+  <testcase name="roomCameraSeesThroughTheOpenFrontWithoutBlankBorders" classname="com.sitebox.app.RoomModelTest" time="0.0"/>
+  <testcase name="portraitRoomIncludesTheAuthoredBedAlongsideTheCabinet" classname="com.sitebox.app.RoomModelTest" time="0.0"/>
+  <testcase name="shelfFinishPreservesOriginalAndOffersDistinctWoodColors" classname="com.sitebox.app.RoomModelTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

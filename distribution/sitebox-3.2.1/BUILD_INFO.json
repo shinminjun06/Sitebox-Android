@@ -1,0 +1,21 @@
+{
+  "version": "3.2.1-3d",
+  "versionCode": 29,
+  "package": "com.sitebox.app",
+  "builtSource": "1e06eebe91a40a643383bc67f8d42177343f55ba",
+  "verifiedSource": "1e06eebe91a40a643383bc67f8d42177343f55ba",
+  "qaRun": "https://github.com/shinminjun06/Sitebox-Android/actions/runs/40109298541",
+  "sha256": "61d01f3e503cef5daaf2b1a656977b76f7b5f6a74cb606c9ff91ddfa41dff7d9",
+  "bytes": 52232812,
+  "modelSHA256": "e27c10b8333187cfe210dbb5513350ed3cea883f773a132216ca16ff293d9e02",
+  "releaseSigningSHA1": "CD:84:36:B7:75:DA:5A:45:9F:76:26:8F:D5:65:C6:E5:8E:1A:D1:9C",
+  "unitTests": 66,
+  "unitFailures": 0,
+  "limitations": [
+    "Actual native book Views are cached as textures on GLB shelf planes in the same GPU frame, not solid 3D book meshes",
+    "Window is a textured plane with seven image states; no 3D outdoor city or crossfade",
+    "No point-light shadows for the desk lamp",
+    "No physical-device 60fps measurement",
+    "No actual Google OAuth consent or live Drive transfer"
+  ]
+}
