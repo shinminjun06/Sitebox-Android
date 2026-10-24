@@ -30,8 +30,13 @@ jobs:
           fi
           python3 -m pip install Pillow
           if ! command -v ffprobe >/dev/null; then
-            sudo apt-get update
-            sudo apt-get install -y ffmpeg
+            mkdir -p "$RUNNER_TEMP/sitebox-tools"
+            curl -fL --retry 3 --max-time 120 https://github.com/eugeneware/ffmpeg-static/releases/download/b6.1.1/ffprobe-linux-x64.gz -o "$RUNNER_TEMP/sitebox-ffprobe.gz"
+            echo "25d9b6ccb05e3d9de9e04e31e2506d8dd7f9f0418981965ac6df12e8d3afd067  $RUNNER_TEMP/sitebox-ffprobe.gz" | sha256sum --check -
+            gzip -dc "$RUNNER_TEMP/sitebox-ffprobe.gz" > "$RUNNER_TEMP/sitebox-tools/ffprobe"
+            chmod +x "$RUNNER_TEMP/sitebox-tools/ffprobe"
+            echo "$RUNNER_TEMP/sitebox-tools" >> "$GITHUB_PATH"
+            export PATH="$RUNNER_TEMP/sitebox-tools:$PATH"
           fi
           ffprobe -version
       - name: Verify model assets, geometry, unit tests and Android builds
