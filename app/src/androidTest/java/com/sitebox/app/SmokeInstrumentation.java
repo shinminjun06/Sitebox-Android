@@ -671,9 +671,14 @@ public class SmokeInstrumentation extends Instrumentation {
   });
   long down=android.os.SystemClock.uptimeMillis();
   touch(down,android.view.MotionEvent.ACTION_DOWN,start[0],start[1]);
-  android.os.SystemClock.sleep(700);
+  long deadline=android.os.SystemClock.uptimeMillis()+5000;boolean dragging=false;
+  do{final boolean[] started={false};main(()->started[0]=activity.dragSource!=null);if(started[0]){dragging=true;break;}android.os.SystemClock.sleep(30);}while(android.os.SystemClock.uptimeMillis()<deadline);
+  check(dragging,"physical long press starts native drag before pointer motion");
   for(int i=1;i<=20;i++){touch(down,android.view.MotionEvent.ACTION_MOVE,start[0]+(end[0]-start[0])*i/20f,start[1]+(end[1]-start[1])*i/20f);android.os.SystemClock.sleep(30);}
-  touch(down,android.view.MotionEvent.ACTION_UP,end[0],end[1]);android.os.SystemClock.sleep(350);waitForIdleSync();
+  touch(down,android.view.MotionEvent.ACTION_UP,end[0],end[1]);
+  deadline=android.os.SystemClock.uptimeMillis()+5000;boolean dropped=false;
+  do{final boolean[] ended={false};main(()->ended[0]=activity.dragSource==null);if(ended[0]){dropped=true;break;}android.os.SystemClock.sleep(30);}while(android.os.SystemClock.uptimeMillis()<deadline);
+  check(dropped,"native drop dispatch completes before checking book data");waitForIdleSync();
  }
  void touch(long down,int action,float x,float y){android.view.MotionEvent event=android.view.MotionEvent.obtain(down,android.os.SystemClock.uptimeMillis(),action,x,y,0);event.setSource(android.view.InputDevice.SOURCE_TOUCHSCREEN);if(!getUiAutomation().injectInputEvent(event,true))throw new AssertionError("native touch injection");event.recycle();}
  void categoryInk(){

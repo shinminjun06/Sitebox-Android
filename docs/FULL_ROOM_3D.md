@@ -1,6 +1,6 @@
 # SiteBox 3.2 · 사용자 GLB 방
 
-기존 Java/Android View와 데이터 구조를 유지하고 Google Filament/gltfio 1.69.0으로 제공된 `SiteBox_FullRoom_3D_HQ_v4_fixed.glb` 전체를 렌더링합니다. 사진 책상·방·책장 이미지를 합성하지 않습니다. 창밖 풍경은 모델 자체에 포함된 평면 텍스처입니다.
+Android 7.0(API24) 이상과 OpenGL ES3.0 이상을 요구합니다. 필수 GPU 기능을 매니페스트에도 선언합니다. 기존 Java/Android View와 데이터 구조를 유지하고 Google Filament/gltfio 1.69.0으로 제공된 `SiteBox_FullRoom_3D_HQ_v4_fixed.glb` 전체를 렌더링합니다. 사진 책상·방·책장 이미지를 합성하지 않습니다. 창밖 풍경은 모델 자체에 포함된 평면 텍스처입니다.
 
 ## 모델과 좌표
 
