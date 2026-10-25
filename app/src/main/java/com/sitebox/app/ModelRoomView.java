@@ -157,7 +157,7 @@ final class ModelRoomView extends TextureView implements TextureView.SurfaceText
  }
  private void configureQuality(){
   view.setAntiAliasing(com.google.android.filament.View.AntiAliasing.FXAA);
-  com.google.android.filament.View.AmbientOcclusionOptions ao=new com.google.android.filament.View.AmbientOcclusionOptions();ao.enabled=!reduced;ao.radius=.35f;ao.power=1.3f;ao.intensity=1;ao.resolution=.5f;view.setAmbientOcclusionOptions(ao);
+  com.google.android.filament.View.AmbientOcclusionOptions ao=new com.google.android.filament.View.AmbientOcclusionOptions();ao.enabled=false;ao.radius=.15f;ao.power=1;ao.intensity=.6f;ao.resolution=.5f;view.setAmbientOcclusionOptions(ao);
   view.setScreenSpaceRefractionEnabled(false);
  }
  private void updateCamera(){
