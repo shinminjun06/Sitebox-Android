@@ -12,3 +12,5 @@ Downloaded original 2k Radiance HDR files from https://dl.polyhaven.org/file/ph-
 | models/sky_night.png | 2048×1024 | ec518acbcf99210085ff7e9418675838b20ed237cb626e4b00fe22b98f1f822d |
 
 The same inward-facing dome and camera serve all three skies. Day/night/overcast opacity blends continuously. All images are decoded once per renderer lifetime, cached on the GPU with mipmaps and destroyed after the scene is disposed. The actual 3D houses, roof tiles, trees and wires sit between the window and dome, so camera travel produces genuine parallax. Weather glass and roof snow remain separate, and toggling the desk lamp does not modify the sky.
+
+The night panorama contains desert foreground. Its dome samples only the upper sky in the visible window directions (V scale0.65), so photographed desert mountains do not replace the actual neighborhood/hill silhouette when night begins. Dome positions and camera remain identical; only UV sampling changes.

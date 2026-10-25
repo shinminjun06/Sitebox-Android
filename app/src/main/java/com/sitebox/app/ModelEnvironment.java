@@ -23,7 +23,7 @@ final class ModelEnvironment {
   roofs=material(provider,"SiteBox roof tiles and winter snow",false,true,false,false);add(scene,roofs,outside.roofs,false,4);
   windows=material(provider,"SiteBox outside window lights",false,true,true,false);add(scene,windows,outside.windows,false,4);
   ModelMesh.Data dome=EnvironmentGeometry.sky();
-  nightSky=skyMaterial(context,provider,"night",false);add(scene,nightSky,dome,false,0);
+  nightSky=skyMaterial(context,provider,"night",false);add(scene,nightSky,EnvironmentGeometry.sky(true),false,0);
   sky=skyMaterial(context,provider,"day",true);add(scene,sky,dome,false,1);
   cloudSky=skyMaterial(context,provider,"cloud",true);add(scene,cloudSky,dome,false,2);
   glass=material(provider,"SiteBox weather on actual glass",true,false,false,true);glass.setParameter("roughnessFactor",.18f);rain=weatherTexture(false);snow=weatherTexture(true);add(scene,glass,EnvironmentGeometry.glass(),false,6);
