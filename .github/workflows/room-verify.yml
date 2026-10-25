@@ -45,6 +45,31 @@ jobs:
           gradle :app:testDebugUnitTest :app:assembleDebug :app:assembleDebugAndroidTest :app:lintDebug --no-daemon --console=plain
       - name: Enable emulator acceleration
         run: sudo chmod 666 /dev/kvm
+      - name: Capture solid books and window lighting preview
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          target: google_apis
+          arch: x86_64
+          profile: pixel_5
+          cores: 4
+          ram-size: 4096M
+          disable-animations: true
+          emulator-options: -no-window -gpu swangle -noaudio -no-boot-anim -camera-back none -camera-front none -no-snapshot-save
+          script: |
+            adb shell wm size 720x1560
+            adb shell wm density 320
+            adb install -r app/build/outputs/apk/debug/app-debug.apk
+            adb install -r app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk
+            bash scripts/run_solid_visual_checks.sh
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: SiteBox-solid-books-preview
+          path: |
+            solid-preview.txt
+            solid-preview/
+          retention-days: 30
       - name: Exercise the actual app on Android 15
         uses: reactivecircus/android-emulator-runner@v2
         with:

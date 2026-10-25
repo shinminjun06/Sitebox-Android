@@ -9,6 +9,8 @@ import org.json.*;
 
 /** Exercises the real native GPU renderer; host tests cannot stand in for this. */
 public final class ModelSmokeInstrumentation extends SmokeInstrumentation {
+ private boolean visualOnly;
+ @Override public void onCreate(Bundle arguments){visualOnly=arguments!=null&&"true".equals(arguments.getString("visualOnly"));super.onCreate(arguments);}
  int reportedChecks;
  int expectedWidth,expectedHeight;
  final android.app.Application.ActivityLifecycleCallbacks activityTracker=new android.app.Application.ActivityLifecycleCallbacks(){
@@ -22,10 +24,11 @@ public final class ModelSmokeInstrumentation extends SmokeInstrumentation {
  };
  @Override void phase(String name){super.phase(name);if(checks.length()>reportedChecks){Bundle progress=new Bundle();progress.putString("stream",checks.substring(reportedChecks));sendStatus(1,progress);reportedChecks=checks.length();}}
  @Override public void onStart(){
+  if(visualOnly){visualPreview();return;}
   Bundle result=new Bundle();int code=Activity.RESULT_OK;String original=null;
   final android.app.Application application=(android.app.Application)getTargetContext().getApplicationContext();main(()->application.registerActivityLifecycleCallbacks(activityTracker));
   try{
-   phase("native GLB startup");activity=(MainActivity)startActivitySync(new Intent(getTargetContext(),MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));waitForIdleSync();
+   phase("native GLB startup");activity=(MainActivity)startActivitySync(new Intent(getTargetContext(),MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));waitForIdleSync();shell("am force-stop com.google.android.apps.nexuslauncher");
    original=activity.sites.toString();awaitModel();awaitScene(true);main(()->{
     android.graphics.Bitmap image=activity.roomExperience.model.getBitmap(64,128);check(image!=null,"GPU texture has displayed pixels");
     image.recycle();
@@ -34,7 +37,7 @@ public final class ModelSmokeInstrumentation extends SmokeInstrumentation {
    phase("native GLB visible and interactive");tapRoomCabinet();main(()->{check(activity.roomExperience.model.gpuBooksReady()&&activity.currentCabinet.usesGpuBooks(),"books and category labels render in the same GPU frame as the model");check(activity.roomExperience.model.poseReady(),"native book input waits for the actual displayed editor camera");});snapshot("3d-editor-empty.png");
    main(()->{check(!activity.header.performLongClick(),"empty long press does not collapse or hide editor");check(!activity.backgroundOnly&&!activity.sceneCollapsed&&activity.controls.getVisibility()==View.VISIBLE,"editor remains visible after long press");
     activity.sites=new JSONArray();for(int i=0;i<70;i++){JSONObject o=new JSONObject();try{o.put("name","실제 책 "+i);o.put("url","https://example.com/"+i);o.put("category",activity.categories[i%9]);o.put("sortOrder",i*1000L);}catch(JSONException e){throw new RuntimeException(e);}activity.sites.put(o);}activity.save();activity.populate();
-   });waitForIdleSync();snapshot("3d-editor-books.png");for(int style=0;style<3;style++){final int choice=style;main(()->{activity.shelfThemeIndex=choice;activity.bookThemeIndex=choice;activity.populate();});snapshot("3d-style-"+style+".png");}main(()->{activity.shelfThemeIndex=0;activity.bookThemeIndex=0;activity.populate();});
+   });waitForIdleSync();snapshot("3d-editor-books.png");main(()->{check(activity.roomExperience.model.solidBookCount()==63,"actual page contains 63 solid data-driven books");check(activity.roomExperience.model.solidBookTriangles()>7000,"covers pages and curved spines are volumetric meshes");check(activity.roomExperience.model.outsideDepth()>25,"window neighborhood has actual world-space depth");check(activity.roomExperience.model.lampCastsShadows(),"desk spotlight casts physical shadows");});for(int style=0;style<3;style++){final int choice=style;main(()->{activity.shelfThemeIndex=choice;activity.bookThemeIndex=choice;activity.populate();});snapshot("3d-style-"+style+".png");}main(()->{activity.shelfThemeIndex=0;activity.bookThemeIndex=0;activity.populate();});
    main(()->{check(activity.pageSummary.getText().toString().contains("/ 2"),"overflow paginates without overlapping books");for(int i=1;i<activity.currentCabinet.getChildCount();i+=2){android.view.ViewGroup row=(android.view.ViewGroup)activity.currentCabinet.getChildAt(i);for(int b=0;b<row.getChildCount();b++)check(row.getChildAt(b).getRight()<=row.getWidth(),"book stays inside actual model opening");}});
    phase("native book dialogs");crudDialogs();phase("native book drag and sync regression");nativeDrag();main(()->check(activity.sites.optJSONObject(0).optString("category").equals(activity.categories[1]),"native long press moves the real book without retreating"));new BackupChecks(this).run();awaitSystemToasts();
    phase("same model camera gestures");main(()->activity.expandFromScene(false));pinch(false);awaitScene(false);pinch(true);awaitScene(true);snapshot("3d-pinch-room.png");tapRoomCabinet();
@@ -55,6 +58,19 @@ public final class ModelSmokeInstrumentation extends SmokeInstrumentation {
    checks.append("PASS actual 3D room, shared camera, native book management, gestures and lifecycle verified\n");
   }catch(Throwable e){code=Activity.RESULT_CANCELED;checks.append("FAIL ").append(e).append('\n');try{snapshot("3d-failure.png");}catch(Throwable ignored){}}
   finally{main(()->application.unregisterActivityLifecycleCallbacks(activityTracker));if(activity!=null&&original!=null){final String saved=original;main(()->{try{activity.sites=new JSONArray(saved);activity.save();}catch(JSONException e){throw new RuntimeException(e);}if(activity.roomExperience.model.presented())activity.finish();});}}
+  result.putString("stream",checks.toString());finish(code,result);
+ }
+ private void visualPreview(){
+  Bundle result=new Bundle();int code=Activity.RESULT_OK;java.util.Map<String,?> originalPreferences=null;
+  try{
+   phase("solid books and window daylight preview");activity=(MainActivity)startActivitySync(new Intent(getTargetContext(),MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));originalPreferences=activity.getPreferences(0).getAll();shell("am force-stop com.google.android.apps.nexuslauncher");awaitModel();awaitScene(true);
+   main(()->{activity.sites=new JSONArray();for(int i=0;i<70;i++)try{activity.sites.put(new JSONObject().put("name","입체 서재 "+i).put("url","https://example.com/book/"+i).put("category",activity.categories[i%9]).put("sortOrder",i*1000L));}catch(JSONException e){throw new RuntimeException(e);}activity.save();activity.populate();activity.setAmbientPreview(new WeatherState(23,0,0,0,1700000000000L,0,0,1700000000000L,true,0,1),1700000000000L);});
+   snapshot("solid-day-room.png");tapRoomCabinet();snapshot("solid-day-books.png");
+   main(()->{check(activity.roomExperience.model.solidBookCount()==63,"preview renders actual solid books");check(activity.roomExperience.model.lampCastsShadows(),"preview lamp has native shadow casting enabled");activity.roomExperience.transition.request(.38f,false);});snapshot("solid-book-depth.png");
+   main(()->{activity.collapseToScene(false);activity.setAmbientPreview(new WeatherState(12,0,0,0,1700000000000L,0,0,1700000000000L,true,0,0),1700000000000L);});snapshot("solid-night-room.png");tapRoomCabinet();snapshot("solid-night-books.png");
+   main(()->activity.collapseToScene(false));awaitScene(true);main(()->activity.lampSwitch.performClick());snapshot("solid-night-lamp-off.png");checks.append("PASS solid geometry and natural window preview rendered on native GPU\n");
+  }catch(Throwable failure){code=Activity.RESULT_CANCELED;checks.append("FAIL ").append(failure).append('\n');try{snapshot("solid-preview-failure.png");}catch(Throwable ignored){}}
+  finally{if(activity!=null){final java.util.Map<String,?> saved=originalPreferences;main(()->{if(saved!=null)new BackupChecks(this).prefs(saved);activity.finish();});}}
   result.putString("stream",checks.toString());finish(code,result);
  }
  @Override void awaitScene(boolean collapsed){awaitScene(collapsed,30000);}

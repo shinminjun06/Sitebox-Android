@@ -33,11 +33,14 @@ final class ModelRoomView extends TextureView implements TextureView.SurfaceText
  private ResourceLoader resources;
  private UbershaderProvider materials;
  private IndirectLight ambient;
+ private ModelEnvironment environment;
+ int solidBookCount(){return bookLayer==null?0:bookLayer.solidCount();}
+ int solidBookTriangles(){return bookLayer==null?0:bookLayer.solidTriangles();}
+ float outsideDepth(){return environment==null?0:environment.exteriorDepth;}
+ boolean lampCastsShadows(){return engine!=null&&lamp!=0&&engine.getLightManager().isShadowCaster(engine.getLightManager().getInstance(lamp));}
  private SwapChain swap;
  private Surface surface;
  private int cameraEntity,sun,lamp;
- private final HashMap<String,Texture> windows=new HashMap<>();
- private MaterialInstance windowMaterial,ownedWindowMaterial;
  private final java.util.ArrayList<MaterialInstance> shelfMaterials=new java.util.ArrayList<>();
  private final java.util.ArrayList<Float> shelfFactors=new java.util.ArrayList<>();
  private int finish;
@@ -126,40 +129,33 @@ final class ModelRoomView extends TextureView implements TextureView.SurfaceText
   // Source geometry is Z-up. Do not normalize a room into a unit cube.
   float[] rotation={1,0,0,0, 0,0,-1,0, 0,1,0,0, 0,0,0,1};
   TransformManager tm=engine.getTransformManager();tm.setTransform(tm.getInstance(asset.getRoot()),rotation);
-  RenderableManager rm=engine.getRenderableManager();
+  RenderableManager rm=engine.getRenderableManager();MaterialInstance plaster=null;
   for(int entity:asset.getRenderableEntities()){
    String name=asset.getName(entity);if(name==null)name="";
    if(name.startsWith("BOOK_SLOT_")||name.startsWith("Sunbeam_Patch_"))continue;
    int instance=rm.getInstance(entity);
+   if(name.equals("Wall_Back_029")){plaster=rm.getMaterialInstanceAt(instance,0);continue;}
+   if(name.equals("Window_Neighborhood_Reference"))continue;
    // The export omits metallicFactor (glTF defaults to 1). Wood, plaster and
    // fabric need diffuse lighting, not a metal response without reflections.
    for(int primitive=0;primitive<rm.getPrimitiveCount(instance);primitive++){
     MaterialInstance material=rm.getMaterialInstanceAt(instance,primitive);
     if(material.getMaterial().hasParameter("metallicFactor"))material.setParameter("metallicFactor",0f);
    }
-   // The supplied back wall has no geometric window hole. Let sun enter through
-   // the authored window plane instead of blocking the entire interior with it.
-   boolean shell=name.startsWith("Wall_")||name.startsWith("Ceiling")||name.startsWith("Window_Neighborhood");
-   rm.setCastShadows(instance,!shell);rm.setReceiveShadows(instance,true);rm.setScreenSpaceContactShadows(instance,true);
+   rm.setCastShadows(instance,true);rm.setReceiveShadows(instance,true);rm.setScreenSpaceContactShadows(instance,true);
    scene.addEntity(entity);
    if(name.startsWith("Bookshelf_3x3_")||name.startsWith("Bookshelf_Edge_")||name.startsWith("Bookshelf_Foot_")||name.startsWith("HQ_Shelf_Wood_")||name.startsWith("V4_Bookshelf_")){
     for(int primitive=0;primitive<rm.getPrimitiveCount(instance);primitive++){
      MaterialInstance separate=MaterialInstance.duplicate(rm.getMaterialInstanceAt(instance,primitive),"SiteBox shelf finish");rm.setMaterialInstanceAt(instance,primitive,separate);shelfMaterials.add(separate);shelfFactors.add(name.startsWith("HQ_")?.4f:1f);
     }
    }
-   if(name.equals("Window_Neighborhood_Reference")){
-    // Outdoors must not become dark when the indoor desk lamp turns off.
-    MaterialProvider.MaterialKey key=new MaterialProvider.MaterialKey();key.unlit=true;key.hasBaseColorTexture=true;key.baseColorUV=0;
-    ownedWindowMaterial=materials.createMaterialInstance(key,new int[8],"SiteBox outdoor window",null);
-    if(ownedWindowMaterial==null)throw new IllegalStateException("Cannot create outdoor material");
-    ownedWindowMaterial.setParameter("baseColorFactor",1f,1f,1f,1f);rm.setMaterialInstanceAt(instance,0,ownedWindowMaterial);windowMaterial=ownedWindowMaterial;
-   }
   }
-  if(windowMaterial==null)throw new IllegalStateException("Model window material is missing");
-  sun=EntityManager.get().create();LightManager.ShadowOptions shadow=new LightManager.ShadowOptions();shadow.mapSize=reduced?512:1024;shadow.shadowCascades=1;shadow.normalBias=.01f;shadow.constantBias=.001f;shadow.shadowFar=15;
+  if(plaster==null)throw new IllegalStateException("Model back-wall material is missing");
+  environment=new ModelEnvironment(engine,scene,materials,plaster);
+  sun=EntityManager.get().create();LightManager.ShadowOptions shadow=new LightManager.ShadowOptions();shadow.mapSize=reduced?1024:2048;shadow.shadowCascades=1;shadow.normalBias=.004f;shadow.constantBias=.0004f;shadow.shadowFar=15;
   new LightManager.Builder(LightManager.Type.DIRECTIONAL).color(1,.88f,.72f).intensity(65000).direction(-.55f,-.85f,.55f).castShadows(true).shadowOptions(shadow).build(engine,sun);scene.addEntity(sun);
-  lamp=EntityManager.get().create();new LightManager.Builder(LightManager.Type.POINT).position(-.36f,1.31f,-1.16f).color(1,.66f,.32f).intensity(2400).falloff(3.8f).castShadows(false).build(engine,lamp);scene.addEntity(lamp);
-  ambient=new IndirectLight.Builder().irradiance(1,new float[]{1,1,1}).intensity(18000).build(engine);scene.setIndirectLight(ambient);
+  lamp=EntityManager.get().create();new LightManager.Builder(LightManager.Type.SPOT).position(-.36f,1.30f,-1.16f).direction(.12f,-1,.22f).spotLightCone((float)Math.toRadians(22),(float)Math.toRadians(54)).color(1,.66f,.32f).intensity(850).falloff(3.8f).castShadows(true).shadowOptions(lampShadow()).build(engine,lamp);scene.addEntity(lamp);
+  ambient=new IndirectLight.Builder().irradiance(3,RoomLighting.skyIrradiance()).intensity(5000).build(engine);scene.setIndirectLight(ambient);
   android.util.Log.i("SiteBox3D","Loaded supplied room GLB: "+asset.getRenderableEntities().length+" renderables, scene="+scene.getRenderableCount()+", surface="+getWidth()+"x"+getHeight());asset.releaseSourceData();bookLayer=new ModelBookLayer(engine,scene,materials,this::requestFrame);bookLayer.setContent(bookContent);applyFinish();updateCamera();updateLights();updateWindow();
  }
  private void configureQuality(){
@@ -169,41 +165,27 @@ final class ModelRoomView extends TextureView implements TextureView.SurfaceText
  }
  private void updateCamera(){
   if(camera==null||rig==null||getWidth()==0||getHeight()==0)return;
-  camera.setProjection(rig.fov(),rig.aspect,.035,40,Camera.Fov.VERTICAL);
+  camera.setProjection(rig.fov(),rig.aspect,.035,250,Camera.Fov.VERTICAL);
   camera.lookAt(rig.eye[0],rig.eye[1],rig.eye[2],rig.target[0],rig.target[1],rig.target[2],0,1,0);
  }
  private void updateLights(){
   if(engine==null||ambient==null)return;
-  float dusk=1-daylight;camera.setExposure(16,1f/125,100+500*dusk*dusk*dusk);
+  RoomLighting.State lighting=RoomLighting.state(daylight,clouds,lampOn);camera.setExposure(16,1f/125,lighting.iso);
   LightManager lm=engine.getLightManager();int s=lm.getInstance(sun),l=lm.getInstance(lamp);
-  lm.setIntensity(s,900+64000*daylight*(1-.72f*clouds));
-  lm.setColor(s,.55f+.45f*daylight,.66f+.22f*daylight,1-.28f*daylight);
-  lm.setDirection(s,-.55f,-.85f,.55f);lm.setIntensity(l,lampOn?2400:0);
-  ambient.setIntensity(1700+16000*daylight*(1-.35f*clouds));
+  lm.setIntensity(s,lighting.sun);lm.setColor(s,lighting.color[0],lighting.color[1],lighting.color[2]);lm.setDirection(s,lighting.direction[0],lighting.direction[1],lighting.direction[2]);lm.setIntensity(l,lighting.lamp);ambient.setIntensity(lighting.ambient);
+  if(environment!=null)environment.setAtmosphere(daylight,weatherImages?clouds:0,weatherImages?precipitation:0,lampOn);
   if(bookLayer!=null)bookLayer.setLighting(daylight,clouds,lampOn,progress);
  }
  private void updateWindow(){
   if(daylight<.35f)windowKey="night"+(weatherImages&&precipitation==2?"_snow":weatherImages&&precipitation==1?"_rain":"");
   else windowKey=weatherImages&&precipitation==2?"snow":weatherImages&&precipitation==1?"rain":weatherImages&&clouds>.65f?"cloud":"day";
-  if(engine==null||windowMaterial==null)return;
-  // Day is the original embedded GLB texture. Weather variants preserve its UVs.
-  String name="models/window_"+windowKey+".png";
-  Texture texture=windows.get(windowKey);
-  if(texture==null){
-   try(InputStream input=getContext().getAssets().open(name)){
-    BitmapFactory.Options opts=new BitmapFactory.Options();opts.inScaled=false;opts.inSampleSize=reduced||getWidth()<1000?2:1;Bitmap bitmap=BitmapFactory.decodeStream(input,null,opts);
-    if(bitmap==null)throw new IllegalStateException("Invalid window texture: "+name);
-    texture=new Texture.Builder().usage(Texture.Usage.DEFAULT|Texture.Usage.GEN_MIPMAPPABLE).width(bitmap.getWidth()).height(bitmap.getHeight()).levels(0xff).sampler(Texture.Sampler.SAMPLER_2D).format(Texture.InternalFormat.SRGB8_A8).build(engine);
-    TextureHelper.setBitmap(engine,texture,0,bitmap);texture.generateMipmaps(engine);windows.put(windowKey,texture);
-   }catch(java.io.IOException missing){return;}
-  }
-  windowMaterial.setParameter("baseColorMap",texture,new TextureSampler(TextureSampler.MinFilter.LINEAR_MIPMAP_LINEAR,TextureSampler.MagFilter.LINEAR,TextureSampler.WrapMode.CLAMP_TO_EDGE));
-  windowMaterial.setParameter("baseColorFactor",1f,1f,1f,1f);
+  if(environment!=null)environment.setAtmosphere(daylight,weatherImages?clouds:0,weatherImages?precipitation:0,lampOn);
  }
+ private LightManager.ShadowOptions lampShadow(){LightManager.ShadowOptions o=new LightManager.ShadowOptions();o.mapSize=reduced?512:1024;o.normalBias=.002f;o.constantBias=.0002f;return o;}
  void requestFrame(){dirty=true;if(active&&!disposed&&!scheduled&&swap!=null){scheduled=true;Choreographer.getInstance().postFrameCallback(this);}}
  @Override public void doFrame(long time){
   scheduled=false;if(!active||disposed||swap==null||view==null)return;
-  if(dirty||(asset!=null&&(!presented||warmup<8))){dirty=false;if(bookLayer!=null)bookLayer.prepare(reduced);if(renderer.beginFrame(swap,time)){renderer.setPresentationTime(time);renderer.render(view);renderer.endFrame();if(bookLayer!=null)bookLayer.releaseRetiredTextures();frameTimes[frameSlot]=time;framePoses[frameSlot]=poseVersion;frameSlot=(frameSlot+1)%frameTimes.length;frames++;warmup++;invalidate();}else dirty=true;}
+  if(dirty||(asset!=null&&(!presented||warmup<8))){dirty=false;if(bookLayer!=null)bookLayer.prepare(reduced);if(renderer.beginFrame(swap,time)){renderer.setPresentationTime(time);renderer.render(view);renderer.endFrame();if(bookLayer!=null)bookLayer.releaseRetiredTextures();if(environment!=null)environment.releaseRetired();frameTimes[frameSlot]=time;framePoses[frameSlot]=poseVersion;frameSlot=(frameSlot+1)%frameTimes.length;frames++;warmup++;invalidate();}else dirty=true;}
   if(dirty||(asset!=null&&(!presented||warmup<8)))requestFrame();
  }
  @Override public void onSurfaceTextureAvailable(SurfaceTexture texture,int width,int height){
@@ -239,10 +221,9 @@ final class ModelRoomView extends TextureView implements TextureView.SurfaceText
   if(displayHelper!=null){displayHelper.detach();displayHelper=null;}
   if(swap!=null){engine.destroySwapChain(swap);engine.flushAndWait();swap=null;}if(surface!=null){surface.release();surface=null;}
   if(bookLayer!=null){bookLayer.dispose();bookLayer=null;}
+  if(environment!=null){environment.dispose();environment=null;}
   if(resources!=null){resources.asyncCancelLoad();resources.destroy();}if(asset!=null){loader.destroyAsset(asset);asset=null;}for(MaterialInstance material:shelfMaterials)engine.destroyMaterialInstance(material);shelfMaterials.clear();shelfFactors.clear();if(loader!=null)loader.destroy();
-  if(ownedWindowMaterial!=null){engine.destroyMaterialInstance(ownedWindowMaterial);ownedWindowMaterial=null;}
   if(materials!=null){materials.destroyMaterials();materials.destroy();}
-  for(Texture t:windows.values())engine.destroyTexture(t);windows.clear();
   if(ambient!=null)engine.destroyIndirectLight(ambient);
   for(int entity:new int[]{sun,lamp,cameraEntity})if(entity!=0){engine.destroyEntity(entity);EntityManager.get().destroy(entity);}
   engine.destroyView(view);engine.destroyScene(scene);engine.destroyRenderer(renderer);engine.destroy();engine=null;
