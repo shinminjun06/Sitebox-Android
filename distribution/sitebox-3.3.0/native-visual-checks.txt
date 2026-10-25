@@ -1,0 +1,4 @@
+Measured desk luma gain with lamp on: 10.343
+PASS native desk spotlight changes desk surface, beyond the bulb alone
+PASS outdoor window remains independent of desk lamp (mean RGB delta 0.006)
+PASS night remains readable and visibly darker than day (luma ratio 0.674)

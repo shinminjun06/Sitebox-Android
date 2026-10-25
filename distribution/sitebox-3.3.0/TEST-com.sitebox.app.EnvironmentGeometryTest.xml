@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.sitebox.app.EnvironmentGeometryTest" tests="3" skipped="0" failures="0" errors="0" timestamp="2026-10-25T03:30:35" hostname="4c0584c3ea85" time="0.036">
+  <properties/>
+  <testcase name="roundedVegetationFacesOutwardAndSkyFacesInward" classname="com.sitebox.app.EnvironmentGeometryTest" time="0.01"/>
+  <testcase name="originalWindowIsARealOpeningInAnOtherwiseSolidWall" classname="com.sitebox.app.EnvironmentGeometryTest" time="0.0"/>
+  <testcase name="neighborhoodHasRealDepthAndBoundedGeometry" classname="com.sitebox.app.EnvironmentGeometryTest" time="0.026"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

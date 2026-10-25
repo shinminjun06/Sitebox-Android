@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.sitebox.app.GoogleAccountTest" tests="12" skipped="0" failures="0" errors="0" timestamp="2026-10-25T03:30:35" hostname="4c0584c3ea85" time="0.356">
+  <properties/>
+  <testcase name="absentActivityDataDoesNotClaimUserCancellation" classname="com.sitebox.app.GoogleAccountTest" time="0.05"/>
+  <testcase name="wrongAccountResultCannotReplaceSavedAccount" classname="com.sitebox.app.GoogleAccountTest" time="0.032"/>
+  <testcase name="googleCancellationStatusRemainsDistinguishable" classname="com.sitebox.app.GoogleAccountTest" time="0.051"/>
+  <testcase name="successActivityWithoutGoogleDataIsNotSuccessfulLogin" classname="com.sitebox.app.GoogleAccountTest" time="0.02"/>
+  <testcase name="deniedDrivePermissionRetainsGoogleLogin" classname="com.sitebox.app.GoogleAccountTest" time="0.026"/>
+  <testcase name="cancelledActivityCannotAcceptEvenSuccessfulPayload" classname="com.sitebox.app.GoogleAccountTest" time="0.022"/>
+  <testcase name="cancelledActivityMustNotHideNetworkError" classname="com.sitebox.app.GoogleAccountTest" time="0.022"/>
+  <testcase name="cancelledActivityMustNotHideDeveloperError" classname="com.sitebox.app.GoogleAccountTest" time="0.025"/>
+  <testcase name="completedGoogleActivityUsesSdkResult" classname="com.sitebox.app.GoogleAccountTest" time="0.036"/>
+  <testcase name="cancelledGoogleConsentNeverInventsAccount" classname="com.sitebox.app.GoogleAccountTest" time="0.03"/>
+  <testcase name="authorizedIdentityIsReportedEvenWhenDriveCannotStart" classname="com.sitebox.app.GoogleAccountTest" time="0.022"/>
+  <testcase name="exhaustedTokenRefreshRetainsConnectedAccount" classname="com.sitebox.app.GoogleAccountTest" time="0.019"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

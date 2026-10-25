@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.sitebox.app.OriginalPhotoRoomTest" tests="4" skipped="0" failures="0" errors="0" timestamp="2026-10-25T03:30:37" hostname="4c0584c3ea85" time="0.64">
+  <properties/>
+  <testcase name="suppliedRoomModelHasClosedWallsCabinetAndNineExplicitSlots" classname="com.sitebox.app.OriginalPhotoRoomTest" time="0.084"/>
+  <testcase name="dryCloudsAndNightPrecipitationHaveTheirOwnWindowImages" classname="com.sitebox.app.OriginalPhotoRoomTest" time="0.018"/>
+  <testcase name="fullRoomReplacesPhotographicFurnitureWithoutChangingLibrary" classname="com.sitebox.app.OriginalPhotoRoomTest" time="0.153"/>
+  <testcase name="windowVariantsChangeActualImageContentAndKeepUvDimensions" classname="com.sitebox.app.OriginalPhotoRoomTest" time="0.385"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

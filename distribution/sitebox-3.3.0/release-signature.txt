@@ -1,0 +1,17 @@
+Verifies
+Verified using v1 scheme (JAR signing): false
+Verified using v2 scheme (APK Signature Scheme v2): true
+Verified using v3 scheme (APK Signature Scheme v3): false
+Verified using v3.1 scheme (APK Signature Scheme v3.1): false
+Verified using v4 scheme (APK Signature Scheme v4): false
+Verified for SourceStamp: false
+Number of signers: 1
+Signer #1 certificate DN: CN=SiteBox Verification, O=Development, C=KR
+Signer #1 certificate SHA-256 digest: 2a135f226099ff5631be50b65d4f56cfa09981b611ffe337f3c6027cfd91665d
+Signer #1 certificate SHA-1 digest: cd8436b775da5a459f76268fd565c6e58e1ad19c
+Signer #1 certificate MD5 digest: 91417e510660cda968332d36cf504856
+Signer #1 key algorithm: RSA
+Signer #1 key size (bits): 3072
+Signer #1 public key SHA-256 digest: a06fea038a3d101313c2b588191e3cc7b9ae64aa353a1ca4196d9ea106e5a10e
+Signer #1 public key SHA-1 digest: e3ef5f4f2860bd6c0c24d89687e78ca64f5669ca
+Signer #1 public key MD5 digest: 7c7b582724070b4abe4a7a16d3dea9a1

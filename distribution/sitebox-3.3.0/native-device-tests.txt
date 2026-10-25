@@ -1,0 +1,450 @@
+PHASE native GLB startup uptimeMs=46121
+PHASE native GLB visible and interactive uptimeMs=92005
+PASS actual room pixels are nonuniform, not an empty background
+PASS GPU texture has displayed pixels
+PASS screenshot animation settled
+PASS collapsed screenshot is real visible miniature with controls hidden
+PASS actual supplied GLB rendered with furniture and walls
+PASS native renderer reports no initialization failure
+PASS Filament GPU frame submitted
+PASS shelf finishes have isolated model materials
+PHASE native book dialogs uptimeMs=242476
+PASS physical room tap lies on opaque projected furniture
+PASS physical room tap opens the same live native editor
+PASS books and category labels render in the same GPU frame as the model
+PASS native book input waits for the actual displayed editor camera
+PASS screenshot animation settled
+PASS empty long press does not collapse or hide editor
+PASS editor remains visible after long press
+PASS screenshot animation settled
+PASS actual page contains 63 solid data-driven books
+PASS covers pages and curved spines are volumetric meshes
+PASS window neighborhood has actual world-space depth
+PASS desk spotlight casts physical shadows
+PASS screenshot animation settled
+PASS screenshot animation settled
+PASS screenshot animation settled
+PASS overflow paginates without overlapping books
+PASS book stays inside actual model opening
+PASS book stays inside actual model opening
+PASS book stays inside actual model opening
+PASS book stays inside actual model opening
+PASS book stays inside actual model opening
+PASS book stays inside actual model opening
+PASS book stays inside actual model opening
+PASS book stays inside actual model opening
+PASS book stays inside actual model opening
+PASS book stays inside actual model opening
+PASS book stays inside actual model opening
+PASS book stays inside actual model opening
+PASS book stays inside actual model opening
+PASS book stays inside actual model opening
+PASS book stays inside actual model opening
+PASS book stays inside actual model opening
+PASS book stays inside actual model opening
+PASS book stays inside actual model opening
+PASS book stays inside actual model opening
+PASS book stays inside actual model opening
+PASS book stays inside actual model opening
+PASS book stays inside actual model opening
+PASS book stays inside actual model opening
+PASS book stays inside actual model opening
+PASS book stays inside actual model opening
+PASS book stays inside actual model opening
+PASS book stays inside actual model opening
+PASS book stays inside actual model opening
+PASS book stays inside actual model opening
+PASS book stays inside actual model opening
+PASS book stays inside actual model opening
+PASS book stays inside actual model opening
+PASS book stays inside actual model opening
+PASS book stays inside actual model opening
+PASS book stays inside actual model opening
+PASS book stays inside actual model opening
+PASS book stays inside actual model opening
+PASS book stays inside actual model opening
+PASS book stays inside actual model opening
+PASS book stays inside actual model opening
+PASS book stays inside actual model opening
+PASS book stays inside actual model opening
+PASS book stays inside actual model opening
+PASS book stays inside actual model opening
+PASS book stays inside actual model opening
+PASS book stays inside actual model opening
+PASS book stays inside actual model opening
+PASS book stays inside actual model opening
+PASS book stays inside actual model opening
+PASS book stays inside actual model opening
+PASS book stays inside actual model opening
+PASS book stays inside actual model opening
+PASS book stays inside actual model opening
+PASS book stays inside actual model opening
+PASS book stays inside actual model opening
+PASS book stays inside actual model opening
+PASS book stays inside actual model opening
+PASS book stays inside actual model opening
+PASS book stays inside actual model opening
+PASS book stays inside actual model opening
+PASS book stays inside actual model opening
+PASS book stays inside actual model opening
+PASS book stays inside actual model opening
+PHASE native book drag and sync regression uptimeMs=343232
+PASS add dialog title and URL fields
+PASS text field accepts edit
+PASS text field accepts edit
+PASS bookmark add through real dialog
+PASS edit dialog title and URL fields
+PASS text field accepts edit
+PASS bookmark edit through real dialog
+PASS favorite toggle through book info
+PASS screenshot animation settled
+PASS bookmark delete through confirmation
+PHASE same model camera gestures uptimeMs=510735
+PASS native drag waits for the editor window and layout after dialog dismissal
+PASS screenshot animation settled
+PASS native drag starts on visible editor books
+PASS native drag uses measured book views
+ENV native drag source=130,496 destination=304,496 focus=true
+PASS physical long press starts native drag before pointer motion
+PASS native drop dispatch completes before checking book data
+PASS native long press moves the real book without retreating
+PASS codec rejects padded category labels and preserves valid fixture
+PASS backup codec validates native fixture and rejects malformed imports
+PASS stalled document read cancels through interruptible channel
+PASS stalled document write cancels through interruptible channel
+PASS active backup dialog before screenshot: Google 계정 · 자동 동기화
+PASS screenshot animation settled
+PASS active backup dialog after screenshot: Google 계정 · 자동 동기화
+PASS manual backup actions removed from account UI
+PASS backup settings closes through its visible button
+PASS first account connection automatically restores remote books
+PASS empty cloud retains existing local library
+PASS local deletion persists against unchanged remote
+PASS remote deletion persists against unchanged local
+PASS concurrent changes retain both book versions
+PASS independent addition and remote edit merge
+PASS timestamps do not create an upload loop
+PASS category rename and remote favorite merge without duplicate books
+PASS verified account persists despite later Drive HTTP failure
+PASS account label survives controller recreation
+PASS remote restore waits while an editing dialog is open
+PASS remote content automatically applies without restore button
+PASS automatic restore preserves active search and visibility
+PASS automatic restore persists parsed book URL (independent of JSON escaping)
+PASS automatic restore has no manual confirmation dialog
+PASS automatic restore preserves collapsed bookshelf mode
+PASS automatic sync merges, deletions, conflicts, account persistence and automatic restore verified
+UNTESTED live Google OAuth consent and Drive transfer: cloud credentials are owner-managed
+PASS cancelled picker preserves preferences
+PASS native document URI export round trip
+PASS malformed native import leaves preferences untouched
+PASS invalid UTF-8 native import is rejected without preview or library changes
+PASS backup retains Korean metadata and full sort order range
+PASS active backup dialog before screenshot: 백업 복원 확인
+PASS screenshot animation settled
+PASS active backup dialog after screenshot: 백업 복원 확인
+PASS cancelled restore preview closes and leaves data unchanged
+PASS confirmed restore updates every field
+PASS restored library persists through preferences reload
+PASS restore saves original atomic rollback copy
+PASS Google backup codec and local restore verified
+UNTESTED Google account consent and live Drive transfer: no configured cloud account in CI
+PASS system toast queue drained before photo comparison in 574ms
+PHASE displayed camera reversal and native Back uptimeMs=852288
+PASS temporarily enable measured native projection animation
+ENV forward projection intermediate draw frames=2
+PASS native pinch animates continuous intermediate projection
+PASS native pinch settles projection at room pose
+PASS screenshot animation settled
+PASS collapsed screenshot is real visible miniature with controls hidden
+PASS physical room tap lies on opaque projected furniture
+PASS physical room tap opens the same live native editor
+PASS same GLB survives editor and room transitions
+PASS screenshot animation settled
+PASS collapsed screenshot is real visible miniature with controls hidden
+PASS screenshot animation settled
+PASS collapsed screenshot is real visible miniature with controls hidden
+PASS weather change preserves book data
+PASS actual 3D window material state day
+PASS screenshot animation settled
+PASS collapsed screenshot is real visible miniature with controls hidden
+PASS weather change preserves book data
+PASS actual 3D window material state night
+PASS physical room tap lies on opaque projected furniture
+PASS physical room tap opens the same live native editor
+PASS camera approach preserves the real room light instead of bleaching the cabinet
+PASS screenshot animation settled
+PASS screenshot animation settled
+PASS collapsed screenshot is real visible miniature with controls hidden
+PASS native lamp light has positive intensity
+PASS room lamp switch turns the real light off
+PASS native lamp light intensity becomes zero
+PASS screenshot animation settled
+PASS collapsed screenshot is real visible miniature with controls hidden
+PASS lamp switch changes actual GPU room lighting
+PASS screenshot animation settled
+PASS collapsed screenshot is real visible miniature with controls hidden
+PASS weather change preserves book data
+PASS actual 3D window material state rain
+PASS screenshot animation settled
+PASS collapsed screenshot is real visible miniature with controls hidden
+PASS weather change preserves book data
+PASS actual 3D window material state snow
+PASS screenshot animation settled
+PASS collapsed screenshot is real visible miniature with controls hidden
+PASS weather change preserves book data
+PASS actual 3D window material state cloud
+PASS screenshot animation settled
+PASS collapsed screenshot is real visible miniature with controls hidden
+PASS weather change preserves book data
+PASS actual 3D window material state night_rain
+PASS screenshot animation settled
+PASS collapsed screenshot is real visible miniature with controls hidden
+PASS weather change preserves book data
+PASS actual 3D window material state night_snow
+PASS paused activity submits no native GPU frames
+PASS actual room pixels are nonuniform, not an empty background
+PASS actual room pixels are nonuniform, not an empty background
+PASS screenshot animation settled
+PASS collapsed screenshot is real visible miniature with controls hidden
+PASS actual room pixels are nonuniform, not an empty background
+PASS screenshot animation settled
+PASS collapsed screenshot is real visible miniature with controls hidden
+PASS actual room pixels are nonuniform, not an empty background
+PASS screenshot animation settled
+PASS collapsed screenshot is real visible miniature with controls hidden
+PASS actual room pixels are nonuniform, not an empty background
+PASS book data survives preferences reload
+PASS actual room pixels are nonuniform, not an empty background
+PASS GPU texture has displayed pixels
+PASS screenshot animation settled
+PASS collapsed screenshot is real visible miniature with controls hidden
+PASS actual supplied GLB rendered with furniture and walls
+PASS native renderer reports no initialization failure
+PASS Filament GPU frame submitted
+PASS shelf finishes have isolated model materials
+PASS physical room tap lies on opaque projected furniture
+PASS physical room tap opens the same live native editor
+PASS books and category labels render in the same GPU frame as the model
+PASS native book input waits for the actual displayed editor camera
+PASS screenshot animation settled
+PASS empty long press does not collapse or hide editor
+PASS editor remains visible after long press
+PASS screenshot animation settled
+PASS actual page contains 63 solid data-driven books
+PASS covers pages and curved spines are volumetric meshes
+PASS window neighborhood has actual world-space depth
+PASS desk spotlight casts physical shadows
+PASS screenshot animation settled
+PASS screenshot animation settled
+PASS screenshot animation settled
+PASS overflow paginates without overlapping books
+PASS book stays inside actual model opening
+PASS book stays inside actual model opening
+PASS book stays inside actual model opening
+PASS book stays inside actual model opening
+PASS book stays inside actual model opening
+PASS book stays inside actual model opening
+PASS book stays inside actual model opening
+PASS book stays inside actual model opening
+PASS book stays inside actual model opening
+PASS book stays inside actual model opening
+PASS book stays inside actual model opening
+PASS book stays inside actual model opening
+PASS book stays inside actual model opening
+PASS book stays inside actual model opening
+PASS book stays inside actual model opening
+PASS book stays inside actual model opening
+PASS book stays inside actual model opening
+PASS book stays inside actual model opening
+PASS book stays inside actual model opening
+PASS book stays inside actual model opening
+PASS book stays inside actual model opening
+PASS book stays inside actual model opening
+PASS book stays inside actual model opening
+PASS book stays inside actual model opening
+PASS book stays inside actual model opening
+PASS book stays inside actual model opening
+PASS book stays inside actual model opening
+PASS book stays inside actual model opening
+PASS book stays inside actual model opening
+PASS book stays inside actual model opening
+PASS book stays inside actual model opening
+PASS book stays inside actual model opening
+PASS book stays inside actual model opening
+PASS book stays inside actual model opening
+PASS book stays inside actual model opening
+PASS book stays inside actual model opening
+PASS book stays inside actual model opening
+PASS book stays inside actual model opening
+PASS book stays inside actual model opening
+PASS book stays inside actual model opening
+PASS book stays inside actual model opening
+PASS book stays inside actual model opening
+PASS book stays inside actual model opening
+PASS book stays inside actual model opening
+PASS book stays inside actual model opening
+PASS book stays inside actual model opening
+PASS book stays inside actual model opening
+PASS book stays inside actual model opening
+PASS book stays inside actual model opening
+PASS book stays inside actual model opening
+PASS book stays inside actual model opening
+PASS book stays inside actual model opening
+PASS book stays inside actual model opening
+PASS book stays inside actual model opening
+PASS book stays inside actual model opening
+PASS book stays inside actual model opening
+PASS book stays inside actual model opening
+PASS book stays inside actual model opening
+PASS book stays inside actual model opening
+PASS book stays inside actual model opening
+PASS book stays inside actual model opening
+PASS book stays inside actual model opening
+PASS book stays inside actual model opening
+PASS add dialog title and URL fields
+PASS text field accepts edit
+PASS text field accepts edit
+PASS bookmark add through real dialog
+PASS edit dialog title and URL fields
+PASS text field accepts edit
+PASS bookmark edit through real dialog
+PASS favorite toggle through book info
+PASS screenshot animation settled
+PASS bookmark delete through confirmation
+PASS native drag waits for the editor window and layout after dialog dismissal
+PASS screenshot animation settled
+PASS native drag starts on visible editor books
+PASS native drag uses measured book views
+ENV native drag source=130,496 destination=304,496 focus=true
+PASS physical long press starts native drag before pointer motion
+PASS native drop dispatch completes before checking book data
+PASS native long press moves the real book without retreating
+PASS codec rejects padded category labels and preserves valid fixture
+PASS backup codec validates native fixture and rejects malformed imports
+PASS stalled document read cancels through interruptible channel
+PASS stalled document write cancels through interruptible channel
+PASS active backup dialog before screenshot: Google 계정 · 자동 동기화
+PASS screenshot animation settled
+PASS active backup dialog after screenshot: Google 계정 · 자동 동기화
+PASS manual backup actions removed from account UI
+PASS backup settings closes through its visible button
+PASS first account connection automatically restores remote books
+PASS empty cloud retains existing local library
+PASS local deletion persists against unchanged remote
+PASS remote deletion persists against unchanged local
+PASS concurrent changes retain both book versions
+PASS independent addition and remote edit merge
+PASS timestamps do not create an upload loop
+PASS category rename and remote favorite merge without duplicate books
+PASS verified account persists despite later Drive HTTP failure
+PASS account label survives controller recreation
+PASS remote restore waits while an editing dialog is open
+PASS remote content automatically applies without restore button
+PASS automatic restore preserves active search and visibility
+PASS automatic restore persists parsed book URL (independent of JSON escaping)
+PASS automatic restore has no manual confirmation dialog
+PASS automatic restore preserves collapsed bookshelf mode
+PASS automatic sync merges, deletions, conflicts, account persistence and automatic restore verified
+UNTESTED live Google OAuth consent and Drive transfer: cloud credentials are owner-managed
+PASS cancelled picker preserves preferences
+PASS native document URI export round trip
+PASS malformed native import leaves preferences untouched
+PASS invalid UTF-8 native import is rejected without preview or library changes
+PASS backup retains Korean metadata and full sort order range
+PASS active backup dialog before screenshot: 백업 복원 확인
+PASS screenshot animation settled
+PASS active backup dialog after screenshot: 백업 복원 확인
+PASS cancelled restore preview closes and leaves data unchanged
+PASS confirmed restore updates every field
+PASS restored library persists through preferences reload
+PASS restore saves original atomic rollback copy
+PASS Google backup codec and local restore verified
+UNTESTED Google account consent and live Drive transfer: no configured cloud account in CI
+PASS system toast queue drained before photo comparison in 574ms
+PASS temporarily enable measured native projection animation
+ENV forward projection intermediate draw frames=2
+PASS native pinch animates continuous intermediate projection
+PASS native pinch settles projection at room pose
+PASS screenshot animation settled
+PASS collapsed screenshot is real visible miniature with controls hidden
+PASS physical room tap lies on opaque projected furniture
+PASS physical room tap opens the same live native editor
+PASS same GLB survives editor and room transitions
+PASS screenshot animation settled
+PASS collapsed screenshot is real visible miniature with controls hidden
+PASS screenshot animation settled
+PASS collapsed screenshot is real visible miniature with controls hidden
+PASS weather change preserves book data
+PASS actual 3D window material state day
+PASS screenshot animation settled
+PASS collapsed screenshot is real visible miniature with controls hidden
+PASS weather change preserves book data
+PASS actual 3D window material state night
+PASS physical room tap lies on opaque projected furniture
+PASS physical room tap opens the same live native editor
+PASS camera approach preserves the real room light instead of bleaching the cabinet
+PASS screenshot animation settled
+PASS screenshot animation settled
+PASS collapsed screenshot is real visible miniature with controls hidden
+PASS native lamp light has positive intensity
+PASS room lamp switch turns the real light off
+PASS native lamp light intensity becomes zero
+PASS screenshot animation settled
+PASS collapsed screenshot is real visible miniature with controls hidden
+PASS lamp switch changes actual GPU room lighting
+PASS screenshot animation settled
+PASS collapsed screenshot is real visible miniature with controls hidden
+PASS weather change preserves book data
+PASS actual 3D window material state rain
+PASS screenshot animation settled
+PASS collapsed screenshot is real visible miniature with controls hidden
+PASS weather change preserves book data
+PASS actual 3D window material state snow
+PASS screenshot animation settled
+PASS collapsed screenshot is real visible miniature with controls hidden
+PASS weather change preserves book data
+PASS actual 3D window material state cloud
+PASS screenshot animation settled
+PASS collapsed screenshot is real visible miniature with controls hidden
+PASS weather change preserves book data
+PASS actual 3D window material state night_rain
+PASS screenshot animation settled
+PASS collapsed screenshot is real visible miniature with controls hidden
+PASS weather change preserves book data
+PASS actual 3D window material state night_snow
+PASS paused activity submits no native GPU frames
+PASS actual room pixels are nonuniform, not an empty background
+PASS actual room pixels are nonuniform, not an empty background
+PASS screenshot animation settled
+PASS collapsed screenshot is real visible miniature with controls hidden
+PASS actual room pixels are nonuniform, not an empty background
+PASS screenshot animation settled
+PASS collapsed screenshot is real visible miniature with controls hidden
+PASS actual room pixels are nonuniform, not an empty background
+PASS screenshot animation settled
+PASS collapsed screenshot is real visible miniature with controls hidden
+PASS actual room pixels are nonuniform, not an empty background
+PASS book data survives preferences reload
+PASS physical room tap lies on opaque projected furniture
+PASS physical room tap opens the same live native editor
+PASS screenshot animation settled
+PASS collapsed screenshot is real visible miniature with controls hidden
+PASS approach reaches an intermediate room pose
+PASS reverse keeps current timeline progress
+PASS reverse keeps rendered corner 0
+PASS reverse keeps rendered corner 1
+PASS reverse keeps rendered corner 2
+PASS reverse keeps rendered corner 3
+PASS reverse keeps rendered corner 4
+PASS reverse keeps rendered corner 5
+PASS reverse keeps rendered corner 6
+PASS reverse keeps rendered corner 7
+PASS rapid alternating requests settle in editor
+ENV native Back settled in 26695ms on software GPU
+PASS native Back and reversal preserve the library
+PASS photographic room reverse continuity, repeated requests and native Back verified
+PASS actual 3D room, shared camera, native book management, gestures and lifecycle verified
+
+PASS captured night room remains readable and darker than day (luma ratio 0.674)
+PASS captured outdoor window stays stable when the indoor lamp turns off
