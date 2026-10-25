@@ -73,10 +73,11 @@ final class ModelBookLayer {
  void setContent(BookshelfView value){if(content!=value){if(content!=null)content.setGpuBooks(false);content=value;dirty=true;geometryDirty=true;}if(content!=null&&ready)content.setGpuBooks(true);}
  void invalidate(){geometryDirty=true;dirty=true;requestFrame.run();}
  boolean ready(){return ready;}
- boolean contentReady(){return ready&&!dirty&&!geometryDirty&&content!=null&&content.getWidth()>0&&sourceWidth==content.getWidth()&&sourceHeight==content.getHeight();}
+ boolean contentReady(){return ready&&!dirty&&!geometryDirty&&content!=null&&!content.isLayoutRequested()&&content.getWidth()>0&&sourceWidth==content.getWidth()&&sourceHeight==content.getHeight();}
  /** Returns without allocating or drawing when native content has not changed. */
  void prepare(boolean reduced){
   if(disposed||uploads!=0||content==null||content.getWidth()==0||content.getHeight()==0)return;
+  if(content.isLayoutRequested()){requestFrame.run();return;}
   if(sourceWidth!=content.getWidth()||sourceHeight!=content.getHeight()){sourceWidth=content.getWidth();sourceHeight=content.getHeight();geometryDirty=true;dirty=true;}
   int cap=reduced?1024:2048;float scale=Math.min(1,cap/(float)Math.max(content.getWidth(),content.getHeight()));
   int w=Math.max(1,Math.round(content.getWidth()*scale)),h=Math.max(1,Math.round(content.getHeight()*scale));

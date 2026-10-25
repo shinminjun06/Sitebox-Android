@@ -46,8 +46,8 @@ final class ModelRoomView extends TextureView implements TextureView.SurfaceText
  private int finish;
  private boolean weatherImages=true;
  int finishMaterialCount(){return shelfMaterials.size();}
- void setWeatherImages(boolean value){if(weatherImages==value)return;weatherImages=value;updateWindow();requestFrame();}
- void setFinish(int value){finish=value;applyFinish();requestFrame();}
+ void setWeatherImages(boolean value){if(weatherImages==value)return;sceneChanged();weatherImages=value;updateWindow();requestFrame();}
+ void setFinish(int value){if(finish!=value)sceneChanged();finish=value;applyFinish();requestFrame();}
  private void applyFinish(){float[] tint=RoomModelGeometry.finishTint(finish);for(int i=0;i<shelfMaterials.size();i++){float f=shelfFactors.get(i);shelfMaterials.get(i).setParameter("baseColorFactor",tint[0]*f,tint[1]*f,tint[2]*f,1);}}
 
  private boolean active=true,disposed,scheduled,dirty=true,reduced;
