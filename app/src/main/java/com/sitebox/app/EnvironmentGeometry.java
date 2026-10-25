@@ -15,9 +15,9 @@ final class EnvironmentGeometry {
    float x=(side==0?-1:1)*(4.5f+offset*5.8f)+random.nextFloat(),z=-13-row*12-offset*2,w=3.7f+random.nextFloat(),d=4.4f+random.nextFloat(),height=2.5f+random.nextFloat()*.6f;
    house(solid,windows,roofs,x,z,w,d,-2.28f,height,ModelMesh.rgb(plaster[(row+offset+side)%plaster.length]),ModelMesh.rgb(tiles[(row*3+offset+side)%tiles.length]),random);
   }
-  for(int i=0;i<13;i++){float x=(i%2==0?-1:1)*(2.8f+random.nextFloat()*10),z=-10.5f-i*4.8f;tree(solid,x,-2.28f,z,3.5f+random.nextFloat()*2,random);}
+  for(int i=0;i<13;i++){float x=(i%2==0?-1:1)*(2.8f+random.nextFloat()*10),z=-22f-i*4.8f;tree(solid,x,-2.28f,z,3.5f+random.nextFloat()*2,random);}
   // A few near-window branches have genuine parallax instead of photographed leaves.
-  tree(solid,3.9f,-2.28f,-10.5f,6.1f,random);
+  tree(solid,12f,-2.28f,-25f,5.2f,random);
   for(int i=0;i<5;i++){
    float z=-10-i*14,x=2.05f;float[] pole=ModelMesh.rgb(0xff77776e);solid.tube(p(x,-2.3f,z),p(x,4.2f,z),.055f,pole,8);solid.box(x-.6f,3.85f,z-.045f,x+.6f,3.95f,z+.045f,pole);
    if(i<4)for(float line:new float[]{-.43f,0,.43f})for(int seg=0;seg<8;seg++){float a=seg/8f,b=(seg+1)/8f;solid.tube(p(x+line,3.9f-.3f*(float)Math.sin(a*Math.PI),z-14*a),p(x+line,3.9f-.3f*(float)Math.sin(b*Math.PI),z-14*b),.008f,ModelMesh.rgb(0xff303a3e),4);}
@@ -25,7 +25,6 @@ final class EnvironmentGeometry {
   for(int j=0;j<9;j++)for(int i=0;i<28;i++){
    float x=-140+i*10,z=-78-j*8;float[] a=hill(x,z),b=hill(x+10,z),c=hill(x+10,z-8),d=hill(x,z-8);float haze=.4f+j*.045f;solid.quad(a,b,c,d,new float[]{.14f+(.45f-.14f)*haze,.24f+(.60f-.24f)*haze,.20f+(.73f-.20f)*haze});
   }
-  for(int i=0;i<10;i++){float cx=-60+random.nextFloat()*120,cz=-65-random.nextFloat()*45,cy=14+random.nextFloat()*15;for(int l=0;l<7;l++)clouds.ellipsoid(cx+random.nextFloat()*11-5,cy+random.nextFloat()*2.5f,cz+random.nextFloat()*5,3+random.nextFloat()*4,1+random.nextFloat()*1.6f,2+random.nextFloat()*2,new float[]{.85f,.88f,.9f},16,10);}
   return new Town(solid.build(),windows.build(),roofs.build(),clouds.build());
  }
  private static float[] hill(float x,float z){return p(x,2.8f+(float)(2.5*Math.sin(x*.035+z*.018)+1.7*Math.sin(x*.071-z*.026)),z);}
@@ -57,8 +56,8 @@ final class EnvironmentGeometry {
  }
  private static void tree(ModelMesh.Builder m,float x,float y,float z,float h,Random r){
   float[] bark=ModelMesh.rgb(0xff665443);m.tube(p(x,y,z),p(x+.10f,y+h*.8f,z),.09f,bark,9);
-  for(int i=0;i<8;i++){double angle=i*2.399;float px=x+(float)Math.cos(angle)*h*.22f,pz=z+(float)Math.sin(angle)*h*.22f,py=y+h*(.55f+r.nextFloat()*.32f);m.tube(p(x,y+h*.42f,z),p(px,py,pz),.035f,bark,6);m.ellipsoid(px,py,pz,h*.25f,h*.22f,h*.25f,ModelMesh.rgb(i%3==0?0xff6c8747:i%3==1?0xff819552:0xff547345),20,12);}
+  for(int i=0;i<8;i++){double angle=i*2.399;float px=x+(float)Math.cos(angle)*h*.22f,pz=z+(float)Math.sin(angle)*h*.22f,py=y+h*(.55f+r.nextFloat()*.32f);m.tube(p(x,y+h*.42f,z),p(px,py,pz),.035f,bark,6);for(int leaf=0;leaf<6;leaf++){double az=leaf*2.399+i;float ox=(float)Math.cos(az)*h*.15f,oz=(float)Math.sin(az)*h*.15f,oy=(r.nextFloat()-.5f)*h*.18f;float rad=h*(.075f+r.nextFloat()*.035f);m.ellipsoid(px+ox,py+oy,pz+oz,rad,rad*.85f,rad,ModelMesh.rgb((i+leaf)%3==0?0xff6c8747:(i+leaf)%3==1?0xff819552:0xff547345),8,6);}}
  }
- static ModelMesh.Data sky(){ModelMesh.Builder b=new ModelMesh.Builder();int slices=48,rings=24;for(int j=0;j<=rings;j++){double lat=Math.PI*j/rings;float y=(float)Math.cos(lat),sr=(float)Math.sin(lat);float t=Math.max(0,y);float[] c={.55f-.4f*t,.72f-.37f*t,.88f-.22f*t};for(int i=0;i<=slices;i++){double a=2*Math.PI*i/slices;float x=sr*(float)Math.cos(a),z=sr*(float)Math.sin(a);b.vertex(x*140,y*140,-35+z*140,-x,-y,-z,i/(float)slices,j/(float)rings,c);}}for(int j=0;j<rings;j++)for(int i=0;i<slices;i++){int a=j*(slices+1)+i,c=a+slices+1;if(j>0)b.triangle(a,c,a+1);if(j<rings-1)b.triangle(a+1,c,c+1);}return b.build();}
+ static ModelMesh.Data sky(){ModelMesh.Builder b=new ModelMesh.Builder();int slices=48,rings=24;for(int j=0;j<=rings;j++){double lat=Math.PI*j/rings;float y=(float)Math.cos(lat),sr=(float)Math.sin(lat);float t=Math.max(0,y);float[] c={.55f-.4f*t,.72f-.37f*t,.88f-.22f*t};for(int i=0;i<=slices;i++){double a=2*Math.PI*i/slices;float x=sr*(float)Math.cos(a),z=sr*(float)Math.sin(a);b.vertex(x*140,y*140,-35+z*140,-x,-y,-z,i/(float)slices+.5f,j/(float)rings,c);}}for(int j=0;j<rings;j++)for(int i=0;i<slices;i++){int a=j*(slices+1)+i,c=a+slices+1;if(j>0)b.triangle(a,c,a+1);if(j<rings-1)b.triangle(a+1,c,c+1);}return b.build();}
  static ModelMesh.Data glass(){ModelMesh.Builder b=new ModelMesh.Builder();b.quad(p(-.89f,.99f,-2.09f),p(1.81f,.99f,-2.09f),p(1.81f,2.64f,-2.09f),p(-.89f,2.64f,-2.09f),new float[]{1,1,1});return b.build();}
 }

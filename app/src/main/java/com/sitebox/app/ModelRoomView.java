@@ -64,29 +64,26 @@ final class ModelRoomView extends TextureView implements TextureView.SurfaceText
  private BookshelfView bookContent;
  private Runnable presentationListener=()->{};
  private final double[] pose=new double[9];
- private long poseVersion=1,displayedPose;
- private final long[] frameTimes=new long[64],framePoses=new long[64];
- private int frameSlot;
- private long lastPresentedTime;
+ private final RenderRevision revision=new RenderRevision();
  private boolean presentationCheckScheduled;
  private final Runnable presentationCheck=this::checkPresentedPose;
  private void schedulePresentationCheck(){if(active&&!disposed&&swap!=null&&presented&&!presentationCheckScheduled){presentationCheckScheduled=true;postDelayed(presentationCheck,16);}}
  private void checkPresentedPose(){
   removeCallbacks(presentationCheck);presentationCheckScheduled=false;
   if(!active||disposed||swap==null||getSurfaceTexture()==null)return;
-  long timestamp=getSurfaceTexture().getTimestamp();lastPresentedTime=timestamp;
-  for(int i=0;i<frameTimes.length;i++)if(frameTimes[i]==timestamp){displayedPose=framePoses[i];break;}
+  revision.present(getSurfaceTexture().getTimestamp());
   boolean available=poseReady();if(available&&!wasPoseReady){wasPoseReady=true;presentationListener.run();}
   if(!available)schedulePresentationCheck();
  }
 
- String presentationState(){int i=(frameSlot+frameTimes.length-1)%frameTimes.length;return "pose="+poseVersion+" displayed="+displayedPose+" surfaceTime="+lastPresentedTime+" submittedTime="+frameTimes[i]+" submittedPose="+framePoses[i]+" frames="+frames+" presented="+presented;}
+ String presentationState(){return revision.describe()+" frames="+frames+" presented="+presented;}
+ private void sceneChanged(){revision.change();wasPoseReady=false;schedulePresentationCheck();}
  private boolean wasPoseReady;
  void setPresentationListener(Runnable value){presentationListener=value;}
- boolean poseReady(){return engine==null||swap==null||presented&&displayedPose==poseVersion;}
+ boolean poseReady(){return engine==null||swap==null||presented&&revision.ready();}
  boolean gpuBooksReady(){return bookLayer!=null&&bookLayer.ready();}
- void setBooks(BookshelfView value){bookContent=value;if(bookLayer!=null)bookLayer.setContent(value);requestFrame();}
- void invalidateBooks(){if(bookLayer!=null)bookLayer.invalidate();}
+ void setBooks(BookshelfView value){if(bookContent!=value)sceneChanged();bookContent=value;if(bookLayer!=null)bookLayer.setContent(value);requestFrame();}
+ void invalidateBooks(){sceneChanged();if(bookLayer!=null)bookLayer.invalidate();}
 
  ModelRoomView(Context context){super(context);setOpaque(true);setSurfaceTextureListener(this);setImportantForAccessibility(IMPORTANT_FOR_ACCESSIBILITY_NO);}
  void setStatusListener(Consumer<String> listener){status=listener;}
@@ -99,13 +96,13 @@ final class ModelRoomView extends TextureView implements TextureView.SurfaceText
  float ambientIntensity(){return ambient==null?0:ambient.getIntensity();}
  void setPose(RoomCameraRig value,float p){
   boolean changed=false;for(int i=0;i<9;i++){double v=i<3?value.eye[i]:i<6?value.target[i-3]:i==6?value.tanY:i==7?value.aspect:p;if(Math.abs(v-pose[i])>1e-9){pose[i]=v;changed=true;}}
-  if(changed){poseVersion++;wasPoseReady=false;}rig=value;progress=p;updateCamera();updateLights();requestFrame();if(changed)schedulePresentationCheck();
+  if(changed)sceneChanged();rig=value;progress=p;updateCamera();updateLights();requestFrame();if(changed)schedulePresentationCheck();
  }
  void setReduced(boolean value){reduced=value;if(view!=null)configureQuality();requestFrame();}
  void setActive(boolean value){active=value;if(!value){Choreographer.getInstance().removeFrameCallback(this);scheduled=false;removeCallbacks(presentationCheck);presentationCheckScheduled=false;}else{requestFrame();if(!poseReady())schedulePresentationCheck();}}
  void setAtmosphere(float day,float cloud,int rain,boolean light){
   if(Math.abs(day-daylight)<.001f&&Math.abs(cloud-clouds)<.001f&&precipitation==rain&&lampOn==light)return;
-  daylight=day;clouds=cloud;precipitation=rain;lampOn=light;updateLights();updateWindow();requestFrame();
+  sceneChanged();daylight=day;clouds=cloud;precipitation=rain;lampOn=light;updateLights();updateWindow();requestFrame();
  }
  private void initialize(){
   if(engine!=null||disposed)return;
@@ -151,7 +148,7 @@ final class ModelRoomView extends TextureView implements TextureView.SurfaceText
    }
   }
   if(plaster==null)throw new IllegalStateException("Model back-wall material is missing");
-  environment=new ModelEnvironment(engine,scene,materials,plaster);
+  environment=new ModelEnvironment(getContext(),engine,scene,materials,plaster);
   sun=EntityManager.get().create();LightManager.ShadowOptions shadow=new LightManager.ShadowOptions();shadow.mapSize=reduced?1024:2048;shadow.shadowCascades=1;shadow.normalBias=.004f;shadow.constantBias=.0004f;shadow.shadowFar=15;
   new LightManager.Builder(LightManager.Type.DIRECTIONAL).color(1,.88f,.72f).intensity(65000).direction(-.55f,-.85f,.55f).castShadows(true).shadowOptions(shadow).build(engine,sun);scene.addEntity(sun);
   lamp=EntityManager.get().create();new LightManager.Builder(LightManager.Type.SPOT).position(-.36f,1.30f,-1.16f).direction(.12f,-1,.22f).spotLightCone((float)Math.toRadians(22),(float)Math.toRadians(54)).color(1,.66f,.32f).intensity(850).falloff(3.8f).castShadows(true).shadowOptions(lampShadow()).build(engine,lamp);scene.addEntity(lamp);
@@ -185,17 +182,17 @@ final class ModelRoomView extends TextureView implements TextureView.SurfaceText
  void requestFrame(){dirty=true;if(active&&!disposed&&!scheduled&&swap!=null){scheduled=true;Choreographer.getInstance().postFrameCallback(this);}}
  @Override public void doFrame(long time){
   scheduled=false;if(!active||disposed||swap==null||view==null)return;
-  if(dirty||(asset!=null&&(!presented||warmup<8))){dirty=false;if(bookLayer!=null)bookLayer.prepare(reduced);if(renderer.beginFrame(swap,time)){renderer.setPresentationTime(time);renderer.render(view);renderer.endFrame();if(bookLayer!=null)bookLayer.releaseRetiredTextures();if(environment!=null)environment.releaseRetired();frameTimes[frameSlot]=time;framePoses[frameSlot]=poseVersion;frameSlot=(frameSlot+1)%frameTimes.length;frames++;warmup++;invalidate();}else dirty=true;}
+  if(dirty||(asset!=null&&(!presented||warmup<8))){dirty=false;if(bookLayer!=null)bookLayer.prepare(reduced);if(renderer.beginFrame(swap,time)){renderer.setPresentationTime(time);renderer.render(view);renderer.endFrame();if(bookLayer!=null)bookLayer.releaseRetiredTextures();if(environment!=null)environment.releaseRetired();revision.submit(time,bookLayer!=null&&bookLayer.contentReady());frames++;warmup++;invalidate();}else dirty=true;}
   if(dirty||(asset!=null&&(!presented||warmup<8)))requestFrame();
  }
  @Override public void onSurfaceTextureAvailable(SurfaceTexture texture,int width,int height){
   try{texture.setDefaultBufferSize(width,height);initialize();surface=new Surface(texture);swap=engine.createSwapChain(surface);displayHelper=new DisplayHelper(getContext());displayHelper.attach(renderer,getDisplay());resize(width,height);requestFrame();}
   catch(RuntimeException|LinkageError e){error=e.toString();android.util.Log.e("SiteBox3D","Native room initialization failed",e);status.accept("3D 방을 열지 못했어요. 앱을 다시 열어 주세요.\n"+error);}
  }
- private void resize(int width,int height){poseVersion++;wasPoseReady=false;if(view!=null){view.setViewport(new Viewport(0,0,width,height));updateCamera();engine.flushAndWait();requestFrame();}}
+ private void resize(int width,int height){sceneChanged();if(view!=null){view.setViewport(new Viewport(0,0,width,height));updateCamera();engine.flushAndWait();requestFrame();}}
  @Override public void onSurfaceTextureSizeChanged(SurfaceTexture texture,int width,int height){resize(width,height);}
  @Override public boolean onSurfaceTextureDestroyed(SurfaceTexture texture){
-  Choreographer.getInstance().removeFrameCallback(this);scheduled=false;removeCallbacks(presentationCheck);presentationCheckScheduled=false;presented=false;surfacePresented=false;warmup=0;displayedPose=0;wasPoseReady=false;java.util.Arrays.fill(frameTimes,0);if(displayHelper!=null){displayHelper.detach();displayHelper=null;}
+  Choreographer.getInstance().removeFrameCallback(this);scheduled=false;removeCallbacks(presentationCheck);presentationCheckScheduled=false;presented=false;surfacePresented=false;warmup=0;revision.reset();wasPoseReady=false;if(displayHelper!=null){displayHelper.detach();displayHelper=null;}
   if(swap!=null){engine.destroySwapChain(swap);engine.flushAndWait();swap=null;}if(surface!=null){surface.release();surface=null;}return true;
  }
  @Override public void onSurfaceTextureUpdated(SurfaceTexture texture){

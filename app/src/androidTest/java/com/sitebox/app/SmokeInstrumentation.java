@@ -459,9 +459,9 @@ public class SmokeInstrumentation extends Instrumentation {
   main(()->activity.edit(-1));android.os.SystemClock.sleep(300);
   java.util.ArrayList<android.view.accessibility.AccessibilityNodeInfo> fields=awaitEditFields(2);
   check(fields.size()==2,"add dialog title and URL fields");
-  setText(fields.get(0),"검증 추가 책");setText(fields.get(1),"https://example.com/qa");clickText("저장");waitForIdleSync();
+  setText(fields.get(0),"검증 추가 책");setText(fields.get(1),"https://example.com/qa");clickText("저장",()->activity.sites.length()==original+1);waitForIdleSync();
   main(()->check(activity.sites.length()==original+1,"bookmark add through real dialog"));
-  main(()->activity.edit(original));android.os.SystemClock.sleep(300);fields=awaitEditFields(2);check(fields.size()==2,"edit dialog title and URL fields");setText(fields.get(0),"검증 수정 책");clickText("저장");waitForIdleSync();
+  main(()->activity.edit(original));android.os.SystemClock.sleep(300);fields=awaitEditFields(2);check(fields.size()==2,"edit dialog title and URL fields");setText(fields.get(0),"검증 수정 책");clickText("저장",()->"검증 수정 책".equals(activity.sites.optJSONObject(original).optString("name")));waitForIdleSync();
   main(()->{check(activity.sites.optJSONObject(original).optString("name").equals("검증 수정 책"),"bookmark edit through real dialog");activity.showBook(original);});
   android.os.SystemClock.sleep(500);clickText("☆ 즐겨찾기");waitForIdleSync();
   main(()->check(activity.sites.optJSONObject(original).optBoolean("fav"),"favorite toggle through book info"));
@@ -510,9 +510,10 @@ public class SmokeInstrumentation extends Instrumentation {
  }
  void collectEdits(android.view.accessibility.AccessibilityNodeInfo node,java.util.List<android.view.accessibility.AccessibilityNodeInfo> found){if(node==null)return;if("android.widget.EditText".contentEquals(node.getClassName()))found.add(node);for(int i=0;i<node.getChildCount();i++)collectEdits(node.getChild(i),found);}
  void setText(android.view.accessibility.AccessibilityNodeInfo node,String text){Bundle args=new Bundle();args.putCharSequence(android.view.accessibility.AccessibilityNodeInfo.ACTION_ARGUMENT_SET_TEXT_CHARSEQUENCE,text);check(node.performAction(android.view.accessibility.AccessibilityNodeInfo.ACTION_SET_TEXT,args),"text field accepts edit");}
- void clickText(String text){
+ void clickText(String text){clickText(text,null);}
+ void clickText(String text,java.util.function.BooleanSupplier observedResult){
   long deadline=android.os.SystemClock.uptimeMillis()+5000;
-  do {waitForIdleSync();android.view.accessibility.AccessibilityNodeInfo root=activeAppWindow();if(root!=null)for(android.view.accessibility.AccessibilityNodeInfo node:root.findAccessibilityNodeInfosByText(text)){
+  do {waitForIdleSync();if(observedResult!=null){final boolean[] done={false};main(()->done[0]=observedResult.getAsBoolean());if(done[0])return;}android.view.accessibility.AccessibilityNodeInfo root=activeAppWindow();if(root!=null)for(android.view.accessibility.AccessibilityNodeInfo node:root.findAccessibilityNodeInfosByText(text)){
    if(text.contentEquals(node.getText()==null?"":node.getText())){android.view.accessibility.AccessibilityNodeInfo target=node;while(target!=null){if(target.isClickable()&&target.performAction(android.view.accessibility.AccessibilityNodeInfo.ACTION_CLICK))return;target=target.getParent();}}
   }android.os.SystemClock.sleep(50);}while(android.os.SystemClock.uptimeMillis()<deadline);
   throw new AssertionError("click target: "+text);
@@ -522,7 +523,7 @@ public class SmokeInstrumentation extends Instrumentation {
  }
  void awaitScene(boolean collapsed,long timeout){
   long deadline=android.os.SystemClock.uptimeMillis()+timeout;final boolean[] ready={false};
-  do {main(()->ready[0]=activity.sceneCollapsed==collapsed&&!activity.sceneAnimating&&activity.stage.getWidth()>0&&activity.stage.getHeight()>0&&activity.currentCabinet!=null&&activity.currentCabinet.getWidth()>0&&!activity.currentCabinet.isLayoutRequested()&&!activity.stage.isLayoutRequested());if(ready[0])return;android.os.SystemClock.sleep(50);}while(android.os.SystemClock.uptimeMillis()<deadline);
+  do {main(()->ready[0]=activity.sceneCollapsed==collapsed&&!activity.sceneAnimating&&(activity.roomExperience==null||activity.roomExperience.model.poseReady())&&activity.stage.getWidth()>0&&activity.stage.getHeight()>0&&activity.currentCabinet!=null&&activity.currentCabinet.getWidth()>0&&!activity.currentCabinet.isLayoutRequested()&&!activity.stage.isLayoutRequested());if(ready[0])return;android.os.SystemClock.sleep(50);}while(android.os.SystemClock.uptimeMillis()<deadline);
   throw new AssertionError("scene transition timed out: collapsed="+collapsed);
  }
  void checkRoomGrounding(){checkSelectedScene(SceneTheme.find("study"));}

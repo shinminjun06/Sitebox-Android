@@ -3,22 +3,24 @@ import java.util.List;
 /** Closed hardcover volumes with a curved, textured spine and recessed page block. */
 final class SolidBookGeometry {
  static final class Book {
-  final float left,bottom,right,top,front,depth;final float[] uv,color;
-  Book(float l,float b,float r,float t,float f,float d,float[] uv,float[] color){left=l;bottom=b;right=r;top=t;front=f;depth=d;this.uv=uv;this.color=color;}
+  final float left,bottom,right,top,front,depth,brightness;final float[] uv,color;
+  Book(float l,float b,float r,float t,float f,float d,float[] uv,float[] color){this(l,b,r,t,f,d,uv,color,1);}
+  Book(float l,float b,float r,float t,float f,float d,float[] uv,float[] color,float brightness){left=l;bottom=b;right=r;top=t;front=f;depth=d;this.uv=uv;this.brightness=Math.max(0,Math.min(1,brightness));this.color=scale(color,this.brightness);}
  }
  static final class Result {final ModelMesh.Data body,spines;final int books;Result(ModelMesh.Data b,ModelMesh.Data s,int n){body=b;spines=s;books=n;}}
  static Result build(List<Book> books){ModelMesh.Builder body=new ModelMesh.Builder(),spines=new ModelMesh.Builder();for(Book b:books)add(b,body,spines);return new Result(body.build(),spines.build(),books.size());}
+ private static float[] scale(float[] c,float v){return new float[]{c[0]*v,c[1]*v,c[2]*v};}
  private static void add(Book b,ModelMesh.Builder body,ModelMesh.Builder spine){
   float width=b.right-b.left,cover=Math.min(.0018f,width*.075f),back=b.front-b.depth,bind=b.front-.014f;
   body.box(b.left,b.bottom,back,b.left+cover,b.top,bind,b.color);body.box(b.right-cover,b.bottom,back,b.right,b.top,bind,b.color);
-  float paperBottom=b.bottom+.004f,paperTop=b.top-.004f;float[] ivory=ModelMesh.rgb(0xffe5dbc1),rule=ModelMesh.rgb(0xffc8bea8);
+  float paperBottom=b.bottom+.004f,paperTop=b.top-.004f;float[] ivory=scale(ModelMesh.rgb(0xffe5dbc1),b.brightness),rule=scale(ModelMesh.rgb(0xffc8bea8),b.brightness);
   body.box(b.left+cover,paperBottom,back+.009f,b.right-cover,paperTop,bind-.003f,ivory);
   // Groups of page edges are shallow closed ribs, not an exposed photograph.
   for(int i=1;i<11;i++){float x=b.left+cover+(width-2*cover)*i/11f;body.box(x,paperTop,back+.009f,x+.00018f,paperTop+.00012f,bind-.003f,rule);}
   int segments=8;float[][] profile=new float[segments+3][];
   for(int i=0;i<=segments;i++){float u=i/(float)segments;profile[i]=ModelMesh.p(b.left+width*u,0,b.front-.008f*(2*u-1)*(2*u-1));}
   profile[segments+1]=ModelMesh.p(b.right,0,bind);profile[segments+2]=ModelMesh.p(b.left,0,bind);
-  float[] white={1,1,1};
+  float[] white={b.brightness,b.brightness,b.brightness};
   for(int i=0;i<segments;i++){
    float u=i/(float)segments,v=(i+1)/(float)segments;
    float nx=.032f*(2*u-1)/width,nn=(float)Math.sqrt(1+nx*nx),mx=.032f*(2*v-1)/width,mn=(float)Math.sqrt(1+mx*mx);

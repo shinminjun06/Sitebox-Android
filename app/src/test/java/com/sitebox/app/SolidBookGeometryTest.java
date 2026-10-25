@@ -15,6 +15,12 @@ public class SolidBookGeometryTest {
  @Test public void emptyDataCreatesNoDecorativeFakeBooks(){SolidBookGeometry.Result r=SolidBookGeometry.build(Collections.emptyList());assertEquals(0,r.books);assertEquals(0,r.body.indices.length);assertEquals(0,r.spines.indices.length);}
  @Test public void measuredSupportMatchesTheActualFrontShelfLips(){assertEquals(1.4385f,RoomModelGeometry.shelfTop(0),.00001f);assertEquals(.7485f,RoomModelGeometry.shelfTop(4),.00001f);assertEquals(.0585f,RoomModelGeometry.shelfTop(8),.00001f);}
  @Test public void nativeHitCellsAndSolidBookBasesShareTheSupport(){for(int i=0;i<9;i++){float[] r=RoomModelGeometry.cell(i);assertEquals(RoomModelGeometry.shelfTop(i)+.0005f,RoomModelGeometry.TOP-r[3]*(RoomModelGeometry.TOP-RoomModelGeometry.BOTTOM),.00001f);}}
+ @Test public void draggedSolidBookDimsCoverPagesAndSpineTogether(){
+  float[] uv={.1f,.2f,.2f,.5f},c={.2f,.1f,.05f};
+  SolidBookGeometry.Result normal=SolidBookGeometry.build(Arrays.asList(new SolidBookGeometry.Book(-2,.75f,-1.96f,1.3f,-.774f,.3f,uv,c)));
+  SolidBookGeometry.Result dragged=SolidBookGeometry.build(Arrays.asList(new SolidBookGeometry.Book(-2,.75f,-1.96f,1.3f,-.774f,.3f,uv,c,.25f)));
+  for(ModelMesh.Data[] pair:new ModelMesh.Data[][]{{normal.body,dragged.body},{normal.spines,dragged.spines}}){assertEquals(pair[0].indices.length,pair[1].indices.length);for(int i=0;i<pair[0].vertices.length;i+=15)for(int k=11;k<14;k++)assertEquals(pair[0].vertices[i+k]*.25f,pair[1].vertices[i+k],.000001f);}
+ }
  static String point(ModelMesh.Data d,int i){int p=i*15;return Math.round(d.vertices[p]*1000000)+","+Math.round(d.vertices[p+1]*1000000)+","+Math.round(d.vertices[p+2]*1000000);}
  static void check(ModelMesh.Data d,Map<String,Integer> edges){
   for(float f:d.vertices)assertTrue(Float.isFinite(f));

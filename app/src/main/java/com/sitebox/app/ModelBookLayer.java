@@ -63,7 +63,7 @@ final class ModelBookLayer {
    .culling(false).priority(7).castShadows(false).receiveShadows(false).build(engine,entity);
  }
  private MaterialInstance material(UbershaderProvider provider,String name,boolean depth){
-  if(depth)return ModelMaterials.create(engine,provider,name,true,false,false);
+  if(depth)return ModelMaterials.create(engine,provider,name,true,true,false);
   MaterialProvider.MaterialKey key=new MaterialProvider.MaterialKey();key.unlit=true;key.doubleSided=true;key.hasBaseColorTexture=true;key.baseColorUV=0;key.alphaMode=2;
   MaterialInstance result=provider.createMaterialInstance(key,new int[8],name,null);
   if(result==null)throw new IllegalStateException("Book material creation failed");
@@ -71,8 +71,9 @@ final class ModelBookLayer {
  }
  private static void vertex(FloatBuffer data,float x,float y,float u,float v){data.put(new float[]{x,y,RoomModelGeometry.FRONT,0,0,0,1,u,v,u,v,1,1,1,1});}
  void setContent(BookshelfView value){if(content!=value){if(content!=null)content.setGpuBooks(false);content=value;dirty=true;geometryDirty=true;}if(content!=null&&ready)content.setGpuBooks(true);}
- void invalidate(){dirty=true;requestFrame.run();}
+ void invalidate(){geometryDirty=true;dirty=true;requestFrame.run();}
  boolean ready(){return ready;}
+ boolean contentReady(){return ready&&!dirty&&!geometryDirty&&content!=null&&content.getWidth()>0&&sourceWidth==content.getWidth()&&sourceHeight==content.getHeight();}
  /** Returns without allocating or drawing when native content has not changed. */
  void prepare(boolean reduced){
   if(disposed||uploads!=0||content==null||content.getWidth()==0||content.getHeight()==0)return;
@@ -118,7 +119,7 @@ final class ModelBookLayer {
     BookArtworkView b=(BookArtworkView)row.getChildAt(i);float l=row.getLeft()+b.getLeft()+b.spine.left,t=row.getTop()+b.getTop()+b.spine.top,rr=row.getLeft()+b.getLeft()+b.spine.right,bb=row.getTop()+b.getTop()+b.spine.bottom;
     if(rr<=l||bb<=t)continue;float[] uv={(l+.35f)/w,(t+.35f)/h,(rr-.35f)/w,(bb-.35f)/h};
     float depth=.26f+.025f*Math.floorMod(b.item.optString("url").hashCode(),4);
-    data.add(new SolidBookGeometry.Book(RoomModelGeometry.LEFT+l/w*ww,RoomModelGeometry.shelfTop(cell)+.0005f,RoomModelGeometry.LEFT+(row.getLeft()+b.getLeft()+b.paper.right)/w*ww,RoomModelGeometry.TOP-t/h*hh,RoomModelGeometry.FRONT,depth,uv,ModelMesh.rgb(coverColor(b))));
+    data.add(new SolidBookGeometry.Book(RoomModelGeometry.LEFT+l/w*ww,RoomModelGeometry.shelfTop(cell)+.0005f,RoomModelGeometry.LEFT+(row.getLeft()+b.getLeft()+b.paper.right)/w*ww,RoomModelGeometry.TOP-t/h*hh,RoomModelGeometry.FRONT,depth,uv,ModelMesh.rgb(coverColor(b)),b.getAlpha()));
    }
   }
   SolidBookGeometry.Result mesh=SolidBookGeometry.build(data);solidCount=mesh.books;solidBodies.upload(mesh.body);solidSpines.upload(mesh.spines);
