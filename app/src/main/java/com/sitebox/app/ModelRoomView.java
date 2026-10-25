@@ -149,7 +149,7 @@ final class ModelRoomView extends TextureView implements TextureView.SurfaceText
   }
   if(plaster==null)throw new IllegalStateException("Model back-wall material is missing");
   environment=new ModelEnvironment(getContext(),engine,scene,materials,plaster);
-  sun=EntityManager.get().create();LightManager.ShadowOptions shadow=new LightManager.ShadowOptions();shadow.mapSize=reduced?1024:2048;shadow.shadowCascades=1;shadow.normalBias=.004f;shadow.constantBias=.0004f;shadow.shadowFar=15;
+  sun=EntityManager.get().create();LightManager.ShadowOptions shadow=new LightManager.ShadowOptions();shadow.mapSize=reduced?1024:2048;shadow.shadowCascades=1;shadow.normalBias=1f;shadow.constantBias=.001f;shadow.shadowFar=15;
   new LightManager.Builder(LightManager.Type.DIRECTIONAL).color(1,.88f,.72f).intensity(65000).direction(-.55f,-.85f,.55f).castShadows(true).shadowOptions(shadow).build(engine,sun);scene.addEntity(sun);
   lamp=EntityManager.get().create();new LightManager.Builder(LightManager.Type.SPOT).position(-.36f,1.30f,-1.16f).direction(.12f,-1,.22f).spotLightCone((float)Math.toRadians(22),(float)Math.toRadians(54)).color(1,.66f,.32f).intensity(850).falloff(3.8f).castShadows(true).shadowOptions(lampShadow()).build(engine,lamp);scene.addEntity(lamp);
   ambient=new IndirectLight.Builder().irradiance(3,RoomLighting.skyIrradiance()).intensity(5000).build(engine);scene.setIndirectLight(ambient);
@@ -178,7 +178,7 @@ final class ModelRoomView extends TextureView implements TextureView.SurfaceText
   else windowKey=weatherImages&&precipitation==2?"snow":weatherImages&&precipitation==1?"rain":weatherImages&&clouds>.65f?"cloud":"day";
   if(environment!=null)environment.setAtmosphere(daylight,weatherImages?clouds:0,weatherImages?precipitation:0,lampOn);
  }
- private LightManager.ShadowOptions lampShadow(){LightManager.ShadowOptions o=new LightManager.ShadowOptions();o.mapSize=reduced?512:1024;o.normalBias=.002f;o.constantBias=.0002f;return o;}
+ private LightManager.ShadowOptions lampShadow(){LightManager.ShadowOptions o=new LightManager.ShadowOptions();o.mapSize=reduced?512:1024;o.normalBias=1f;o.constantBias=.001f;return o;}
  void requestFrame(){dirty=true;if(active&&!disposed&&!scheduled&&swap!=null){scheduled=true;Choreographer.getInstance().postFrameCallback(this);}}
  @Override public void doFrame(long time){
   scheduled=false;if(!active||disposed||swap==null||view==null)return;
