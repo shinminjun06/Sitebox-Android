@@ -1,0 +1,9 @@
+# Theme 1 cabinet grounding — 3.0.10
+
+The 3.0.9 portrait render exposed two measurable issues: the visible cabinet side was only 1.74% of its front width, and the left contact shadow was 3.4 screen pixels below the visible sole. The old projection used an assumed depth vanishing point inside the window; the shadow used the rectangular sprite bounds, ignoring transparent space beneath the legs. The exposed side also ended at its base with no rear support foot.
+
+The depth vanishing point now comes from the side-wall floor line at the shared horizon. Portrait and landscape retain separate calibration. Projection reserves space only on the visible side rather than symmetrically shrinking the front; room placement leaves the whole rear footprint on the floor in front of the baseboard. The default oak miniature and real book children remain unchanged.
+
+ProjectedCabinetView detects opaque soles once when a room snapshot is created. It maps those points through the same front homography, retreats the rear pair consistently with the body, and renders the visible rear leg. MainActivity positions the shadow from this four-corner floor footprint. FurnitureShadow draws floor occlusion, front and rear contact shadows and a soft left/forward cast shadow with ambient/lamp changes. The shadow bounds include the gradient falloff.
+
+Regression tests initially failed for shallow depth, the detached shadow and the missing rear foot. Native rendered pixels now check sole contact and rear-foot support. Pure geometry checks retain shared vanishing points, convex faces, animation bounds and safe areas, while requiring feet on the floor instead of the baseboard. Previews include a single saved test book at 591×1206, as well as empty/populated day/night and landscape scenes. Native renders are not physical-device validation.

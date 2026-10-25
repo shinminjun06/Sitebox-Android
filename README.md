@@ -1,19 +1,15 @@
+> **3.2.1 실제 3D 방:** 제공된 GLB 전체를 Filament로 렌더링하고, 같은 3×3 책장으로 접근해 실제 책을 관리합니다. [구조와 검증](docs/FULL_ROOM_3D.md).
+
 # SiteBox Android · 학교 서재
 
-웹사이트를 책으로 정리하는 Android Java 앱입니다. 11가지 공간 배경, 3×3 이미지 책장,
-독립적인 책장·책 테마와 직접 드래그 이동을 제공합니다. Android 7.0(API24) 이상.
+웹사이트를 책으로 정리하는 Java/Android View 앱입니다. Android 7.0(API24) 및 OpenGL ES3.0 이상.
 
-- 배경: 햇살 교실(기본), 고전 도서관, 나만의 방, 유리 온실, 북카페, 일본식 다다미방,
-  다락방, 미래 연구실, 마법사의 서재, 바닷가 별장, 기차 객실
-- 설정 → 배경 테마에서 이름과 미리보기로 선택하면 즉시 적용됩니다.
-- 책장: 햇살 원목 / 짙은 월넛 / 화이트 오크
-- 책: 고전 양장본 / 파스텔 북 / 모던 북 — 총 9가지 조합
-- 제목·주소·카테고리 검색, 즐겨찾기, 메모, 사이트 미리보기, 페이지 전환
-- 책을 길게 눌러 같은 칸 순서 변경 또는 다른 칸 이동 (한 칸 7권)
-- 두 손가락으로 오므리면 배경 속 작은 책장으로 축소, 작은 책장을 누르면 복원
-- 공간마다 지정한 가구 위치와 바닥 접촉 그림자, 가로·정사각 화면에서도 바닥을 유지하는 배경 자르기
-- 명패를 눌러 해당 칸에 추가, 설정에서 카테고리 이름·테마 변경
-- 빈 배경이나 헤더를 길게 누르면 교실만 표시, 화면을 누르면 서재 복원
+- 사용자 제공 GLB의 벽·창문·책상·침대·책장을 실제로 렌더링합니다.
+- 책장 터치로 접근, 두 손가락 오므리기 또는 뒤로 가기로 방에 복귀합니다. 550ms 전환은 현재 위치에서 반전합니다.
+- 3×3 실제 책 데이터, 칸당7권 페이지 분할, 제목·주소 검색, 메모·즐겨찾기·드래그 이동을 유지합니다.
+- 빈 공간 길게 누르기는 편집 화면을 숨기지 않습니다. 책 길게 누르기는 이동입니다.
+- 낮·밤·흐림·비·눈에 맞춰 창문 이미지와 실내 조명을 바꿉니다. 스탠드 조명을 별도로 끌 수 있습니다.
+- 계정 연결·자동 저장·Drive 동기화와 기존 데이터 구조를 유지합니다.
 
 ## 빌드와 검증
 
@@ -22,18 +18,22 @@ JDK17, Android SDK35, Gradle8.9 사용. Gradle wrapper는 원본 프로젝트와
 ```sh
 python3 -m pip install Pillow
 sh tests/run.sh
-gradle :app:assembleDebug :app:assembleDebugAndroidTest :app:lintDebug --no-daemon
+gradle :app:testDebugUnitTest :app:assembleDebug :app:assemblePreview :app:assembleDebugAndroidTest :app:lintDebug --no-daemon
 ```
 
 [Actions](https://github.com/shinminjun06/Sitebox-Android/actions)의 최신 성공 실행에서
 `SiteBox-debug-apk`와 실제 에뮬레이터 스크린샷 `SiteBox-device-qa`를 받을 수 있습니다.
 APK의 앱 정보와 `SOURCE_COMMIT.txt`에 빌드 소스 SHA가 기록됩니다.
 
+3.2.1 실제 3D 방 검증은 `Verify native 3D student room` 워크플로를 사용합니다.
+[SiteBox 3.2.1 서명 APK 직접 다운로드](https://raw.githubusercontent.com/shinminjun06/Sitebox-Android/e3923c19a02f68968a7e08cd5dea1903a40ab48d/distribution/sitebox-3.2.1/SiteBox-3.2.1.apk) · [Actions 다운로드](https://github.com/shinminjun06/Sitebox-Android/actions/runs/40110789107) (`SiteBox-3.2.1-installable-apk`).
+[3D 모델·좌표·에셋과 검증 결과](docs/FULL_ROOM_3D.md).
+
 ## 데이터 및 설치
 
 기존 MainActivity SharedPreferences와 `sites`, `categories`, `shelfTheme`, `bookTheme`
 키를 유지합니다. 독립적인 `backgroundTheme` 키에는 공간의 고정 ID를 저장하며,
-알 수 없거나 없는 ID는 기본 교실을 사용합니다. 데이터 구조는 호환됩니다. 단, **기존 APK와 서명이 다르면 Android가
+배경은 테마 1 공부방만 제공합니다. 삭제된 테마 또는 알 수 없는 ID는 공부방으로 전환하며, 예전 테마의 백업도 책 데이터를 유지해 복원합니다. 데이터 구조는 호환됩니다. 단, **기존 APK와 서명이 다르면 Android가
 덮어쓰기를 거부합니다.** 원래 서명 개인키 없이는 이 제한을 해결할 수 없습니다.
 기존 북마크가 있다면 데이터를 확보하지 않은 상태로 기존 앱을 삭제하지 마세요.
 `app-preview.apk`는 `com.sitebox.app.preview`로 별도 설치되어 기존 앱과 공존합니다.
@@ -141,6 +141,8 @@ R8 매핑 파일 `app/build/outputs/mapping/release/mapping.txt`도 버전별로
   두 기기의 정확히 동시 업로드는 서버 트랜잭션으로 직렬화되지 않으며, 마지막 업로드가 최근 서재가 됩니다.
 
 ### Google 연결을 실제로 활성화하는 소유자 설정
+
+3.0.1의 새 검증용 릴리스 키는 아래 기존 운영 인증서와 다릅니다. 전달 APK의 `APK-INFO.md`에서 실제 SHA-1을 확인하고 [현재 로그인·자동 동기화 설정 안내](docs/GOOGLE_DRIVE_SETUP_KO.md)를 따르세요. 검증 APK는 기존 운영 설치본에 덮어설치할 수 없습니다.
 
 앱 코드만으로 Google Cloud 설정을 대신할 수 없습니다. 해당 Cloud 프로젝트에서:
 

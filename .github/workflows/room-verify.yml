@@ -1,0 +1,104 @@
+name: Verify native 3D student room
+on:
+  push:
+    branches: [ci/student-room-20261023]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: sitebox-student-room-qa
+  cancel-in-progress: true
+jobs:
+  room-qa:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+      - name: Install SDK and artwork validation tools
+        timeout-minutes: 6
+        run: |
+          if [ ! -f "$ANDROID_HOME/platforms/android-35/android.jar" ] || [ ! -x "$ANDROID_HOME/build-tools/35.0.0/aapt2" ]; then
+            timeout 90s bash -c 'yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null' || true
+            timeout 180s "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" 'platforms;android-35' 'build-tools;35.0.0'
+          fi
+          python3 -m pip install Pillow
+          if ! command -v ffprobe >/dev/null; then
+            mkdir -p "$RUNNER_TEMP/sitebox-tools"
+            curl -fL --retry 3 --max-time 120 https://github.com/eugeneware/ffmpeg-static/releases/download/b6.1.1/ffprobe-linux-x64.gz -o "$RUNNER_TEMP/sitebox-ffprobe.gz"
+            echo "25d9b6ccb05e3d9de9e04e31e2506d8dd7f9f0418981965ac6df12e8d3afd067  $RUNNER_TEMP/sitebox-ffprobe.gz" | sha256sum --check -
+            gzip -dc "$RUNNER_TEMP/sitebox-ffprobe.gz" > "$RUNNER_TEMP/sitebox-tools/ffprobe"
+            chmod +x "$RUNNER_TEMP/sitebox-tools/ffprobe"
+            echo "$RUNNER_TEMP/sitebox-tools" >> "$GITHUB_PATH"
+            export PATH="$RUNNER_TEMP/sitebox-tools:$PATH"
+          fi
+          ffprobe -version
+      - name: Verify model assets, geometry, unit tests and Android builds
+        run: |
+          sh tests/run.sh
+          gradle :app:testDebugUnitTest :app:assembleDebug :app:assembleDebugAndroidTest :app:lintDebug --no-daemon --console=plain
+      - name: Enable emulator acceleration
+        run: sudo chmod 666 /dev/kvm
+      - name: Capture solid books and window lighting preview
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          target: google_apis
+          arch: x86_64
+          profile: pixel_5
+          cores: 4
+          ram-size: 4096M
+          disable-animations: true
+          emulator-options: -no-window -gpu swangle -noaudio -no-boot-anim -camera-back none -camera-front none -no-snapshot-save
+          script: |
+            adb shell wm size 720x1560
+            adb shell wm density 320
+            adb shell cmd overlay enable-exclusive --category com.android.internal.systemui.navbar.threebutton
+            adb install -r app/build/outputs/apk/debug/app-debug.apk
+            adb install -r app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk
+            bash scripts/run_solid_visual_checks.sh
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: SiteBox-solid-books-preview
+          path: |
+            solid-preview.txt
+            solid-preview/
+          retention-days: 30
+      - name: Exercise the actual app on Android 15
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          target: google_apis
+          arch: x86_64
+          profile: pixel_5
+          cores: 4
+          ram-size: 4096M
+          disable-animations: true
+          emulator-options: -no-window -gpu swangle -noaudio -no-boot-anim -camera-back none -camera-front none -no-snapshot-save
+          script: |
+            adb shell wm size 720x1560
+            adb shell wm density 320
+            adb shell cmd overlay enable-exclusive --category com.android.internal.systemui.navbar.threebutton
+            adb install -r app/build/outputs/apk/debug/app-debug.apk
+            adb install -r app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk
+            bash scripts/run_model_device_checks.sh
+            python3 tests/check_model_lighting.py room-device-qa/qa >> room-device-tests.txt
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: SiteBox-student-room-qa
+          path: |
+            room-device-tests.txt
+            room-device-qa/
+            app/build/reports/room-experience/
+            app/build/reports/lint-results-debug.html
+            app/build/test-results/testDebugUnitTest/
+          retention-days: 30
+          if-no-files-found: warn
