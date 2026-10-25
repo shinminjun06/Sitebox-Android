@@ -49,7 +49,7 @@ final class ModelEnvironment {
  }
  void setAtmosphere(float day,float cloud,int precipitation,boolean lamp){
   float night=1-day,overcast=1-cloud*.45f;
-  nightSky.setParameter("baseColorFactor",.5f,.6f,.9f,1f);
+  nightSky.setParameter("baseColorFactor",.05f,.09f,.22f,1f);
   sky.setParameter("baseColorFactor",overcast,overcast,overcast,day);
   float[] veil=RoomLighting.cloudSky(day,cloud);cloudSky.setParameter("baseColorFactor",veil[0],veil[1],veil[2],veil[3]);
   if(precipitation==2)roofs.setParameter("baseColorFactor",.92f,.96f,1f,1f);else roofs.setParameter("baseColorFactor",.16f,.19f,.23f,1f);
